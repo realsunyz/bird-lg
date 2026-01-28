@@ -7,11 +7,12 @@ on:
   pull_request:
     branches:
       - "main"
+  workflow_dispatch:
 
 env:
   VULTR_REGISTRY: sjc.vultrcr.com
   VULTR_IMAGE_NAME: seven/bird-lg
-  GHCR_IMAGE_NAME: bird-lg
+  GHCR_IMAGE_NAME: realsunyz/bird-lg
 
 jobs:
   changes:
@@ -113,8 +114,8 @@ jobs:
           tags: |
             ${{ env.VULTR_REGISTRY }}/${{ env.VULTR_IMAGE_NAME }}:frontend-dev
             ${{ env.VULTR_REGISTRY }}/${{ env.VULTR_IMAGE_NAME }}:frontend-dev-${{ github.sha }}
-            ghcr.io/${{ github.repository_owner }}/${{ env.GHCR_IMAGE_NAME }}:frontend-dev
-            ghcr.io/${{ github.repository_owner }}/${{ env.GHCR_IMAGE_NAME }}:frontend-dev-${{ github.sha }}
+            ghcr.io/${{ env.GHCR_IMAGE_NAME }}:frontend-dev
+            ghcr.io/${{ env.GHCR_IMAGE_NAME }}:frontend-dev-${{ github.sha }}
 
       - name: Generate Artifact Attestation - Frontend
         if: needs.changes.outputs.frontend == 'true'
@@ -136,8 +137,8 @@ jobs:
           tags: |
             ${{ env.VULTR_REGISTRY }}/${{ env.VULTR_IMAGE_NAME }}:client-dev
             ${{ env.VULTR_REGISTRY }}/${{ env.VULTR_IMAGE_NAME }}:client-dev-${{ github.sha }}
-            ghcr.io/${{ github.repository_owner }}/${{ env.GHCR_IMAGE_NAME }}:client-dev
-            ghcr.io/${{ github.repository_owner }}/${{ env.GHCR_IMAGE_NAME }}:client-dev-${{ github.sha }}
+            ghcr.io/${{ env.GHCR_IMAGE_NAME }}:client-dev
+            ghcr.io/${{ env.GHCR_IMAGE_NAME }}:client-dev-${{ github.sha }}
 
       - name: Generate Artifact Attestation - Client
         if: needs.changes.outputs.client == 'true'

@@ -7,7 +7,7 @@ on:
 env:
   VULTR_REGISTRY: sjc.vultrcr.com
   VULTR_IMAGE_NAME: seven/bird-lg
-  GHCR_IMAGE_NAME: bird-lg
+  GHCR_IMAGE_NAME: realsunyz/bird-lg
 
 jobs:
   build-client-binary:
@@ -79,8 +79,8 @@ jobs:
           tags: |
             ${{ env.VULTR_REGISTRY }}/${{ env.VULTR_IMAGE_NAME }}:frontend
             ${{ env.VULTR_REGISTRY }}/${{ env.VULTR_IMAGE_NAME }}:frontend-${{ github.event.release.tag_name }}
-            ghcr.io/${{ github.repository_owner }}/${{ env.GHCR_IMAGE_NAME }}:frontend
-            ghcr.io/${{ github.repository_owner }}/${{ env.GHCR_IMAGE_NAME }}:frontend-${{ github.event.release.tag_name }}
+            ghcr.io/${{ env.GHCR_IMAGE_NAME }}:frontend
+            ghcr.io/${{ env.GHCR_IMAGE_NAME }}:frontend-${{ github.event.release.tag_name }}
 
       - name: Generate Artifact Attestation - Frontend
         uses: actions/attest-build-provenance@v3
@@ -100,8 +100,8 @@ jobs:
           tags: |
             ${{ env.VULTR_REGISTRY }}/${{ env.VULTR_IMAGE_NAME }}:client
             ${{ env.VULTR_REGISTRY }}/${{ env.VULTR_IMAGE_NAME }}:client-${{ github.event.release.tag_name }}
-            ghcr.io/${{ github.repository_owner }}/${{ env.GHCR_IMAGE_NAME }}:client
-            ghcr.io/${{ github.repository_owner }}/${{ env.GHCR_IMAGE_NAME }}:client-${{ github.event.release.tag_name }}
+            ghcr.io/${{ env.GHCR_IMAGE_NAME }}:client
+            ghcr.io/${{ env.GHCR_IMAGE_NAME }}:client-${{ github.event.release.tag_name }}
 
       - name: Generate Artifact Attestation - Client
         uses: actions/attest-build-provenance@v3
