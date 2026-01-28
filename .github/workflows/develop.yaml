@@ -1,0 +1,149 @@
+name: Development Builds
+
+on:
+  push:
+    branches:
+      - "main"
+  pull_request:
+    branches:
+      - "main"
+
+env:
+  VULTR_REGISTRY: sjc.vultrcr.com
+  VULTR_IMAGE_NAME: seven/bird-lg
+  GHCR_IMAGE_NAME: bird-lg
+
+jobs:
+  changes:
+    name: Check Code Changes
+    runs-on: ubuntu-latest
+    outputs:
+      frontend: ${{ steps.filter.outputs.frontend }}
+      client: ${{ steps.filter.outputs.client }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect Changed Paths
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            frontend:
+              - 'frontend/**'
+            client:
+              - 'client/**'
+
+  build-client-binary:
+    name: Build Client Binary
+    runs-on: ubuntu-latest
+    needs:
+      - changes
+    if: github.event_name != 'pull_request' && needs.changes.outputs.client == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        goarch: [amd64, arm64]
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Golang
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.21"
+
+      - name: Build Client
+        env:
+          GOOS: linux
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: 0
+        run: |
+          cd client
+          go build -ldflags="-s -w" -o bird-lg-client-linux-${{ matrix.goarch }} .
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: bird-lg-client-linux-${{ matrix.goarch }}
+          path: client/bird-lg-client-*
+
+  build-docker:
+    name: Build Docker Image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      attestations: write
+      id-token: write
+    needs:
+      - changes
+    if: github.event_name != 'pull_request' && (needs.changes.outputs.frontend == 'true' || needs.changes.outputs.client == 'true')
+    steps:
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Login in to Vultr Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.VULTR_REGISTRY }}
+          username: ${{ secrets.VULTR_USERNAME }}
+          password: ${{ secrets.VULTR_PASSWORD }}
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build - Frontend
+        id: frontend
+        if: needs.changes.outputs.frontend == 'true'
+        uses: docker/build-push-action@v6
+        with:
+          context: "{{defaultContext}}:frontend"
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ${{ env.VULTR_REGISTRY }}/${{ env.VULTR_IMAGE_NAME }}:frontend-dev
+            ${{ env.VULTR_REGISTRY }}/${{ env.VULTR_IMAGE_NAME }}:frontend-dev-${{ github.sha }}
+            ghcr.io/${{ github.repository_owner }}/${{ env.GHCR_IMAGE_NAME }}:frontend-dev
+            ghcr.io/${{ github.repository_owner }}/${{ env.GHCR_IMAGE_NAME }}:frontend-dev-${{ github.sha }}
+
+      - name: Generate Artifact Attestation - Frontend
+        if: needs.changes.outputs.frontend == 'true'
+        uses: actions/attest-build-provenance@v3
+        continue-on-error: true
+        with:
+          subject-name: ${{ env.VULTR_REGISTRY }}/${{ env.VULTR_IMAGE_NAME }}
+          subject-digest: ${{ steps.frontend.outputs.digest }}
+          push-to-registry: true
+
+      - name: Build - Client
+        id: client
+        if: needs.changes.outputs.client == 'true'
+        uses: docker/build-push-action@v6
+        with:
+          context: "{{defaultContext}}:client"
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ${{ env.VULTR_REGISTRY }}/${{ env.VULTR_IMAGE_NAME }}:client-dev
+            ${{ env.VULTR_REGISTRY }}/${{ env.VULTR_IMAGE_NAME }}:client-dev-${{ github.sha }}
+            ghcr.io/${{ github.repository_owner }}/${{ env.GHCR_IMAGE_NAME }}:client-dev
+            ghcr.io/${{ github.repository_owner }}/${{ env.GHCR_IMAGE_NAME }}:client-dev-${{ github.sha }}
+
+      - name: Generate Artifact Attestation - Client
+        if: needs.changes.outputs.client == 'true'
+        uses: actions/attest-build-provenance@v3
+        continue-on-error: true
+        with:
+          subject-name: ${{ env.VULTR_REGISTRY }}/${{ env.VULTR_IMAGE_NAME }}
+          subject-digest: ${{ steps.client.outputs.digest }}
+          push-to-registry: true
