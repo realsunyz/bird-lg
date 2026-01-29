@@ -394,17 +394,7 @@ function SummaryTab({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-medium font-title">Protocol Summary</h3>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => query("summary")}
-          disabled={loading}
-        >
-          Refresh
-        </Button>
-      </div>
+      <h3 className="text-lg font-medium font-title">Protocol Summary</h3>
 
       {loading && (
         <div className="py-12 flex justify-center text-muted-foreground">
@@ -433,7 +423,7 @@ function SummaryTab({
             <TableBody>
               {filteredProtocols.map((p, i) => (
                 <TableRow key={i}>
-                  <TableCell className="font-medium text-xs">
+                  <TableCell className="font-medium text-sm">
                     <button
                       onClick={() => onProtocolSelect(p.name)}
                       className="hover:underline cursor-pointer text-primary focus:outline-none"
@@ -441,21 +431,21 @@ function SummaryTab({
                       {p.name}
                     </button>
                   </TableCell>
-                  <TableCell className="text-xs">{p.proto}</TableCell>
+                  <TableCell className="text-sm">{p.proto}</TableCell>
                   <TableCell>
                     <span
                       className={cn(
-                        "text-xs font-semibold",
+                        "text-sm font-semibold",
                         getStateColor(p.state),
                       )}
                     >
                       {p.state}
                     </span>
                   </TableCell>
-                  <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
+                  <TableCell className="text-muted-foreground text-sm whitespace-nowrap">
                     {p.since}
                   </TableCell>
-                  <TableCell className="text-xs text-muted-foreground">
+                  <TableCell className="text-sm text-muted-foreground">
                     {p.info}
                   </TableCell>
                 </TableRow>
@@ -526,7 +516,7 @@ function RouteTab({
 
       {data && (
         <div className="rounded-md bg-muted p-4 overflow-x-auto">
-          <pre className="text-xs font-mono whitespace-pre-wrap">{data}</pre>
+          <pre className="text-sm font-mono whitespace-pre-wrap">{data}</pre>
         </div>
       )}
     </div>
@@ -565,7 +555,7 @@ function TracerouteTab({ query, loading, result, error }: TabProps) {
 
       {data && (
         <div className="rounded-md bg-muted p-4 overflow-x-auto">
-          <pre className="text-xs font-mono whitespace-pre-wrap">{data}</pre>
+          <pre className="text-sm font-mono whitespace-pre-wrap">{data}</pre>
         </div>
       )}
     </div>
