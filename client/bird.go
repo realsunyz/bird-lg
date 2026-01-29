@@ -9,7 +9,6 @@ import (
 	"time"
 )
 
-// SummaryRowData represents a single protocol entry
 type SummaryRowData struct {
 	Name  string `json:"name"`
 	Proto string `json:"proto"`
@@ -19,7 +18,7 @@ type SummaryRowData struct {
 	Info  string `json:"info"`
 }
 
-// queryBird sends a command to BIRD and returns the response
+// Send a command to BIRD and returns the response
 func queryBird(command string) (string, error) {
 	conn, err := net.DialTimeout("unix", birdSocket, 5*time.Second)
 	if err != nil {

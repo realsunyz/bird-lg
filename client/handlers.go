@@ -6,7 +6,6 @@ import (
 	"net/http"
 )
 
-// ApiRequest represents the incoming API request
 type ApiRequest struct {
 	Servers []string `json:"servers"`
 	Type    string   `json:"type"`

@@ -1,54 +1,29 @@
 package main
 
 import (
-	"crypto/ecdsa"
+	"crypto/hmac"
 	"crypto/sha256"
-	"crypto/x509"
 	"encoding/base64"
-	"encoding/pem"
 	"fmt"
 	"io"
 	"net/http"
-	"os"
 	"strconv"
 	"strings"
 	"time"
 )
 
-var publicKey *ecdsa.PublicKey
+var sharedSecret string
 
-// loadPublicKey loads an ECDSA public key from a PEM file
-func loadPublicKey(filename string) error {
-	data, err := os.ReadFile(filename)
-	if err != nil {
-		return fmt.Errorf("failed to read public key file: %w", err)
-	}
-
-	block, _ := pem.Decode(data)
-	if block == nil {
-		return fmt.Errorf("failed to parse PEM block")
-	}
-
-	pub, err := x509.ParsePKIXPublicKey(block.Bytes)
-	if err != nil {
-		return fmt.Errorf("failed to parse public key: %w", err)
-	}
-
-	var ok bool
-	publicKey, ok = pub.(*ecdsa.PublicKey)
-	if !ok {
-		return fmt.Errorf("not an ECDSA public key")
-	}
-
-	return nil
+func setSharedSecret(secret string) {
+	sharedSecret = secret
 }
 
-// verifySignature verifies the ECDSA signature of a request
-// Signature format: base64(sign(sha256(timestamp + ":" + body)))
-// Headers required: X-Signature, X-Timestamp
+// Verify the HMAC-SHA256 signature of a request
+// Format: base64(hmac-sha256(timestamp + ":" + body))
+// Headers: X-Signature, X-Timestamp
 func verifySignature(r *http.Request) error {
-	if publicKey == nil {
-		return nil // No verification if no public key configured
+	if sharedSecret == "" {
+		return nil // Disable verification if no secret configured
 	}
 
 	signature := r.Header.Get("X-Signature")
@@ -75,18 +50,14 @@ func verifySignature(r *http.Request) error {
 		return fmt.Errorf("failed to read body: %w", err)
 	}
 
-	// Compute hash
+	// Compute expected signature
 	message := fmt.Sprintf("%s:%s", timestampStr, string(body))
-	hash := sha256.Sum256([]byte(message))
+	mac := hmac.New(sha256.New, []byte(sharedSecret))
+	mac.Write([]byte(message))
+	expectedSig := base64.StdEncoding.EncodeToString(mac.Sum(nil))
 
-	// Decode signature
-	sigBytes, err := base64.StdEncoding.DecodeString(signature)
-	if err != nil {
-		return fmt.Errorf("invalid signature encoding")
-	}
-
-	// Verify
-	if !ecdsa.VerifyASN1(publicKey, hash[:], sigBytes) {
+	// Verify signature
+	if signature != expectedSig {
 		return fmt.Errorf("signature verification failed")
 	}
 
@@ -96,7 +67,7 @@ func verifySignature(r *http.Request) error {
 	return nil
 }
 
-// authMiddleware wraps a handler with ECDSA signature verification
+// Wrap a handler with HMAC signature verification
 func authMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if err := verifySignature(r); err != nil {
@@ -107,7 +78,7 @@ func authMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	}
 }
 
-// corsMiddleware adds CORS headers
+// Add CORS headers
 func corsMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		origin := r.Header.Get("Origin")

@@ -9,28 +9,26 @@ import (
 var (
 	listenAddr     string
 	birdSocket     string
-	publicKeyFile  string
+	hmacSecret     string
 	allowedOrigins string
 )
 
 func init() {
 	flag.StringVar(&listenAddr, "listen", ":8000", "Listen address")
 	flag.StringVar(&birdSocket, "bird", "/run/bird/bird.ctl", "BIRD socket path")
-	flag.StringVar(&publicKeyFile, "pubkey", "", "ECDSA public key file for signature verification")
+	flag.StringVar(&hmacSecret, "secret", "", "HMAC shared secret for signature verification")
 	flag.StringVar(&allowedOrigins, "origins", "*", "Allowed CORS origins (comma-separated)")
 }
 
 func main() {
 	flag.Parse()
 
-	// Load ECDSA public key if provided
-	if publicKeyFile != "" {
-		if err := loadPublicKey(publicKeyFile); err != nil {
-			log.Fatalf("Failed to load public key: %v", err)
-		}
-		log.Printf("ECDSA signature verification enabled")
+	// Set HMAC shared secret if provided
+	if hmacSecret != "" {
+		setSharedSecret(hmacSecret)
+		log.Printf("HMAC signature verification enabled")
 	} else {
-		log.Printf("WARNING: ECDSA signature verification disabled - API is unprotected!")
+		log.Printf("WARNING: HMAC secret not configured - API is unprotected!")
 	}
 
 	// Setup HTTP routes
