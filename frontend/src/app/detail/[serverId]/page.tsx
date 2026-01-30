@@ -73,6 +73,7 @@ export default function DetailPage() {
   const router = useRouter();
   const params = useParams();
   const serverId = params.serverId as string;
+  const { t } = useTranslation();
 
   const [config, setConfig] = useState<ClientConfig | null>(null);
   const [server, setServer] = useState<ServerConfig | null>(null);
@@ -98,10 +99,10 @@ export default function DetailPage() {
             setVerified(true);
           }
         } else {
-          setError("Server not found");
+          setError(t.detail.server_not_found);
         }
       })
-      .catch(() => setError("Failed to load config"));
+      .catch(() => setError(t.detail.failed_load_config));
   }, [serverId]);
 
   // Init Turnstile
@@ -120,7 +121,7 @@ export default function DetailPage() {
             sessionStorage.setItem("serverId", serverId);
           },
           "error-callback": () => {
-            setError("Verification failed");
+            setError(t.turnstile.verification_failed);
           },
         });
       }
@@ -131,16 +132,22 @@ export default function DetailPage() {
   }, [config, server, verified, serverId]);
 
   if (error) {
+    const errorKey = error.replace(
+      "turnstile.",
+      "",
+    ) as keyof typeof t.turnstile;
+    const finalError = t.turnstile[errorKey] || error;
+
     return (
       <div className="min-h-screen bg-background flex items-center justify-center font-sans">
         <Card className="max-w-md w-full border-destructive/50">
           <CardHeader>
-            <CardTitle className="text-destructive">Error</CardTitle>
-            <CardDescription>{error}</CardDescription>
+            <CardTitle className="text-destructive">{t.common.error}</CardTitle>
+            <CardDescription>{finalError}</CardDescription>
           </CardHeader>
           <CardContent>
             <Button variant="outline" onClick={() => router.push("/")}>
-              Back to Home
+              {t.common.back_to_home}
             </Button>
           </CardContent>
         </Card>
@@ -198,7 +205,7 @@ export default function DetailPage() {
               <CardContent className="flex flex-col items-center">
                 <Separator className="my-4" />
                 <p className="text-sm text-muted-foreground mb-4 font-sans text-center">
-                  Please complete the CAPTCHA first.
+                  {t.detail.please_complete_captcha}
                 </p>
                 <div id="turnstile-container" className="mb-2 min-h-[65px]" />
               </CardContent>
@@ -222,6 +229,9 @@ export default function DetailPage() {
   );
 }
 
+import { useTranslation } from "@/components/i18n-provider";
+import { LanguageSwitcher } from "@/components/language-switcher";
+
 // Header component
 function Header({
   title,
@@ -234,25 +244,28 @@ function Header({
 }) {
   return (
     <div className="border-b bg-card">
-      <div className="flex h-16 items-center px-4 max-w-7xl mx-auto w-full">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={onBack}
-          className="mr-2 -ml-2"
-        >
-          <ChevronLeft className="h-5 w-5" />
-        </Button>
-        <div className="flex items-center gap-3">
-          <span className="text-lg font-bold font-title tracking-tight">
-            {title}
-          </span>
-          {serverName && (
-            <Badge variant="secondary" className="font-sans font-normal">
-              {serverName}
-            </Badge>
-          )}
+      <div className="flex h-16 items-center px-4 max-w-7xl mx-auto w-full justify-between">
+        <div className="flex items-center">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onBack}
+            className="mr-2 -ml-2"
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </Button>
+          <div className="flex items-center gap-3">
+            <span className="text-lg font-bold font-title tracking-tight">
+              {title}
+            </span>
+            {serverName && (
+              <Badge variant="secondary" className="font-sans font-normal">
+                {serverName}
+              </Badge>
+            )}
+          </div>
         </div>
+        <LanguageSwitcher />
       </div>
     </div>
   );
@@ -266,6 +279,7 @@ function QueryInterface({
   server: ServerConfig;
   token: string;
 }) {
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState<unknown>(null);
@@ -324,9 +338,9 @@ function QueryInterface({
         className="w-full"
       >
         <TabsList className="grid w-full grid-cols-3 max-w-md mb-8">
-          <TabsTrigger value="summary">Summary</TabsTrigger>
-          <TabsTrigger value="route">Route</TabsTrigger>
-          <TabsTrigger value="traceroute">Traceroute</TabsTrigger>
+          <TabsTrigger value="summary">{t.detail.summary}</TabsTrigger>
+          <TabsTrigger value="route">{t.detail.route}</TabsTrigger>
+          <TabsTrigger value="traceroute">{t.detail.traceroute}</TabsTrigger>
         </TabsList>
 
         <Card>
@@ -381,6 +395,7 @@ function SummaryTab({
   error,
   onProtocolSelect,
 }: TabProps & { onProtocolSelect: (name: string) => void }) {
+  const { t } = useTranslation();
   useEffect(() => {
     query("summary");
   }, []);
@@ -395,11 +410,13 @@ function SummaryTab({
 
   return (
     <div className="space-y-4">
-      <h3 className="text-lg font-medium font-title">Protocol Summary</h3>
+      <h3 className="text-lg font-medium font-title">
+        {t.detail.protocol_summary}
+      </h3>
 
       {loading && (
         <div className="py-12 flex justify-center text-muted-foreground">
-          Loading protocols...
+          {t.detail.loading_protocols}
         </div>
       )}
 
@@ -414,11 +431,11 @@ function SummaryTab({
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Proto</TableHead>
-                <TableHead>State</TableHead>
-                <TableHead>Since</TableHead>
-                <TableHead>Info</TableHead>
+                <TableHead>{t.detail.table.name}</TableHead>
+                <TableHead>{t.detail.table.proto}</TableHead>
+                <TableHead>{t.detail.table.state}</TableHead>
+                <TableHead>{t.detail.table.since}</TableHead>
+                <TableHead>{t.detail.table.info}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -474,13 +491,14 @@ function RouteTab({
   input: string;
   setInput: (v: string) => void;
 }) {
+  const { t } = useTranslation();
   const handleSubmit = () => query("bird", `${preset} ${input}`.trim());
   const data =
     (result as { result?: { data: string }[] })?.result?.[0]?.data || "";
 
   return (
     <div className="space-y-4">
-      <h3 className="text-lg font-medium font-title">Route Query</h3>
+      <h3 className="text-lg font-medium font-title">{t.detail.route_query}</h3>
       <div className="flex flex-col sm:flex-row gap-2">
         <Select value={preset} onValueChange={setPreset}>
           <SelectTrigger className="w-full sm:w-[200px]">
@@ -505,7 +523,7 @@ function RouteTab({
           className="flex-1 font-mono"
         />
         <Button onClick={handleSubmit} disabled={loading}>
-          {loading ? "Executing..." : "Execute"}
+          {loading ? t.detail.executing : t.detail.execute}
         </Button>
       </div>
 
@@ -527,6 +545,7 @@ function RouteTab({
 }
 
 function TracerouteTab({ query, loading, result, error }: TabProps) {
+  const { t } = useTranslation();
   const [target, setTarget] = useState("");
   const handleSubmit = () => {
     if (target) query("traceroute", target);
@@ -536,17 +555,17 @@ function TracerouteTab({ query, loading, result, error }: TabProps) {
 
   return (
     <div className="space-y-4">
-      <h3 className="text-lg font-medium font-title">Traceroute</h3>
+      <h3 className="text-lg font-medium font-title">{t.detail.traceroute}</h3>
       <div className="flex gap-2">
         <Input
-          placeholder="1.1.1.1 or example.com"
+          placeholder={t.detail.traceroute_placeholder}
           value={target}
           onChange={(e) => setTarget(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
           className="flex-1 font-mono"
         />
         <Button onClick={handleSubmit} disabled={loading || !target}>
-          {loading ? "Running..." : "Run"}
+          {loading ? t.detail.running : t.detail.run}
         </Button>
       </div>
 

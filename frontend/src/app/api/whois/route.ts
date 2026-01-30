@@ -35,10 +35,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Query required" }, { status: 400 });
     }
 
-    // Check if bogon
     const bogonCheck = checkBogon(target);
     if (bogonCheck.isBogon) {
-      return NextResponse.json({ bogon: true, reason: bogonCheck.reason });
+      return NextResponse.json({
+        bogon: true,
+        reasonKey: bogonCheck.reasonKey,
+        params: bogonCheck.params,
+      });
     }
 
     // Step 1: Query IANA

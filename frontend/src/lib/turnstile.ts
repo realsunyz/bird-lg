@@ -40,8 +40,7 @@ export async function verifyTurnstile(
     console.error("Turnstile verification network error:", err.message);
     return {
       success: false,
-      error:
-        "The CAPTCHA service is currently unavailable. Please try again later or contact the NOC.",
+      error: "turnstile.error_unavailable",
     };
   }
 }

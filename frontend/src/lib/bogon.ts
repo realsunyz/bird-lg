@@ -103,7 +103,8 @@ function isIPv6InCIDR(ip: string, cidr: string): boolean {
 export interface BogonCheckResult {
   isBogon: boolean;
   type?: "asn" | "ipv4" | "ipv6";
-  reason?: string;
+  reasonKey?: "bogon_asn" | "bogon_ip";
+  params?: Record<string, string | number>;
 }
 
 export function checkBogon(query: string): BogonCheckResult {
@@ -118,7 +119,8 @@ export function checkBogon(query: string): BogonCheckResult {
         return {
           isBogon: true,
           type: "asn",
-          reason: `AS${asn} is a bogon ASN, which is unallocated or reserved.`,
+          reasonKey: "bogon_asn",
+          params: { asn },
         };
       }
     }
@@ -134,7 +136,8 @@ export function checkBogon(query: string): BogonCheckResult {
         return {
           isBogon: true,
           type: "ipv4",
-          reason: `${ip} is a bogon IPv4 address, which is unallocated or reserved.`,
+          reasonKey: "bogon_ip",
+          params: { ip },
         };
       }
     }
@@ -148,7 +151,8 @@ export function checkBogon(query: string): BogonCheckResult {
         return {
           isBogon: true,
           type: "ipv6",
-          reason: `${query} is a bogon IPv6 address, which is unallocated or reserved.`,
+          reasonKey: "bogon_ip",
+          params: { ip: query },
         };
       }
     }
