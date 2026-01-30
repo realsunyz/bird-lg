@@ -32,6 +32,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import Link from "next/link";
 import { cn } from "@/lib/utils";
 
 interface ProtocolInfo {
@@ -516,7 +517,9 @@ function RouteTab({
 
       {data && (
         <div className="rounded-md bg-muted p-4 overflow-x-auto">
-          <pre className="text-sm font-mono whitespace-pre-wrap">{data}</pre>
+          <pre className="text-sm font-mono whitespace-pre-wrap">
+            {formatOutput(data)}
+          </pre>
         </div>
       )}
     </div>
@@ -555,7 +558,9 @@ function TracerouteTab({ query, loading, result, error }: TabProps) {
 
       {data && (
         <div className="rounded-md bg-muted p-4 overflow-x-auto">
-          <pre className="text-sm font-mono whitespace-pre-wrap">{data}</pre>
+          <pre className="text-sm font-mono whitespace-pre-wrap">
+            {formatOutput(data)}
+          </pre>
         </div>
       )}
     </div>
@@ -569,4 +574,57 @@ function getStateColor(state: string): string {
     return "text-yellow-600";
   if (lower.includes("down") || lower.includes("idle")) return "text-red-500";
   return "text-muted-foreground";
+}
+
+function formatOutput(text: string) {
+  const parts = text.split(/(\s+)/); // Preserves whitespace
+  return parts.map((part, index) => {
+    if (part.match(/^\s+$/)) return part; // Return whitespace as is
+
+    // Check ASN
+    if (part.match(/^AS\d+$/i)) {
+      return (
+        <Link
+          key={index}
+          href={`/whois/${part}`}
+          target="_blank"
+          className="text-primary hover:underline hover:text-blue-500 transition-colors"
+        >
+          {part}
+        </Link>
+      );
+    }
+    // Check IPv4
+    if (
+      part.match(
+        /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/,
+      )
+    ) {
+      return (
+        <Link
+          key={index}
+          href={`/whois/${part}`}
+          target="_blank"
+          className="text-primary hover:underline hover:text-blue-500 transition-colors"
+        >
+          {part}
+        </Link>
+      );
+    }
+    // Check IPv6 (basic check)
+    if (part.includes(":") && !part.includes("http") && part.length > 2) {
+      return (
+        <Link
+          key={index}
+          href={`/whois/${part}`}
+          target="_blank"
+          className="text-primary hover:underline hover:text-blue-500 transition-colors"
+        >
+          {part}
+        </Link>
+      );
+    }
+
+    return part;
+  });
 }
