@@ -22,10 +22,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const ip =
-      request.headers.get("CF-Connecting-IP") ||
-      request.headers.get("X-Forwarded-For") ||
-      undefined;
+    const ip = request.headers.get("X-Forwarded-For") || undefined;
     const verification = await verifyTurnstile(
       config.turnstile.secretKey,
       turnstileToken,
