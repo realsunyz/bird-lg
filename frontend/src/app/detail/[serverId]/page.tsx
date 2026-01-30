@@ -169,7 +169,7 @@ export default function DetailPage() {
     );
   }
 
-  // Show verification first
+  // Show captcha first
   if (!verified) {
     return (
       <>
@@ -198,7 +198,7 @@ export default function DetailPage() {
               <CardContent className="flex flex-col items-center">
                 <Separator className="my-4" />
                 <p className="text-sm text-muted-foreground mb-4 font-sans text-center">
-                  Please complete verification to access tools
+                  Please complete the CAPTCHA first.
                 </p>
                 <div id="turnstile-container" className="mb-2 min-h-[65px]" />
               </CardContent>
@@ -578,10 +578,10 @@ function getStateColor(state: string): string {
 
 function formatOutput(text: string) {
   const parts = text.split(/(\s+)/); // Preserves whitespace
-  return parts.map((part, index) => {
-    if (part.match(/^\s+$/)) return part; // Return whitespace as is
+  return parts.map((part, index, arr) => {
+    if (part.match(/^\s+$/)) return part; // Return whitespace as-is
 
-    // Check ASN
+    // Check ASN format
     if (part.match(/^AS\d+$/i)) {
       return (
         <Link
@@ -594,37 +594,100 @@ function formatOutput(text: string) {
         </Link>
       );
     }
+
+    // Pure number that might be ASN (if preceded by "AS:" or "AS")
+    if (part.match(/^\d+$/) && index >= 2) {
+      const prevNonWhitespace = findPrevNonWhitespace(arr, index);
+      if (
+        prevNonWhitespace &&
+        prevNonWhitespace.match(/^(Neighbor|Local|Remote|Peer)\s*AS:?$/i)
+      ) {
+        return (
+          <Link
+            key={index}
+            href={`/whois/AS${part}`}
+            target="_blank"
+            className="text-primary hover:underline hover:text-blue-500 transition-colors"
+          >
+            {part}
+          </Link>
+        );
+      }
+      if (prevNonWhitespace && prevNonWhitespace.match(/AS:$/i)) {
+        return (
+          <Link
+            key={index}
+            href={`/whois/AS${part}`}
+            target="_blank"
+            className="text-primary hover:underline hover:text-blue-500 transition-colors"
+          >
+            {part}
+          </Link>
+        );
+      }
+    }
+
     // Check IPv4
-    if (
-      part.match(
-        /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/,
-      )
-    ) {
+    const ipv4Match = part.match(
+      /^((?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?))(%[a-zA-Z0-9_-]+)?$/,
+    );
+    if (ipv4Match) {
+      const ip = ipv4Match[1];
+      const suffix = ipv4Match[2] || "";
       return (
-        <Link
-          key={index}
-          href={`/whois/${part}`}
-          target="_blank"
-          className="text-primary hover:underline hover:text-blue-500 transition-colors"
-        >
-          {part}
-        </Link>
+        <span key={index}>
+          <Link
+            href={`/whois/${ip}`}
+            target="_blank"
+            className="text-primary hover:underline hover:text-blue-500 transition-colors"
+          >
+            {ip}
+          </Link>
+          {suffix}
+        </span>
       );
     }
-    // Check IPv6 (basic check)
-    if (part.includes(":") && !part.includes("http") && part.length > 2) {
-      return (
-        <Link
-          key={index}
-          href={`/whois/${part}`}
-          target="_blank"
-          className="text-primary hover:underline hover:text-blue-500 transition-colors"
-        >
-          {part}
-        </Link>
-      );
+
+    // Check IPv6
+    const ipv6Match = part.match(
+      /^([0-9a-fA-F:]+(?::[0-9a-fA-F]+)*)(%[a-zA-Z0-9_-]+)?$/,
+    );
+    if (
+      ipv6Match &&
+      part.includes(":") &&
+      !part.includes("http") &&
+      part.length > 2
+    ) {
+      const ip = ipv6Match[1];
+      const suffix = ipv6Match[2] || "";
+      if ((ip.match(/:/g) || []).length >= 2 || ip === "::") {
+        return (
+          <span key={index}>
+            <Link
+              href={`/whois/${ip}`}
+              target="_blank"
+              className="text-primary hover:underline hover:text-blue-500 transition-colors"
+            >
+              {ip}
+            </Link>
+            {suffix}
+          </span>
+        );
+      }
     }
 
     return part;
   });
+}
+
+function findPrevNonWhitespace(
+  arr: string[],
+  currentIndex: number,
+): string | null {
+  for (let i = currentIndex - 1; i >= 0; i--) {
+    if (!arr[i].match(/^\s+$/)) {
+      return arr[i];
+    }
+  }
+  return null;
 }
