@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ChevronLeft } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { ChevronLeft, AlertCircleIcon } from "lucide-react";
 
 export default function WhoisPage() {
   const params = useParams();
@@ -14,6 +15,9 @@ export default function WhoisPage() {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState("");
   const [error, setError] = useState("");
+  const [bogon, setBogon] = useState<{ isBogon: boolean; reason?: string }>({
+    isBogon: false,
+  });
 
   useEffect(() => {
     if (!query) return;
@@ -26,7 +30,15 @@ export default function WhoisPage() {
       .then((res) => res.json())
       .then((json) => {
         if (json.error) setError(json.error);
-        else setData(json.result);
+        else if (json.bogon) setBogon({ isBogon: true, reason: json.reason });
+        else {
+          // Combine IANA and RIR results
+          let result = "";
+          if (json.iana) result += `--- IANA ---\n${json.iana}\n`;
+          if (json.rir && json.rirServer)
+            result += `\n--- ${json.rirServer} ---\n${json.rir}`;
+          setData(result);
+        }
       })
       .catch((e) => setError(String(e)))
       .finally(() => setLoading(false));
@@ -60,6 +72,13 @@ export default function WhoisPage() {
               <div className="text-muted-foreground">Loading whois data...</div>
             )}
             {error && <div className="text-destructive">{error}</div>}
+            {bogon.isBogon && (
+              <Alert variant="destructive">
+                <AlertCircleIcon className="h-4 w-4" />
+                <AlertTitle className="mb-1">Bogon Address</AlertTitle>
+                <AlertDescription>{bogon.reason}</AlertDescription>
+              </Alert>
+            )}
             {data && (
               <div className="rounded-md bg-muted p-4 overflow-x-auto">
                 <pre className="text-sm font-mono whitespace-pre-wrap">

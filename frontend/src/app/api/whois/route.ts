@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import net from "net";
+import { checkBogon } from "@/lib/bogon";
 
 async function queryWhois(server: string, query: string): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -34,25 +35,30 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Query required" }, { status: 400 });
     }
 
-    // Step 1: Query IANA
-    let output = "";
-    try {
-      const ianaResult = await queryWhois("whois.iana.org", target);
-      output += `--- IANA (${target}) ---\n${ianaResult}\n`;
-
-      // Step 2: Check for referral
-      const referMatch = ianaResult.match(/^refer:\s+(.+)$/m);
-      if (referMatch && referMatch[1]) {
-        const referralServer = referMatch[1].trim();
-        output += `\n--- Referral: ${referralServer} ---\n`;
-        const referralResult = await queryWhois(referralServer, target);
-        output += referralResult;
-      }
-    } catch (e) {
-      output += `\nError querying whois: ${e}`;
+    // Check if bogon
+    const bogonCheck = checkBogon(target);
+    if (bogonCheck.isBogon) {
+      return NextResponse.json({ bogon: true, reason: bogonCheck.reason });
     }
 
-    return NextResponse.json({ result: output });
+    // Step 1: Query IANA
+    let ianaResult = "";
+    let rirResult = "";
+    let rirServer = "";
+    try {
+      ianaResult = await queryWhois("whois.iana.org", target);
+
+      // Step 2: Check for referral (IANA uses both 'refer:' and 'whois:')
+      const referMatch = ianaResult.match(/^(?:refer|whois):\s+(.+)$/im);
+      if (referMatch && referMatch[1]) {
+        rirServer = referMatch[1].trim();
+        rirResult = await queryWhois(rirServer, target);
+      }
+    } catch (e) {
+      ianaResult += `\nError querying whois: ${e}`;
+    }
+
+    return NextResponse.json({ iana: ianaResult, rir: rirResult, rirServer });
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 });
   }
