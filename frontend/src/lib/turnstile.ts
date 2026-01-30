@@ -1,4 +1,3 @@
-// Turnstile verification
 interface TurnstileResponse {
   success: boolean;
   "error-codes"?: string[];
@@ -19,10 +18,14 @@ export async function verifyTurnstile(
     formData.append("response", token);
     if (remoteIp) formData.append("remoteip", remoteIp);
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5s timeout
+
     const response = await fetch(
       "https://challenges.cloudflare.com/turnstile/v0/siteverify",
-      { method: "POST", body: formData },
+      { method: "POST", body: formData, signal: controller.signal },
     );
+    clearTimeout(timeoutId);
 
     const result: TurnstileResponse = await response.json();
     if (!result.success) {
@@ -33,7 +36,12 @@ export async function verifyTurnstile(
     }
     return { success: true };
   } catch (error) {
-    console.error("Turnstile verification error:", error);
-    return { success: false, error: "Verification request failed" };
+    const err = error as Error;
+    console.error("Turnstile verification network error:", err.message);
+    return {
+      success: false,
+      error:
+        "The CAPTCHA service is currently unavailable. Please try again later or contact the NOC.",
+    };
   }
 }
