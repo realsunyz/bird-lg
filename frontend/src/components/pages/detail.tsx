@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
-import { useRouter, useParams } from "next/navigation";
-import Script from "next/script";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
+import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -13,7 +13,6 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Table,
@@ -32,8 +31,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "@/components/i18n-provider";
+import { LanguageSwitcher } from "@/components/language-switcher";
 
 interface ProtocolInfo {
   name: string;
@@ -57,96 +57,43 @@ interface ClientConfig {
   app: { title: string };
 }
 
-declare global {
-  interface Window {
-    turnstile?: {
-      render: (
-        container: string | HTMLElement,
-        options: Record<string, unknown>,
-      ) => string;
-    };
-    onTurnstileLoad?: () => void;
-  }
+interface DetailPageProps {
+  serverId: string;
 }
 
-export default function DetailPage() {
+export default function DetailPage({ serverId }: DetailPageProps) {
   const router = useRouter();
-  const params = useParams();
-  const serverId = params.serverId as string;
   const { t } = useTranslation();
 
   const [config, setConfig] = useState<ClientConfig | null>(null);
   const [server, setServer] = useState<ServerConfig | null>(null);
-  const [token, setToken] = useState<string | null>(null);
-  const [verified, setVerified] = useState(false);
   const [error, setError] = useState("");
-  const widgetIdRef = useRef<string | null>(null);
 
-  // Load config
   useEffect(() => {
     fetch("/api/config")
       .then((res) => res.json())
       .then((data: ClientConfig) => {
         setConfig(data);
         const s = data.servers.find((s) => s.id === serverId);
-        if (s) {
-          setServer(s);
-          // Check session storage for verification
-          const storedToken = sessionStorage.getItem("turnstileToken");
-          const storedServerId = sessionStorage.getItem("serverId");
-          if (storedToken && storedServerId === serverId) {
-            setToken(storedToken);
-            setVerified(true);
-          }
-        } else {
-          setError(t.detail.server_not_found);
-        }
+        if (s) setServer(s);
+        else setError(t.detail.server_not_found);
       })
       .catch(() => setError(t.detail.failed_load_config));
-  }, [serverId]);
-
-  // Init Turnstile
-  useEffect(() => {
-    if (!config || !server || verified || widgetIdRef.current) return;
-
-    const initTurnstile = () => {
-      const container = document.getElementById("turnstile-container");
-      if (container && window.turnstile && !widgetIdRef.current) {
-        widgetIdRef.current = window.turnstile.render(container, {
-          sitekey: config.turnstile.siteKey,
-          callback: (t: string) => {
-            setToken(t);
-            setVerified(true);
-            sessionStorage.setItem("turnstileToken", t);
-            sessionStorage.setItem("serverId", serverId);
-          },
-          "error-callback": () => {
-            setError(t.turnstile.verification_failed);
-          },
-        });
-      }
-    };
-
-    if (window.turnstile) initTurnstile();
-    else window.onTurnstileLoad = initTurnstile;
-  }, [config, server, verified, serverId]);
+  }, [serverId, t]);
 
   if (error) {
-    const errorKey = error.replace(
-      "turnstile.",
-      "",
-    ) as keyof typeof t.turnstile;
-    const finalError = t.turnstile[errorKey] || error;
-
     return (
       <div className="min-h-screen bg-background flex items-center justify-center font-sans">
         <Card className="max-w-md w-full border-destructive/50">
           <CardHeader>
             <CardTitle className="text-destructive">{t.common.error}</CardTitle>
-            <CardDescription>{finalError}</CardDescription>
+            <CardDescription>{error}</CardDescription>
           </CardHeader>
           <CardContent>
-            <Button variant="outline" onClick={() => router.push("/")}>
+            <Button
+              variant="outline"
+              onClick={() => (window.location.href = "/")}
+            >
               {t.common.back_to_home}
             </Button>
           </CardContent>
@@ -176,63 +123,18 @@ export default function DetailPage() {
     );
   }
 
-  // Show captcha first
-  if (!verified) {
-    return (
-      <>
-        <Script
-          src="https://challenges.cloudflare.com/turnstile/v0/api.js?onload=onTurnstileLoad"
-          async
-          defer
-        />
-        <div className="min-h-screen bg-background flex flex-col font-sans">
-          <Header title={config.app.title} onBack={() => router.push("/")} />
-          <div className="flex-1 flex flex-col items-center justify-center p-8">
-            <Card className="max-w-md w-full">
-              <CardHeader className="items-center text-center pb-2">
-                <div className="w-16 h-16 rounded-full border-2 flex items-center justify-center bg-muted/30 mb-4 font-title text-foreground">
-                  <span className="text-2xl font-medium">
-                    {server.icon || server.name.substring(0, 2).toUpperCase()}
-                  </span>
-                </div>
-                <CardTitle className="font-title text-2xl">
-                  {server.name}
-                </CardTitle>
-                <CardDescription className="font-sans">
-                  {server.location}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="flex flex-col items-center">
-                <Separator className="my-4" />
-                <p className="text-sm text-muted-foreground mb-4 font-sans text-center">
-                  {t.detail.please_complete_captcha}
-                </p>
-                <div id="turnstile-container" className="mb-2 min-h-[65px]" />
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </>
-    );
-  }
-
-  // Show query interface after verification
   return (
     <div className="min-h-screen bg-background flex flex-col font-sans">
       <Header
         title={config.app.title}
         serverName={server.name}
-        onBack={() => router.push("/")}
+        onBack={() => (window.location.href = "/")}
       />
-      <QueryInterface server={server} token={token!} />
+      <QueryInterface server={server} serverId={serverId} />
     </div>
   );
 }
 
-import { useTranslation } from "@/components/i18n-provider";
-import { LanguageSwitcher } from "@/components/language-switcher";
-
-// Header component
 function Header({
   title,
   serverName,
@@ -271,21 +173,19 @@ function Header({
   );
 }
 
-// Query interface component
 function QueryInterface({
   server,
-  token,
+  serverId,
 }: {
   server: ServerConfig;
-  token: string;
+  serverId: string;
 }) {
   const { t } = useTranslation();
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState<unknown>(null);
   const [activeTab, setActiveTab] = useState("summary");
-
-  // Lifted state for RouteTab
   const [routePreset, setRoutePreset] = useState("show route for");
   const [routeInput, setRouteInput] = useState("");
 
@@ -301,12 +201,14 @@ function QueryInterface({
 
       const res = await fetch("/api/query", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Turnstile-Token": token,
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
+
+      if (res.status === 401) {
+        router.push(`/captcha?redirect=/detail/${serverId}`);
+        return;
+      }
 
       const data = await res.json();
       if (data.error) setError(data.error);
@@ -319,11 +221,10 @@ function QueryInterface({
   };
 
   const handleProtocolSelect = (name: string) => {
-    const preset = "show protocols all";
-    setRoutePreset(preset);
+    setRoutePreset("show protocols all");
     setRouteInput(name);
     setActiveTab("route");
-    query("bird", `${preset} ${name}`);
+    query("bird", `show protocols all ${name}`);
   };
 
   return (
@@ -402,8 +303,7 @@ function SummaryTab({
   const protocols =
     (result as { result?: { data: ProtocolInfo[] }[] })?.result?.[0]?.data ||
     [];
-
-  const filteredProtocols = protocols.filter(
+  const filtered = protocols.filter(
     (p) =>
       !["static", "device", "direct", "kernel"].includes(p.proto.toLowerCase()),
   );
@@ -413,20 +313,17 @@ function SummaryTab({
       <h3 className="text-lg font-medium font-title">
         {t.detail.protocol_summary}
       </h3>
-
       {loading && (
         <div className="py-12 flex justify-center text-muted-foreground">
           {t.detail.loading_protocols}
         </div>
       )}
-
       {error && (
         <div className="p-4 rounded-md bg-destructive/10 text-destructive text-sm">
           {error}
         </div>
       )}
-
-      {!loading && !error && filteredProtocols.length > 0 && (
+      {!loading && !error && filtered.length > 0 && (
         <div className="rounded-md border">
           <Table>
             <TableHeader>
@@ -439,7 +336,7 @@ function SummaryTab({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredProtocols.map((p, i) => (
+              {filtered.map((p, i) => (
                 <TableRow key={i}>
                   <TableCell className="font-medium text-sm">
                     <button
@@ -506,13 +403,9 @@ function RouteTab({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="show route for">show route for</SelectItem>
-            <SelectItem value="show route protocol">
-              show route protocol
-            </SelectItem>
             <SelectItem value="show protocols all">
               show protocols all
             </SelectItem>
-            <SelectItem value="show route where">show route where</SelectItem>
           </SelectContent>
         </Select>
         <Input
@@ -526,13 +419,11 @@ function RouteTab({
           {loading ? t.detail.executing : t.detail.execute}
         </Button>
       </div>
-
       {error && (
         <div className="p-4 rounded-md bg-destructive/10 text-destructive text-sm">
           {error}
         </div>
       )}
-
       {data && (
         <div className="rounded-md bg-muted p-4 overflow-x-auto">
           <pre className="text-sm font-mono whitespace-pre-wrap">
@@ -568,13 +459,11 @@ function TracerouteTab({ query, loading, result, error }: TabProps) {
           {loading ? t.detail.running : t.detail.run}
         </Button>
       </div>
-
       {error && (
         <div className="p-4 rounded-md bg-destructive/10 text-destructive text-sm">
           {error}
         </div>
       )}
-
       {data && (
         <div className="rounded-md bg-muted p-4 overflow-x-auto">
           <pre className="text-sm font-mono whitespace-pre-wrap">
@@ -596,49 +485,38 @@ function getStateColor(state: string): string {
 }
 
 function formatOutput(text: string) {
-  const parts = text.split(/(\s+)/); // Preserves whitespace
+  const parts = text.split(/(\s+)/);
   return parts.map((part, index, arr) => {
-    if (part.match(/^\s+$/)) return part; // Return whitespace as-is
+    if (part.match(/^\s+$/)) return part;
 
-    // Check ASN format
-    if (part.match(/^AS\d+$/i)) {
+    if (/^AS\d+$/i.test(part)) {
       return (
         <Link
           key={index}
-          href={`/whois/${part}`}
+          href={`/whois/${part.toUpperCase()}`}
           target="_blank"
-          className="text-primary hover:underline hover:text-blue-500 transition-colors"
+          className="text-primary hover:underline"
         >
           {part}
         </Link>
       );
     }
 
-    // Pure number that might be ASN (if preceded by "AS:" or "AS")
-    if (part.match(/^\d+$/) && index >= 2) {
-      const prevNonWhitespace = findPrevNonWhitespace(arr, index);
-      if (
-        prevNonWhitespace &&
-        prevNonWhitespace.match(/^(Neighbor|Local|Remote|Peer)\s*AS:?$/i)
-      ) {
-        return (
-          <Link
-            key={index}
-            href={`/whois/AS${part}`}
-            target="_blank"
-            className="text-primary hover:underline hover:text-blue-500 transition-colors"
-          >
-            {part}
-          </Link>
-        );
+    if (/^\d+$/.test(part)) {
+      let prevPart = "";
+      for (let i = index - 1; i >= 0; i--) {
+        if (arr[i] && !/^\s+$/.test(arr[i])) {
+          prevPart = arr[i];
+          break;
+        }
       }
-      if (prevNonWhitespace && prevNonWhitespace.match(/AS:$/i)) {
+      if (/AS:?$/i.test(prevPart)) {
         return (
           <Link
             key={index}
             href={`/whois/AS${part}`}
             target="_blank"
-            className="text-primary hover:underline hover:text-blue-500 transition-colors"
+            className="text-primary hover:underline"
           >
             {part}
           </Link>
@@ -646,67 +524,42 @@ function formatOutput(text: string) {
       }
     }
 
-    // Check IPv4
     const ipv4Match = part.match(
       /^((?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?))(%[a-zA-Z0-9_-]+)?$/,
     );
     if (ipv4Match) {
-      const ip = ipv4Match[1];
-      const suffix = ipv4Match[2] || "";
       return (
         <span key={index}>
           <Link
-            href={`/whois/${ip}`}
+            href={`/whois/${ipv4Match[1]}`}
             target="_blank"
-            className="text-primary hover:underline hover:text-blue-500 transition-colors"
+            className="text-primary hover:underline"
           >
-            {ip}
+            {ipv4Match[1]}
           </Link>
-          {suffix}
+          {ipv4Match[2] || ""}
         </span>
       );
     }
 
-    // Check IPv6
     const ipv6Match = part.match(
-      /^([0-9a-fA-F:]+(?::[0-9a-fA-F]+)*)(%[a-zA-Z0-9_-]+)?$/,
+      /^((?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}|(?:[0-9a-fA-F]{1,4}:){1,7}:|(?:[0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|(?:[0-9a-fA-F]{1,4}:){1,5}(?::[0-9a-fA-F]{1,4}){1,2}|(?:[0-9a-fA-F]{1,4}:){1,4}(?::[0-9a-fA-F]{1,4}){1,3}|(?:[0-9a-fA-F]{1,4}:){1,3}(?::[0-9a-fA-F]{1,4}){1,4}|(?:[0-9a-fA-F]{1,4}:){1,2}(?::[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:(?::[0-9a-fA-F]{1,4}){1,6}|:(?::[0-9a-fA-F]{1,4}){1,7}|::)(%[a-zA-Z0-9_-]+)?$/,
     );
-    if (
-      ipv6Match &&
-      part.includes(":") &&
-      !part.includes("http") &&
-      part.length > 2
-    ) {
-      const ip = ipv6Match[1];
-      const suffix = ipv6Match[2] || "";
-      if ((ip.match(/:/g) || []).length >= 2 || ip === "::") {
-        return (
-          <span key={index}>
-            <Link
-              href={`/whois/${ip}`}
-              target="_blank"
-              className="text-primary hover:underline hover:text-blue-500 transition-colors"
-            >
-              {ip}
-            </Link>
-            {suffix}
-          </span>
-        );
-      }
+    if (ipv6Match) {
+      return (
+        <span key={index}>
+          <Link
+            href={`/whois/${ipv6Match[1]}`}
+            target="_blank"
+            className="text-primary hover:underline"
+          >
+            {ipv6Match[1]}
+          </Link>
+          {ipv6Match[2] || ""}
+        </span>
+      );
     }
 
     return part;
   });
-}
-
-function findPrevNonWhitespace(
-  arr: string[],
-  currentIndex: number,
-): string | null {
-  for (let i = currentIndex - 1; i >= 0; i--) {
-    if (!arr[i].match(/^\s+$/)) {
-      return arr[i];
-    }
-  }
-  return null;
 }

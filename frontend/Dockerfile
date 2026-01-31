@@ -1,44 +1,37 @@
-# Build stage
-FROM node:22-alpine AS builder
+FROM node:22-alpine AS frontend
 
 WORKDIR /app
 
-# Enable corepack for pnpm
 RUN corepack enable && corepack prepare pnpm@latest --activate
 
-# Copy package files
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-
-# Install dependencies
 RUN pnpm install --frozen-lockfile
 
-# Copy source code
 COPY . .
-
-# Build the application
 RUN pnpm build
 
-# Production stage
-FROM node:22-alpine AS runner
+FROM golang:1.25-alpine AS backend
+
+WORKDIR /app
+COPY server/ ./
+RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o server .
+
+FROM alpine:3.19
+
+RUN apk add --no-cache ca-certificates
 
 WORKDIR /app
 
-ENV NODE_ENV=production
+COPY --from=backend /app/server ./
 
-# Create non-root user for security
-RUN addgroup --system --gid 1001 nodejs && \
-    adduser --system --uid 1001 nextjs
+COPY --from=frontend /app/out ./static
 
-# Copy built application
-COPY --from=builder /app/public ./public
-COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
-
-USER nextjs
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+USER appuser
 
 EXPOSE 3000
 
-ENV PORT=3000
-ENV HOSTNAME="0.0.0.0"
+ENV LISTEN_ADDR=":3000"
+ENV STATIC_DIR="./static"
 
-CMD ["node", "server.js"]
+CMD ["./server"]

@@ -1,18 +1,19 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
+import { AlertCircleIcon } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircleIcon } from "lucide-react";
-
 import { useTranslation } from "@/components/i18n-provider";
 import { LanguageSwitcher } from "@/components/language-switcher";
 
-export default function WhoisPage() {
-  const params = useParams();
+interface WhoisPageProps {
+  query: string;
+}
+
+export default function WhoisPage({ query }: WhoisPageProps) {
   const router = useRouter();
-  const query = decodeURIComponent(params.query as string);
   const { t } = useTranslation();
 
   const [loading, setLoading] = useState(true);
@@ -21,10 +22,8 @@ export default function WhoisPage() {
   const [bogon, setBogon] = useState<{
     isBogon: boolean;
     reasonKey?: string;
-    params?: Record<string, string | number>;
-  }>({
-    isBogon: false,
-  });
+    params?: Record<string, string>;
+  }>({ isBogon: false });
 
   useEffect(() => {
     if (!query) return;
@@ -44,7 +43,6 @@ export default function WhoisPage() {
             params: json.params,
           });
         else {
-          // Combine IANA and RIR results
           let result = "";
           if (json.iana) result += `--- IANA ---\n${json.iana}\n`;
           if (json.rir && json.rirServer)
@@ -55,6 +53,18 @@ export default function WhoisPage() {
       .catch((e) => setError(String(e)))
       .finally(() => setLoading(false));
   }, [query]);
+
+  const getBogonMessage = () => {
+    if (!bogon.reasonKey) return "Bogon address";
+    const key = bogon.reasonKey as keyof typeof t.whois;
+    let message = t.whois[key] || "Bogon address";
+    if (bogon.params) {
+      Object.entries(bogon.params).forEach(([k, v]) => {
+        message = message.replace(`{${k}}`, String(v));
+      });
+    }
+    return message;
+  };
 
   return (
     <div className="min-h-screen bg-background flex flex-col font-sans">
@@ -83,18 +93,7 @@ export default function WhoisPage() {
               <Alert variant="destructive">
                 <AlertCircleIcon className="h-4 w-4" />
                 <AlertTitle className="mb-1">{t.whois.bogon_title}</AlertTitle>
-                <AlertDescription>
-                  {(() => {
-                    const key = bogon.reasonKey as keyof typeof t.whois;
-                    let message = t.whois[key] || "Bogon address";
-                    if (bogon.params) {
-                      Object.entries(bogon.params).forEach(([k, v]) => {
-                        message = message.replace(`{${k}}`, String(v));
-                      });
-                    }
-                    return message;
-                  })()}
-                </AlertDescription>
+                <AlertDescription>{getBogonMessage()}</AlertDescription>
               </Alert>
             )}
             {data && (

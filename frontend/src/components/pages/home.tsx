@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { useTranslation } from "@/components/i18n-provider";
@@ -9,46 +10,55 @@ interface ServerConfig {
   id: string;
   name: string;
   location: string;
-  endpoint: string;
   icon?: string;
 }
 
-interface AppConfig {
-  turnstile: {
-    siteKey: string;
-  };
+interface ClientConfig {
+  turnstile: { siteKey: string };
   servers: ServerConfig[];
-  app: {
-    title: string;
-    subtitle: string;
-  };
+  app: { title: string; subtitle: string };
 }
 
-export function HomeClient({ config }: { config: AppConfig }) {
+export default function HomePage() {
   const { t } = useTranslation();
+  const [config, setConfig] = useState<ClientConfig | null>(null);
+
+  useEffect(() => {
+    fetch("/api/config")
+      .then((res) => res.json())
+      .then(setConfig)
+      .catch(() => {});
+  }, []);
+
+  if (!config) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="animate-pulse text-muted-foreground">
+          {t.common.loading}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background flex flex-col font-sans">
-      {/* Header */}
       <div className="border-b">
         <div className="flex h-16 items-center px-4 max-w-5xl mx-auto w-full justify-between">
           <span className="text-xl font-bold font-title tracking-tight">
-            {config.app.title}
+            {t.home.app_title}
           </span>
           <LanguageSwitcher />
         </div>
       </div>
 
-      {/* Main Content */}
       <div className="flex-1 flex flex-col items-center justify-center p-8">
         <h1 className="text-4xl font-bold font-title mb-2 text-foreground">
-          {config.app.title}
+          {t.home.app_title}
         </h1>
         <p className="text-muted-foreground mb-8 text-lg font-sans">
-          {config.app.subtitle}
+          {t.home.select_server}
         </p>
 
-        {/* Server Cards - Responsive Grid: max 3 per row */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl w-full">
           {config.servers.map((server) => (
             <Link
@@ -85,7 +95,6 @@ export function HomeClient({ config }: { config: AppConfig }) {
         )}
       </div>
 
-      {/* Footer */}
       <footer className="border-t py-6 text-center text-sm text-muted-foreground font-sans bg-muted/20">
         <p>{t.home.powered_by}</p>
       </footer>
