@@ -1,0 +1,65 @@
+# BIRD Looking Glass Server Configuration
+# Environment variables override these settings
+
+# Server listen address
+listen: ":3000"
+
+# Static files directory (Vite build output)
+static_dir: "../dist"
+
+# Cloudflare Turnstile configuration
+# Leave empty to disable CAPTCHA verification
+turnstile:
+  site_key: "1x00000000000000000000AA"
+  secret_key: "1x0000000000000000000000000000000AA"
+
+# JWT configuration for session tokens
+jwt:
+  secret: "" # Set in production! Tokens expire in 5 minutes
+
+# HMAC secret for signing requests to client nodes
+hmac:
+  secret: "IO5fDOdCJpyqY9jJbALpMzRnh0WwpdzkStCqR2grDjw="
+
+# Logto SSO configuration
+logto:
+  endpoint: "https://auth.svn.moe/"
+  app_id: "wjn15eze8j9vrrdqdjrde"
+
+# Application branding
+app:
+  title: "BIRD Looking Glass"
+  subtitle: "Select a server to continue"
+
+# Server nodes configuration
+# Each server connects to a bird-lg-client instance
+servers:
+  - id: tokyo
+    name: Tokyo
+    location: Tokyo, Japan
+    endpoint: http://142.4.218.99:18000
+    icon: "🇯🇵"
+
+  - id: frankfurt
+    name: Frankfurt
+    location: Frankfurt, Germany
+    endpoint: http://frankfurt.example.com:18000
+    icon: "🇩🇪"
+
+  - id: hongkong
+    name: Hong Kong
+    location: Hong Kong, China
+    endpoint: http://frankfurt.example.com:18000
+    icon: "🇭🇰"
+
+  - id: taiwan
+    name: Taipei
+    location: Taipei, Taiwan
+    endpoint: http://frankfurt.example.com:18000
+    icon: "🇹🇼"
+
+  - id: sanjose
+    name: San Jose
+    location: San Jose, CA
+    endpoint: http://frankfurt.example.com:18000
+    icon: "🇺🇸"

@@ -1,13 +1,9 @@
 package main
 
 import (
-	"bufio"
-	"fmt"
-	"net"
+	"bytes"
+	"os/exec"
 	"strings"
-	"time"
-
-	re2 "github.com/wasilibs/go-re2"
 
 	"github.com/gofiber/fiber/v3"
 )
@@ -20,80 +16,55 @@ type WhoisResponse struct {
 	Bogon     bool              `json:"bogon,omitempty"`
 	ReasonKey string            `json:"reasonKey,omitempty"`
 	Params    map[string]string `json:"params,omitempty"`
-	IANA      string            `json:"iana,omitempty"`
-	RIR       string            `json:"rir,omitempty"`
-	RIRServer string            `json:"rirServer,omitempty"`
-	Error     string            `json:"error,omitempty"`
+	Result    string            `json:"result,omitempty"`
 }
-
-var referRegex = re2.MustCompile(`(?im)^(?:refer|whois):\s+(.+)$`)
 
 func handleWhois() fiber.Handler {
 	return func(c fiber.Ctx) error {
 		var req WhoisRequest
 		if err := c.Bind().JSON(&req); err != nil {
-			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid request"})
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "invalid_request"})
 		}
 
-		if req.Query == "" {
-			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Query required"})
+		query := strings.TrimSpace(req.Query)
+		if query == "" {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "empty_query"})
 		}
 
-		// Check bogon
-		bogon := CheckBogon(req.Query)
-		if bogon.IsBogon {
+		// Check for bogon addresses
+		bogonResult := CheckBogon(query)
+		if bogonResult.IsBogon {
 			return c.JSON(WhoisResponse{
 				Bogon:     true,
-				ReasonKey: bogon.ReasonKey,
-				Params:    bogon.Params,
+				ReasonKey: bogonResult.ReasonKey,
+				Params:    bogonResult.Params,
 			})
 		}
 
-		// Query IANA
-		ianaResult, err := queryWhois("whois.iana.org", req.Query)
+		// Run system whois command
+		result, err := runWhois(query)
 		if err != nil {
-			return c.JSON(WhoisResponse{
-				IANA:  fmt.Sprintf("Error querying IANA: %v", err),
-				Error: err.Error(),
-			})
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "whois_failed"})
 		}
 
-		// Check for referral
-		var rirResult, rirServer string
-		if match := referRegex.FindStringSubmatch(ianaResult); match != nil {
-			rirServer = strings.TrimSpace(match[1])
-			rirResult, _ = queryWhois(rirServer, req.Query)
-		}
-
-		return c.JSON(WhoisResponse{
-			IANA:      ianaResult,
-			RIR:       rirResult,
-			RIRServer: rirServer,
-		})
+		return c.JSON(WhoisResponse{Result: result})
 	}
 }
 
-func queryWhois(server, query string) (string, error) {
-	conn, err := net.DialTimeout("tcp", server+":43", 10*time.Second)
+func runWhois(query string) (string, error) {
+	cmd := exec.Command("whois", query)
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+
+	err := cmd.Run()
 	if err != nil {
+		// whois command may return non-zero for some queries but still have output
+		if stdout.Len() > 0 {
+			return stdout.String(), nil
+		}
 		return "", err
 	}
-	defer conn.Close()
 
-	conn.SetDeadline(time.Now().Add(10 * time.Second))
-
-	fmt.Fprintf(conn, "%s\r\n", query)
-
-	var result strings.Builder
-	scanner := bufio.NewScanner(conn)
-	for scanner.Scan() {
-		result.WriteString(scanner.Text())
-		result.WriteString("\n")
-	}
-
-	if err := scanner.Err(); err != nil {
-		return result.String(), err
-	}
-
-	return result.String(), nil
+	return stdout.String(), nil
 }

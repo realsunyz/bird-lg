@@ -9,7 +9,17 @@ import (
 	"time"
 )
 
-const jwtExpiry = 5 * time.Minute
+// Auth types
+const (
+	AuthTypeTurnstile = "turnstile" // 5 minutes expiry
+	AuthTypeLogto     = "logto"     // 7 days expiry
+)
+
+// Expiry durations
+const (
+	ExpiryTurnstile = 5 * time.Minute
+	ExpiryLogto     = 7 * 24 * time.Hour
+)
 
 type JWTHeader struct {
 	Alg string `json:"alg"`
@@ -17,19 +27,38 @@ type JWTHeader struct {
 }
 
 type JWTPayload struct {
-	Exp int64 `json:"exp"`
-	Iat int64 `json:"iat"`
+	Exp      int64  `json:"exp"`
+	Iat      int64  `json:"iat"`
+	AuthType string `json:"auth_type,omitempty"`
+	Sub      string `json:"sub,omitempty"` // User ID for Logto users
 }
 
+// GenerateJWT creates a JWT (backward compatible - uses turnstile type)
 func GenerateJWT(secret string) string {
+	return GenerateJWTWithType(secret, AuthTypeTurnstile, "")
+}
+
+// GenerateJWTWithType creates a JWT with auth_type and optional sub claims
+func GenerateJWTWithType(secret, authType, sub string) string {
 	header := JWTHeader{Alg: "HS256", Typ: "JWT"}
 	headerBytes, _ := json.Marshal(header)
 	headerB64 := base64.RawURLEncoding.EncodeToString(headerBytes)
 
+	var expiry time.Duration
+	switch authType {
+	case AuthTypeLogto:
+		expiry = ExpiryLogto
+	default:
+		expiry = ExpiryTurnstile
+		authType = AuthTypeTurnstile
+	}
+
 	now := time.Now()
 	payload := JWTPayload{
-		Iat: now.Unix(),
-		Exp: now.Add(jwtExpiry).Unix(),
+		Iat:      now.Unix(),
+		Exp:      now.Add(expiry).Unix(),
+		AuthType: authType,
+		Sub:      sub,
 	}
 	payloadBytes, _ := json.Marshal(payload)
 	payloadB64 := base64.RawURLEncoding.EncodeToString(payloadBytes)
@@ -38,6 +67,11 @@ func GenerateJWT(secret string) string {
 	signature := signHS256(message, secret)
 
 	return message + "." + signature
+}
+
+// GenerateJWTWithSub is an alias for GenerateJWTWithType
+func GenerateJWTWithSub(secret, authType, sub string) string {
+	return GenerateJWTWithType(secret, authType, sub)
 }
 
 func ValidateJWT(token, secret string) bool {

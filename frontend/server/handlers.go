@@ -94,13 +94,20 @@ func proxyToClient(endpoint string, request map[string]string, hmacSecret string
 		return nil, fiber.NewError(fiber.StatusBadGateway, "failed to connect to client")
 	}
 
-	if resp.StatusCode() != fiber.StatusOK {
-		return nil, fiber.NewError(fiber.StatusBadGateway, "client error: "+strconv.Itoa(resp.StatusCode()))
-	}
-
+	// Parse response regardless of status code (for rate limit responses)
 	var result interface{}
 	if err := json.Unmarshal(resp.Body(), &result); err != nil {
 		return nil, err
 	}
+
+	// Return rate limit response as-is (status 429)
+	if resp.StatusCode() == fiber.StatusTooManyRequests {
+		return result, nil
+	}
+
+	if resp.StatusCode() != fiber.StatusOK {
+		return nil, fiber.NewError(fiber.StatusBadGateway, "client error: "+strconv.Itoa(resp.StatusCode()))
+	}
+
 	return result, nil
 }

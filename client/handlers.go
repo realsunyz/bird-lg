@@ -1,9 +1,7 @@
 package main
 
 import (
-	"encoding/json"
-	"fmt"
-	"net/http"
+	"github.com/gofiber/fiber/v3"
 )
 
 type ApiRequest struct {
@@ -12,151 +10,100 @@ type ApiRequest struct {
 	Args    string   `json:"args"`
 }
 
-// ApiGenericResultPair represents a generic result
 type ApiGenericResultPair struct {
 	Server string `json:"server"`
 	Data   string `json:"data"`
 }
 
-// ApiSummaryResultPair represents a summary result
 type ApiSummaryResultPair struct {
 	Server string           `json:"server"`
 	Data   []SummaryRowData `json:"data"`
 }
 
-// ApiGenericResponse is the response for bird/traceroute/whois queries
 type ApiGenericResponse struct {
-	Error  string                 `json:"error"`
-	Result []ApiGenericResultPair `json:"result"`
+	Error  string                 `json:"error,omitempty"`
+	Result []ApiGenericResultPair `json:"result,omitempty"`
 }
 
-// ApiSummaryResponse is the response for summary queries
 type ApiSummaryResponse struct {
-	Error  string                 `json:"error"`
-	Result []ApiSummaryResultPair `json:"result"`
+	Error  string                 `json:"error,omitempty"`
+	Result []ApiSummaryResultPair `json:"result,omitempty"`
 }
 
-// handleQuery handles the unified API endpoint
-func handleQuery(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "POST" {
-		http.Error(w, `{"error":"method not allowed"}`, http.StatusMethodNotAllowed)
-		return
+func handleQuery(c fiber.Ctx) error {
+	if !checkRateLimit() {
+		return c.Status(fiber.StatusTooManyRequests).JSON(fiber.Map{
+			"error":     "rate_limit_exceeded",
+			"rateLimit": true,
+		})
 	}
 
 	var req ApiRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, fmt.Sprintf(`{"error":"invalid request: %s"}`, err.Error()), http.StatusBadRequest)
-		return
+	if err := c.Bind().JSON(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "invalid_request"})
 	}
-
-	w.Header().Set("Content-Type", "application/json")
 
 	switch req.Type {
 	case "summary":
-		handleSummary(w, req)
+		return handleSummary(c)
 	case "bird":
-		handleBird(w, req)
+		return handleBird(c, req)
 	case "traceroute":
-		handleTraceroute(w, req)
-	case "whois":
-		handleWhois(w, req)
-	case "server_list":
-		handleServerList(w, req)
+		return handleTraceroute(c, req)
 	default:
-		http.Error(w, `{"error":"unknown query type"}`, http.StatusBadRequest)
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "unknown_query_type"})
 	}
 }
 
-func handleSummary(w http.ResponseWriter, req ApiRequest) {
+func handleSummary(c fiber.Ctx) error {
 	output, err := queryBird("show protocols")
 	if err != nil {
-		json.NewEncoder(w).Encode(ApiSummaryResponse{
-			Error: err.Error(),
-		})
-		return
+		return c.JSON(ApiSummaryResponse{Error: "bird_query_failed"})
 	}
 
 	summary := parseSummary(output)
-	json.NewEncoder(w).Encode(ApiSummaryResponse{
+	return c.JSON(ApiSummaryResponse{
 		Result: []ApiSummaryResultPair{
 			{Server: "local", Data: summary},
 		},
 	})
 }
 
-func handleBird(w http.ResponseWriter, req ApiRequest) {
-	// Validate command - only allow safe read-only commands
+func handleBird(c fiber.Ctx, req ApiRequest) error {
 	if !isAllowedCommand(req.Args) {
-		json.NewEncoder(w).Encode(ApiGenericResponse{
-			Error: "command not allowed",
-		})
-		return
+		return c.JSON(ApiGenericResponse{Error: "command_not_allowed"})
 	}
 
 	output, err := queryBird(req.Args)
 	if err != nil {
-		json.NewEncoder(w).Encode(ApiGenericResponse{
-			Error: err.Error(),
-		})
-		return
+		return c.JSON(ApiGenericResponse{Error: "bird_query_failed"})
 	}
 
-	json.NewEncoder(w).Encode(ApiGenericResponse{
+	return c.JSON(ApiGenericResponse{
 		Result: []ApiGenericResultPair{
 			{Server: "local", Data: output},
 		},
 	})
 }
 
-func handleTraceroute(w http.ResponseWriter, req ApiRequest) {
+func handleTraceroute(c fiber.Ctx, req ApiRequest) error {
 	output, err := runTraceroute(req.Args)
 	if err != nil {
-		json.NewEncoder(w).Encode(ApiGenericResponse{
-			Error: err.Error(),
-		})
-		return
+		return c.JSON(ApiGenericResponse{Error: "traceroute_failed"})
 	}
 
-	json.NewEncoder(w).Encode(ApiGenericResponse{
+	return c.JSON(ApiGenericResponse{
 		Result: []ApiGenericResultPair{
 			{Server: "local", Data: output},
 		},
 	})
 }
 
-func handleWhois(w http.ResponseWriter, req ApiRequest) {
-	output, err := runWhois(req.Args)
-	if err != nil {
-		json.NewEncoder(w).Encode(ApiGenericResponse{
-			Error: err.Error(),
-		})
-		return
-	}
-
-	json.NewEncoder(w).Encode(ApiGenericResponse{
-		Result: []ApiGenericResultPair{
-			{Server: "", Data: output},
-		},
-	})
+func handleHealth(c fiber.Ctx) error {
+	return c.JSON(fiber.Map{"status": "ok"})
 }
 
-func handleServerList(w http.ResponseWriter, req ApiRequest) {
-	// This client is a single server, return itself
-	json.NewEncoder(w).Encode(ApiGenericResponse{
-		Result: []ApiGenericResultPair{
-			{Server: "local", Data: ""},
-		},
-	})
-}
-
-func handleHealth(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	w.Write([]byte(`{"status":"ok"}`))
-}
-
-// isAllowedCommand checks if a BIRD command is safe to execute
 func isAllowedCommand(cmd string) bool {
-	// List of allowed command prefixes
 	allowed := []string{
 		"show route",
 		"show protocols",

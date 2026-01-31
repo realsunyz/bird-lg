@@ -38,6 +38,7 @@ export const dictionaries = {
         info: "Info",
       },
       traceroute_placeholder: "1.1.1.1 or example.com",
+      rate_limit_exceeded: "Server is busy. Please try again in a moment.",
     },
     whois: {
       title: "Whois Query",
@@ -90,6 +91,7 @@ export const dictionaries = {
         info: "信息",
       },
       traceroute_placeholder: "1.1.1.1 或 example.com",
+      rate_limit_exceeded: "服务器繁忙, 请稍后再试.",
     },
     whois: {
       title: "Whois 查询",

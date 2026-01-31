@@ -1,9 +1,6 @@
-"use client";
-
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import { ChevronLeft } from "lucide-react";
-import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -57,12 +54,9 @@ interface ClientConfig {
   app: { title: string };
 }
 
-interface DetailPageProps {
-  serverId: string;
-}
-
-export default function DetailPage({ serverId }: DetailPageProps) {
-  const router = useRouter();
+export default function DetailPage() {
+  const { serverId } = useParams<{ serverId: string }>();
+  const navigate = useNavigate();
   const { t } = useTranslation();
 
   const [config, setConfig] = useState<ClientConfig | null>(null);
@@ -90,10 +84,7 @@ export default function DetailPage({ serverId }: DetailPageProps) {
             <CardDescription>{error}</CardDescription>
           </CardHeader>
           <CardContent>
-            <Button
-              variant="outline"
-              onClick={() => (window.location.href = "/")}
-            >
+            <Button variant="outline" onClick={() => navigate("/")}>
               {t.common.back_to_home}
             </Button>
           </CardContent>
@@ -128,9 +119,9 @@ export default function DetailPage({ serverId }: DetailPageProps) {
       <Header
         title={config.app.title}
         serverName={server.name}
-        onBack={() => (window.location.href = "/")}
+        onBack={() => navigate("/")}
       />
-      <QueryInterface server={server} serverId={serverId} />
+      <QueryInterface server={server} serverId={serverId!} />
     </div>
   );
 }
@@ -157,7 +148,7 @@ function Header({
             <ChevronLeft className="h-5 w-5" />
           </Button>
           <div className="flex items-center gap-3">
-            <span className="text-lg font-bold font-title tracking-tight">
+            <span className="text-lg font-normal font-title tracking-tight">
               {title}
             </span>
             {serverName && (
@@ -181,7 +172,7 @@ function QueryInterface({
   serverId: string;
 }) {
   const { t } = useTranslation();
-  const router = useRouter();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState<unknown>(null);
@@ -206,12 +197,14 @@ function QueryInterface({
       });
 
       if (res.status === 401) {
-        router.push(`/captcha?redirect=/detail/${serverId}`);
+        sessionStorage.setItem("auth_redirect", `/detail/${serverId}`);
+        navigate("/captcha");
         return;
       }
 
       const data = await res.json();
-      if (data.error) setError(data.error);
+      if (data.rateLimit) setError(t.detail.rate_limit_exceeded);
+      else if (data.error) setError(data.error);
       else setResult(data);
     } catch (e) {
       setError(String(e));
@@ -488,12 +481,11 @@ function formatOutput(text: string) {
   const parts = text.split(/(\s+)/);
   return parts.map((part, index, arr) => {
     if (part.match(/^\s+$/)) return part;
-
     if (/^AS\d+$/i.test(part)) {
       return (
         <Link
           key={index}
-          href={`/whois/${part.toUpperCase()}`}
+          to={`/whois/${part.toUpperCase()}`}
           target="_blank"
           className="text-primary hover:underline"
         >
@@ -501,7 +493,6 @@ function formatOutput(text: string) {
         </Link>
       );
     }
-
     if (/^\d+$/.test(part)) {
       let prevPart = "";
       for (let i = index - 1; i >= 0; i--) {
@@ -514,7 +505,7 @@ function formatOutput(text: string) {
         return (
           <Link
             key={index}
-            href={`/whois/AS${part}`}
+            to={`/whois/AS${part}`}
             target="_blank"
             className="text-primary hover:underline"
           >
@@ -523,7 +514,6 @@ function formatOutput(text: string) {
         );
       }
     }
-
     const ipv4Match = part.match(
       /^((?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?))(%[a-zA-Z0-9_-]+)?$/,
     );
@@ -531,7 +521,7 @@ function formatOutput(text: string) {
       return (
         <span key={index}>
           <Link
-            href={`/whois/${ipv4Match[1]}`}
+            to={`/whois/${ipv4Match[1]}`}
             target="_blank"
             className="text-primary hover:underline"
           >
@@ -541,7 +531,6 @@ function formatOutput(text: string) {
         </span>
       );
     }
-
     const ipv6Match = part.match(
       /^((?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}|(?:[0-9a-fA-F]{1,4}:){1,7}:|(?:[0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|(?:[0-9a-fA-F]{1,4}:){1,5}(?::[0-9a-fA-F]{1,4}){1,2}|(?:[0-9a-fA-F]{1,4}:){1,4}(?::[0-9a-fA-F]{1,4}){1,3}|(?:[0-9a-fA-F]{1,4}:){1,3}(?::[0-9a-fA-F]{1,4}){1,4}|(?:[0-9a-fA-F]{1,4}:){1,2}(?::[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:(?::[0-9a-fA-F]{1,4}){1,6}|:(?::[0-9a-fA-F]{1,4}){1,7}|::)(%[a-zA-Z0-9_-]+)?$/,
     );
@@ -549,7 +538,7 @@ function formatOutput(text: string) {
       return (
         <span key={index}>
           <Link
-            href={`/whois/${ipv6Match[1]}`}
+            to={`/whois/${ipv6Match[1]}`}
             target="_blank"
             className="text-primary hover:underline"
           >
@@ -559,7 +548,6 @@ function formatOutput(text: string) {
         </span>
       );
     }
-
     return part;
   });
 }

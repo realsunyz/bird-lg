@@ -3,7 +3,11 @@ package main
 import (
 	"flag"
 	"log"
-	"net/http"
+	"strings"
+	"time"
+
+	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/fiber/v3/middleware/cors"
 )
 
 var (
@@ -11,6 +15,7 @@ var (
 	birdSocket     string
 	hmacSecret     string
 	allowedOrigins string
+	rateLimitMs    int
 )
 
 func init() {
@@ -18,28 +23,43 @@ func init() {
 	flag.StringVar(&birdSocket, "bird", "/run/bird/bird.ctl", "BIRD socket path")
 	flag.StringVar(&hmacSecret, "secret", "", "HMAC shared secret for signature verification")
 	flag.StringVar(&allowedOrigins, "origins", "*", "Allowed CORS origins (comma-separated)")
+	flag.IntVar(&rateLimitMs, "ratelimit", 1000, "Rate limit interval in milliseconds (0 to disable)")
 }
 
 func main() {
 	flag.Parse()
 
-	// Set HMAC shared secret if provided
-	if hmacSecret != "" {
-		setSharedSecret(hmacSecret)
-		log.Printf("HMAC signature verification enabled")
+	if rateLimitMs > 0 {
+		setRateLimitInterval(time.Duration(rateLimitMs) * time.Millisecond)
+		log.Printf("[INFO] Rate limit: %dms", rateLimitMs)
 	} else {
-		log.Printf("WARNING: HMAC secret not configured - API is unprotected!")
+		setRateLimitInterval(0)
+		log.Printf("[INFO] Rate limit: disabled")
 	}
 
-	// Setup HTTP routes
-	mux := http.NewServeMux()
-	mux.HandleFunc("/api/query", corsMiddleware(authMiddleware(handleQuery)))
-	mux.HandleFunc("/api/health", corsMiddleware(handleHealth))
+	if hmacSecret != "" {
+		setSharedSecret(hmacSecret)
+		log.Printf("[INFO] HMAC verification: enabled")
+	} else {
+		log.Printf("[WARN] HMAC verification: disabled")
+	}
 
-	log.Printf("Starting BIRD Looking Glass Client on %s", listenAddr)
-	log.Printf("BIRD socket: %s", birdSocket)
+	app := fiber.New()
 
-	if err := http.ListenAndServe(listenAddr, mux); err != nil {
-		log.Fatalf("Server failed: %v", err)
+	app.Use(cors.New(cors.Config{
+		AllowOrigins:     strings.Split(allowedOrigins, ","),
+		AllowMethods:     []string{"GET", "POST", "OPTIONS"},
+		AllowHeaders:     []string{"Content-Type", "X-Signature", "X-Timestamp"},
+		AllowCredentials: false,
+	}))
+
+	app.Post("/api/query", authMiddleware(handleQuery))
+	app.Get("/api/health", handleHealth)
+
+	log.Printf("[INFO] Starting on %s", listenAddr)
+	log.Printf("[INFO] BIRD socket: %s", birdSocket)
+
+	if err := app.Listen(listenAddr); err != nil {
+		log.Fatalf("[ERROR] Server failed: %v", err)
 	}
 }

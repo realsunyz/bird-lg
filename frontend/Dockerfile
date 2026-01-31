@@ -4,7 +4,7 @@ WORKDIR /app
 
 RUN corepack enable && corepack prepare pnpm@latest --activate
 
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY package.json pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile
 
 COPY . .
@@ -18,13 +18,14 @@ RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o server .
 
 FROM alpine:3.19
 
-RUN apk add --no-cache ca-certificates
+RUN apk add --no-cache ca-certificates whois
 
 WORKDIR /app
 
 COPY --from=backend /app/server ./
 
-COPY --from=frontend /app/out ./static
+# Vite outputs to dist/ instead of out/
+COPY --from=frontend /app/dist ./static
 
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 USER appuser

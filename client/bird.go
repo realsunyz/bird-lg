@@ -18,54 +18,45 @@ type SummaryRowData struct {
 	Info  string `json:"info"`
 }
 
-// Send a command to BIRD and returns the response
 func queryBird(command string) (string, error) {
 	conn, err := net.DialTimeout("unix", birdSocket, 5*time.Second)
 	if err != nil {
-		return "", fmt.Errorf("failed to connect to BIRD socket: %w", err)
+		return "", fmt.Errorf("bird_connection_failed")
 	}
 	defer conn.Close()
 
-	// Set timeout
 	conn.SetDeadline(time.Now().Add(30 * time.Second))
 
 	reader := bufio.NewReader(conn)
 
-	// Read welcome message
 	_, err = readBirdResponse(reader)
 	if err != nil {
-		return "", fmt.Errorf("failed to read welcome message: %w", err)
+		return "", fmt.Errorf("bird_welcome_failed")
 	}
 
-	// Send restrict command first to prevent modifications
 	_, err = conn.Write([]byte("restrict\n"))
 	if err != nil {
-		return "", fmt.Errorf("failed to send restrict command: %w", err)
+		return "", fmt.Errorf("bird_restrict_failed")
 	}
 
-	// Read restrict response
 	_, err = readBirdResponse(reader)
 	if err != nil {
-		return "", fmt.Errorf("failed to read restrict response: %w", err)
+		return "", fmt.Errorf("bird_restrict_failed")
 	}
 
-	// Send actual command
 	_, err = conn.Write([]byte(command + "\n"))
 	if err != nil {
-		return "", fmt.Errorf("failed to send command: %w", err)
+		return "", fmt.Errorf("bird_command_failed")
 	}
 
-	// Read response
 	response, err := readBirdResponse(reader)
 	if err != nil {
-		return "", fmt.Errorf("failed to read response: %w", err)
+		return "", fmt.Errorf("bird_response_failed")
 	}
 
 	return response, nil
 }
 
-// readBirdResponse reads a complete response from BIRD
-// BIRD responses end with a line starting with a 4-digit code followed by a space
 func readBirdResponse(reader *bufio.Reader) (string, error) {
 	var result strings.Builder
 	endPattern := regexp.MustCompile(`^\d{4} `)
@@ -76,11 +67,9 @@ func readBirdResponse(reader *bufio.Reader) (string, error) {
 			return result.String(), err
 		}
 
-		// Remove the status code prefix from continuation lines
 		if len(line) > 5 && line[4] == '-' {
 			line = line[5:]
 		} else if endPattern.MatchString(line) {
-			// Final line - extract message after code
 			if len(line) > 5 {
 				result.WriteString(line[5:])
 			}
@@ -93,12 +82,10 @@ func readBirdResponse(reader *bufio.Reader) (string, error) {
 	return result.String(), nil
 }
 
-// parseSummary parses the output of "show protocols" command
 func parseSummary(output string) []SummaryRowData {
 	var result []SummaryRowData
 	lines := strings.Split(output, "\n")
 
-	// Skip header line
 	headerSkipped := false
 	for _, line := range lines {
 		line = strings.TrimSpace(line)
@@ -106,14 +93,11 @@ func parseSummary(output string) []SummaryRowData {
 			continue
 		}
 
-		// Skip header
 		if !headerSkipped && strings.HasPrefix(line, "Name") {
 			headerSkipped = true
 			continue
 		}
 
-		// Parse protocol line
-		// Format: Name       Proto      Table      State  Since         Info
 		fields := strings.Fields(line)
 		if len(fields) >= 5 {
 			row := SummaryRowData{

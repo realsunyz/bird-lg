@@ -1,9 +1,7 @@
-"use client";
-
 import { useEffect, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import Script from "next/script";
+import { useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { useTranslation } from "@/components/i18n-provider";
 
 declare global {
@@ -19,20 +17,25 @@ declare global {
 }
 
 export default function CaptchaPage() {
-  const searchParams = useSearchParams();
-  const router = useRouter();
-  const redirect = searchParams.get("redirect") || "/";
+  const [searchParams] = useSearchParams();
+  const redirect =
+    searchParams.get("redirect") ||
+    sessionStorage.getItem("auth_redirect") ||
+    "/";
   const { t } = useTranslation();
 
   const [siteKey, setSiteKey] = useState("");
   const [error, setError] = useState("");
-  const [verifying, setVerifying] = useState(false);
+  const [hasLogtoConfig, setHasLogtoConfig] = useState(false);
 
   useEffect(() => {
     fetch("/api/config")
       .then((res) => res.json())
       .then((data) => {
         setSiteKey(data.turnstile?.siteKey || "");
+        if (data.logto?.endpoint && data.logto?.appId) {
+          setHasLogtoConfig(true);
+        }
       })
       .catch(() => setError("Failed to load config"));
   }, []);
@@ -46,7 +49,6 @@ export default function CaptchaPage() {
         window.turnstile.render(container, {
           sitekey: siteKey,
           callback: async (token: string) => {
-            setVerifying(true);
             try {
               const res = await fetch("/api/verify", {
                 method: "POST",
@@ -61,8 +63,6 @@ export default function CaptchaPage() {
               }
             } catch {
               setError("Verification failed");
-            } finally {
-              setVerifying(false);
             }
           },
           "error-callback": () => {
@@ -74,11 +74,17 @@ export default function CaptchaPage() {
 
     if (window.turnstile) initTurnstile();
     else window.onTurnstileLoad = initTurnstile;
-  }, [siteKey, redirect, router]);
+  }, [siteKey, redirect]);
+
+  const handleSSOLogin = () => {
+    sessionStorage.setItem("auth_redirect", redirect);
+    // Redirect to backend auth endpoint which handles Logto OAuth
+    window.location.href = `/auth/login?redirect=${encodeURIComponent(redirect)}`;
+  };
 
   return (
     <>
-      <Script
+      <script
         src="https://challenges.cloudflare.com/turnstile/v0/api.js?onload=onTurnstileLoad"
         async
         defer
@@ -90,13 +96,30 @@ export default function CaptchaPage() {
               {t.detail.captcha_title}
             </CardTitle>
           </CardHeader>
-          <CardContent className="flex flex-col items-center">
-            <p className="text-sm text-muted-foreground mb-4 text-center">
+          <CardContent className="flex flex-col items-center gap-4">
+            <p className="text-sm text-muted-foreground text-center">
               {t.detail.please_complete_captcha}
             </p>
-            {error && <p className="text-destructive text-sm mb-4">{error}</p>}
+            {error && <p className="text-destructive text-sm">{error}</p>}
 
             <div id="turnstile-container" className="min-h-[65px]" />
+
+            {hasLogtoConfig && (
+              <>
+                <div className="flex items-center gap-2 w-full my-2">
+                  <div className="flex-1 h-px bg-border" />
+                  <span className="text-xs text-muted-foreground">OR</span>
+                  <div className="flex-1 h-px bg-border" />
+                </div>
+                <Button
+                  variant="outline"
+                  onClick={handleSSOLogin}
+                  className="w-full"
+                >
+                  Sign in with SSO
+                </Button>
+              </>
+            )}
           </CardContent>
         </Card>
       </div>

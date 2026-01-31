@@ -1,19 +1,13 @@
-"use client";
-
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useParams } from "react-router-dom";
 import { AlertCircleIcon } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useTranslation } from "@/components/i18n-provider";
 import { LanguageSwitcher } from "@/components/language-switcher";
 
-interface WhoisPageProps {
-  query: string;
-}
-
-export default function WhoisPage({ query }: WhoisPageProps) {
-  const router = useRouter();
+export default function WhoisPage() {
+  const { query } = useParams<{ query: string }>();
   const { t } = useTranslation();
 
   const [loading, setLoading] = useState(true);
@@ -42,12 +36,8 @@ export default function WhoisPage({ query }: WhoisPageProps) {
             reasonKey: json.reasonKey,
             params: json.params,
           });
-        else {
-          let result = "";
-          if (json.iana) result += `--- IANA ---\n${json.iana}\n`;
-          if (json.rir && json.rirServer)
-            result += `\n--- ${json.rirServer} ---\n${json.rir}`;
-          setData(result);
+        else if (json.result) {
+          setData(json.result);
         }
       })
       .catch((e) => setError(String(e)))
@@ -71,7 +61,7 @@ export default function WhoisPage({ query }: WhoisPageProps) {
       <div className="border-b bg-card">
         <div className="flex h-16 items-center px-4 max-w-7xl mx-auto w-full justify-between">
           <div className="flex items-center">
-            <span className="text-lg font-bold font-title">
+            <span className="text-lg font-normal font-title">
               {t.whois.title}: {query}
             </span>
           </div>

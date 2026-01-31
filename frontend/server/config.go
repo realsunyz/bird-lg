@@ -37,8 +37,12 @@ type Config struct {
 	HMAC struct {
 		Secret string `yaml:"secret"`
 	} `yaml:"hmac"`
+	Logto struct {
+		Endpoint string `yaml:"endpoint"`
+		AppID    string `yaml:"app_id"`
+	} `yaml:"logto"`
 	Servers []ServerConfig `yaml:"servers"`
-	App     AppSettings    `yaml:"app"`
+	App     AppSettings    `json:"app" yaml:"app"`
 
 	// Computed fields
 	ListenAddr         string `yaml:"-"`
@@ -46,6 +50,8 @@ type Config struct {
 	TurnstileSecretKey string `yaml:"-"`
 	JWTSecret          string `yaml:"-"`
 	HMACSecret         string `yaml:"-"`
+	LogtoEndpoint      string `yaml:"-"`
+	LogtoAppID         string `yaml:"-"`
 }
 
 func (c *Config) CookieName() string {
@@ -114,6 +120,16 @@ func LoadConfig() *Config {
 	config.TurnstileSecretKey = config.Turnstile.SecretKey
 	config.JWTSecret = config.JWT.Secret
 	config.HMACSecret = config.HMAC.Secret
+	config.LogtoEndpoint = config.Logto.Endpoint
+	config.LogtoAppID = config.Logto.AppID
+
+	// Override Logto with env vars
+	if v := os.Getenv("LOGTO_ENDPOINT"); v != "" {
+		config.LogtoEndpoint = v
+	}
+	if v := os.Getenv("LOGTO_APP_ID"); v != "" {
+		config.LogtoAppID = v
+	}
 
 	// Default JWT secret for development
 	if config.JWTSecret == "" {
@@ -143,6 +159,10 @@ type ClientConfig struct {
 	Turnstile struct {
 		SiteKey string `json:"siteKey"`
 	} `json:"turnstile"`
+	Logto struct {
+		Endpoint string `json:"endpoint,omitempty"`
+		AppID    string `json:"appId,omitempty"`
+	} `json:"logto,omitempty"`
 	Servers []ServerConfig `json:"servers"`
 	App     AppSettings    `json:"app"`
 }
@@ -150,6 +170,8 @@ type ClientConfig struct {
 func (c *Config) ToClientConfig() ClientConfig {
 	cc := ClientConfig{}
 	cc.Turnstile.SiteKey = c.TurnstileSiteKey
+	cc.Logto.Endpoint = c.LogtoEndpoint
+	cc.Logto.AppID = c.LogtoAppID
 	cc.Servers = c.Servers
 	cc.App = c.App
 	return cc

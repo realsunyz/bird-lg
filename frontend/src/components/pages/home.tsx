@@ -1,7 +1,5 @@
-"use client";
-
 import { useEffect, useState } from "react";
-import Link from "next/link";
+import { Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { useTranslation } from "@/components/i18n-provider";
 import { LanguageSwitcher } from "@/components/language-switcher";
@@ -44,7 +42,7 @@ export default function HomePage() {
     <div className="min-h-screen bg-background flex flex-col font-sans">
       <div className="border-b">
         <div className="flex h-16 items-center px-4 max-w-5xl mx-auto w-full justify-between">
-          <span className="text-xl font-bold font-title tracking-tight">
+          <span className="text-xl font-normal font-title tracking-tight">
             {t.home.app_title}
           </span>
           <LanguageSwitcher />
@@ -52,7 +50,7 @@ export default function HomePage() {
       </div>
 
       <div className="flex-1 flex flex-col items-center justify-center p-8">
-        <h1 className="text-4xl font-bold font-title mb-2 text-foreground">
+        <h1 className="text-4xl font-normal font-title mb-2 text-foreground">
           {t.home.app_title}
         </h1>
         <p className="text-muted-foreground mb-8 text-lg font-sans">
@@ -63,7 +61,7 @@ export default function HomePage() {
           {config.servers.map((server) => (
             <Link
               key={server.id}
-              href={`/detail/${server.id}`}
+              to={`/detail/${server.id}`}
               className="block group"
             >
               <Card className="hover:shadow-lg transition-all hover:-translate-y-1 h-full">
@@ -76,7 +74,7 @@ export default function HomePage() {
                       </span>
                     </div>
                     <div>
-                      <h2 className="text-lg font-semibold font-title leading-tight mb-1">
+                      <h2 className="text-lg font-normal font-title leading-tight mb-1">
                         {server.name}
                       </h2>
                       <p className="text-sm text-muted-foreground font-sans line-clamp-1">
