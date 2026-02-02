@@ -13,7 +13,9 @@ RUN pnpm build
 FROM golang:1.25-alpine AS backend
 
 WORKDIR /app
-COPY server/ ./
+COPY server/go.mod server/go.sum ./
+RUN go mod download
+COPY server/ .
 RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o server .
 
 FROM alpine:3.19
