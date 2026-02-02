@@ -5,7 +5,6 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { I18nProvider } from "@/components/i18n-provider";
 import HomePage from "@/components/pages/home";
 import DetailPage from "@/components/pages/detail";
-import CaptchaPage from "@/components/pages/captcha";
 import WhoisPage from "@/components/pages/whois";
 import { AuthCallback } from "@/components/auth-callback";
 
@@ -50,7 +49,7 @@ function App() {
           <Routes>
             <Route path="/" element={<HomePage />} />
             <Route path="/detail/:serverId" element={<DetailPage />} />
-            <Route path="/captcha" element={<CaptchaPage />} />
+            <Route path="/detail/:serverId" element={<DetailPage />} />
             <Route path="/whois/:query" element={<WhoisPage />} />
             <Route path="/callback" element={<AuthCallback />} />
             <Route path="*" element={<Navigate to="/" replace />} />

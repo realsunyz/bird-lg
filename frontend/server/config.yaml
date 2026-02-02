@@ -23,13 +23,12 @@ hmac:
 
 # Logto SSO configuration
 logto:
-  endpoint: "https://auth.svn.moe/"
-  app_id: "wjn15eze8j9vrrdqdjrde"
+  endpoint: "https://8gu0v3.logto.app"
+  app_id: "3127ujlcs2oaycxdqns46" # test@example.com fEv_jWde
 
 # Application branding
 app:
-  title: "BIRD Looking Glass"
-  subtitle: "Select a server to continue"
+  title: "Looking Glass"
 
 # Server nodes configuration
 # Each server connects to a bird-lg-client instance

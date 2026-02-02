@@ -50,6 +50,10 @@ func handleQuery(c fiber.Ctx) error {
 		return handleBird(c, req)
 	case "traceroute":
 		return handleTraceroute(c, req)
+	case "ping":
+		return handlePing(c, req)
+	case "mtr":
+		return handleMtr(c, req)
 	default:
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "unknown_query_type"})
 	}
@@ -90,6 +94,32 @@ func handleTraceroute(c fiber.Ctx, req ApiRequest) error {
 	output, err := runTraceroute(req.Args)
 	if err != nil {
 		return c.JSON(ApiGenericResponse{Error: "traceroute_failed"})
+	}
+
+	return c.JSON(ApiGenericResponse{
+		Result: []ApiGenericResultPair{
+			{Server: "local", Data: output},
+		},
+	})
+}
+
+func handlePing(c fiber.Ctx, req ApiRequest) error {
+	output, err := runPing(req.Args)
+	if err != nil {
+		return c.JSON(ApiGenericResponse{Error: "ping_failed"})
+	}
+
+	return c.JSON(ApiGenericResponse{
+		Result: []ApiGenericResultPair{
+			{Server: "local", Data: output},
+		},
+	})
+}
+
+func handleMtr(c fiber.Ctx, req ApiRequest) error {
+	output, err := runMtr(req.Args)
+	if err != nil {
+		return c.JSON(ApiGenericResponse{Error: "mtr_failed"})
 	}
 
 	return c.JSON(ApiGenericResponse{

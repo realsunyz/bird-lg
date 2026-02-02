@@ -17,8 +17,7 @@ type ServerConfig struct {
 }
 
 type AppSettings struct {
-	Title    string `yaml:"title" json:"title"`
-	Subtitle string `yaml:"subtitle" json:"subtitle"`
+	Title string `yaml:"title" json:"title"`
 }
 
 type TurnstileConfig struct {
@@ -66,8 +65,7 @@ func LoadConfig() *Config {
 		Listen:    ":3000",
 		StaticDir: "./static",
 		App: AppSettings{
-			Title:    "BIRD Looking Glass",
-			Subtitle: "Select a server to continue",
+			Title: "Looking Glass",
 		},
 	}
 
@@ -103,9 +101,6 @@ func LoadConfig() *Config {
 	}
 	if v := os.Getenv("APP_TITLE"); v != "" {
 		config.App.Title = v
-	}
-	if v := os.Getenv("APP_SUBTITLE"); v != "" {
-		config.App.Subtitle = v
 	}
 	if v := os.Getenv("SERVERS"); v != "" {
 		var servers []ServerConfig
@@ -155,6 +150,13 @@ func getEnvInt(key string, defaultVal int) int {
 	return defaultVal
 }
 
+type ClientServerConfig struct {
+	ID       string `json:"id"`
+	Name     string `json:"name"`
+	Location string `json:"location"`
+	Icon     string `json:"icon,omitempty"`
+}
+
 type ClientConfig struct {
 	Turnstile struct {
 		SiteKey string `json:"siteKey"`
@@ -163,8 +165,13 @@ type ClientConfig struct {
 		Endpoint string `json:"endpoint,omitempty"`
 		AppID    string `json:"appId,omitempty"`
 	} `json:"logto,omitempty"`
-	Servers []ServerConfig `json:"servers"`
-	App     AppSettings    `json:"app"`
+	Servers []ClientServerConfig `json:"servers"`
+	App     AppSettings          `json:"app"`
+	Auth    struct {
+		IsAuthenticated bool   `json:"isAuthenticated"`
+		User            string `json:"user,omitempty"`
+		AuthType        string `json:"authType,omitempty"`
+	} `json:"auth"`
 }
 
 func (c *Config) ToClientConfig() ClientConfig {
@@ -172,7 +179,17 @@ func (c *Config) ToClientConfig() ClientConfig {
 	cc.Turnstile.SiteKey = c.TurnstileSiteKey
 	cc.Logto.Endpoint = c.LogtoEndpoint
 	cc.Logto.AppID = c.LogtoAppID
-	cc.Servers = c.Servers
+
+	cc.Servers = make([]ClientServerConfig, len(c.Servers))
+	for i, s := range c.Servers {
+		cc.Servers[i] = ClientServerConfig{
+			ID:       s.ID,
+			Name:     s.Name,
+			Location: s.Location,
+			Icon:     s.Icon,
+		}
+	}
+
 	cc.App = c.App
 	return cc
 }

@@ -14,7 +14,17 @@ import (
 
 func handleConfig(config *Config) fiber.Handler {
 	return func(c fiber.Ctx) error {
-		return c.JSON(config.ToClientConfig())
+		clientConfig := config.ToClientConfig()
+
+		// Check authentication status
+		token := c.Cookies(config.CookieName())
+		if payload := GetValidJWTPayload(token, config.JWTSecret); payload != nil {
+			clientConfig.Auth.IsAuthenticated = true
+			clientConfig.Auth.AuthType = payload.AuthType
+			clientConfig.Auth.User = payload.Sub
+		}
+
+		return c.JSON(clientConfig)
 	}
 }
 
@@ -27,12 +37,61 @@ type QueryRequest struct {
 
 func handleQuery(config *Config) fiber.Handler {
 	return func(c fiber.Ctx) error {
-		// Verify JWT
+		// Verify JWT (Any valid auth is fine for basic tools: ping/mtr/traceroute)
 		if config.TurnstileSecretKey != "" {
 			token := c.Cookies(config.CookieName())
 			if token == "" || !ValidateJWT(token, config.JWTSecret) {
 				return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "unauthorized"})
 			}
+		}
+
+		var req QueryRequest
+		if err := c.Bind().JSON(&req); err != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid request"})
+		}
+
+		// Security: BLOCK Bird queries here. They must go through /api/bird
+		if req.Type == "bird" || req.Type == "summary" {
+			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"error": "Use /api/bird for BIRD queries"})
+		}
+
+		// Find server
+		var server *ServerConfig
+		for i := range config.Servers {
+			if config.Servers[i].ID == req.Server {
+				server = &config.Servers[i]
+				break
+			}
+		}
+		if server == nil {
+			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "Server not found"})
+		}
+
+		// Build proxy request
+		proxyReq := map[string]string{"type": req.Type}
+		switch req.Type {
+		case "traceroute", "ping", "mtr": // Allowed tools
+			proxyReq["args"] = req.Target
+		default:
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid query type for this endpoint"})
+		}
+
+		result, err := proxyToClient(server.Endpoint, proxyReq, config.HMACSecret)
+		if err != nil {
+			return c.Status(fiber.StatusBadGateway).JSON(fiber.Map{"error": err.Error()})
+		}
+
+		return c.JSON(result)
+	}
+}
+
+func handleBird(config *Config) fiber.Handler {
+	return func(c fiber.Ctx) error {
+		// Strict Auth Check: Must be Logto SSO
+		token := c.Cookies(config.CookieName())
+		payload := GetValidJWTPayload(token, config.JWTSecret)
+		if payload == nil || payload.AuthType != AuthTypeLogto {
+			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"error": "SSO authentication required"})
 		}
 
 		var req QueryRequest
@@ -57,8 +116,11 @@ func handleQuery(config *Config) fiber.Handler {
 		switch req.Type {
 		case "bird":
 			proxyReq["args"] = req.Command
-		case "traceroute", "whois":
-			proxyReq["args"] = req.Target
+		case "summary":
+			// Summary is a special case of bird query in client
+			proxyReq["type"] = "summary"
+		default:
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid query type for bird endpoint"})
 		}
 
 		result, err := proxyToClient(server.Endpoint, proxyReq, config.HMACSecret)

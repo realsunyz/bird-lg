@@ -1,8 +1,18 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useTranslation } from "@/components/i18n-provider";
 import { LanguageSwitcher } from "@/components/language-switcher";
+import { LogIn, UserRound, LogOut, Database } from "lucide-react";
 
 interface ServerConfig {
   id: string;
@@ -13,8 +23,10 @@ interface ServerConfig {
 
 interface ClientConfig {
   turnstile: { siteKey: string };
+  logto: { endpoint: string; appId: string };
   servers: ServerConfig[];
-  app: { title: string; subtitle: string };
+  app: { title: string };
+  auth?: { isAuthenticated: boolean; user?: string; authType?: string };
 }
 
 export default function HomePage() {
@@ -43,9 +55,46 @@ export default function HomePage() {
       <div className="border-b">
         <div className="flex h-16 items-center px-4 max-w-5xl mx-auto w-full justify-between">
           <span className="text-xl font-normal font-title tracking-tight">
-            {t.home.app_title}
+            {config.app.title}
           </span>
-          <LanguageSwitcher />
+          <div className="flex items-center">
+            <LanguageSwitcher />
+            {config.logto?.endpoint &&
+              config.logto?.appId &&
+              (config.auth?.isAuthenticated &&
+              config.auth?.authType === "logto" ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" aria-label="User menu">
+                      <UserRound className="h-[1.2rem] w-[1.2rem]" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem>
+                      <Database className="mr-2 h-4 w-4" />
+                      <span>Profile</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <a
+                        href="/api/auth/logout"
+                        className="w-full cursor-pointer text-destructive focus:text-destructive"
+                      >
+                        <LogOut className="mr-2 h-4 w-4" />
+                        <span>Logout</span>
+                      </a>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : (
+                <Button variant="ghost" size="icon" asChild>
+                  <a href="/api/auth/login" aria-label="Login">
+                    <LogIn className="h-[1.2rem] w-[1.2rem]" />
+                  </a>
+                </Button>
+              ))}
+          </div>
         </div>
       </div>
 

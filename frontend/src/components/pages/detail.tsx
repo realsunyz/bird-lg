@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { ChevronLeft, Loader2, AlertCircle } from "lucide-react";
+import { ChevronLeft, AlertCircle } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -11,7 +11,13 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Spinner } from "@/components/ui/spinner";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/animate-ui/primitives/radix/tabs";
 import {
   Table,
   TableBody,
@@ -32,6 +38,14 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "@/components/i18n-provider";
 import { LanguageSwitcher } from "@/components/language-switcher";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { Turnstile } from "@marsidev/react-turnstile";
 
 interface ProtocolInfo {
   name: string;
@@ -53,6 +67,7 @@ interface ClientConfig {
   turnstile: { siteKey: string };
   servers: ServerConfig[];
   app: { title: string };
+  auth?: { isAuthenticated: boolean; user?: string; authType?: string };
 }
 
 export default function DetailPage() {
@@ -122,7 +137,7 @@ export default function DetailPage() {
         serverName={server.name}
         onBack={() => navigate("/")}
       />
-      <QueryInterface server={server} serverId={serverId!} />
+      <QueryInterface server={server} config={config} />
     </div>
   );
 }
@@ -167,19 +182,27 @@ function Header({
 
 function QueryInterface({
   server,
-  serverId,
+  config,
 }: {
   server: ServerConfig;
-  serverId: string;
+  config: ClientConfig;
 }) {
   const { t } = useTranslation();
-  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState<unknown>(null);
-  const [activeTab, setActiveTab] = useState("summary");
+
+  const isSSO = config?.auth?.authType === "logto";
+  const [activeTab, setActiveTab] = useState(isSSO ? "summary" : "ping");
+
   const [routePreset, setRoutePreset] = useState("show route for");
   const [routeInput, setRouteInput] = useState("");
+
+  const [showCaptcha, setShowCaptcha] = useState(false);
+  const [pendingQuery, setPendingQuery] = useState<{
+    type: string;
+    args?: string;
+  } | null>(null);
 
   const query = async (type: string, args?: string) => {
     setLoading(true);
@@ -188,18 +211,29 @@ function QueryInterface({
 
     try {
       const body: Record<string, string> = { type, server: server.id };
-      if (type === "bird") body.command = args || "";
-      if (type === "traceroute") body.target = args || "";
+      if (type === "traceroute" || type === "ping" || type === "mtr") {
+        body.target = args || "";
+      }
 
-      const res = await fetch("/api/query", {
+      // Select endpoint based on query type
+      const endpoint =
+        type === "bird" || type === "summary" ? "/api/bird" : "/api/query";
+
+      const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
 
       if (res.status === 401) {
-        sessionStorage.setItem("auth_redirect", `/detail/${serverId}`);
-        navigate("/captcha");
+        // Trigger Captcha Dialog
+        setPendingQuery({ type, args });
+        setShowCaptcha(true);
+        return;
+      }
+
+      if (res.status === 403) {
+        setError(t.detail.auth_required || "Authentication required");
         return;
       }
 
@@ -232,33 +266,51 @@ function QueryInterface({
         }}
         className="w-full gap-8"
       >
-        <TabsList className="grid w-full grid-cols-3 max-w-md">
-          <TabsTrigger value="summary">{t.detail.summary}</TabsTrigger>
-          <TabsTrigger value="route">{t.detail.route}</TabsTrigger>
+        <TabsList
+          className={`grid w-full ${isSSO ? "grid-cols-5 max-w-2xl" : "grid-cols-3 max-w-md"} h-auto p-1`}
+        >
+          {isSSO && (
+            <TabsTrigger value="summary">{t.detail.summary}</TabsTrigger>
+          )}
+          {isSSO && <TabsTrigger value="route">{t.detail.route}</TabsTrigger>}
+          <TabsTrigger value="ping">Ping</TabsTrigger>
           <TabsTrigger value="traceroute">{t.detail.traceroute}</TabsTrigger>
+          <TabsTrigger value="mtr">MTR</TabsTrigger>
         </TabsList>
 
         <Card>
           <CardContent className="p-6">
-            <TabsContent value="summary" className="mt-0">
-              <SummaryTab
+            {isSSO && (
+              <>
+                <TabsContent value="summary" className="mt-0">
+                  <SummaryTab
+                    query={query}
+                    loading={loading}
+                    result={result}
+                    error={error}
+                    onProtocolSelect={handleProtocolSelect}
+                  />
+                </TabsContent>
+                <TabsContent value="route" className="mt-0">
+                  <RouteTab
+                    query={query}
+                    loading={loading}
+                    result={result}
+                    error={error}
+                    preset={routePreset}
+                    setPreset={setRoutePreset}
+                    input={routeInput}
+                    setInput={setRouteInput}
+                  />
+                </TabsContent>
+              </>
+            )}
+            <TabsContent value="ping" className="mt-0">
+              <PingTab
                 query={query}
                 loading={loading}
                 result={result}
                 error={error}
-                onProtocolSelect={handleProtocolSelect}
-              />
-            </TabsContent>
-            <TabsContent value="route" className="mt-0">
-              <RouteTab
-                query={query}
-                loading={loading}
-                result={result}
-                error={error}
-                preset={routePreset}
-                setPreset={setRoutePreset}
-                input={routeInput}
-                setInput={setRouteInput}
               />
             </TabsContent>
             <TabsContent value="traceroute" className="mt-0">
@@ -269,9 +321,58 @@ function QueryInterface({
                 error={error}
               />
             </TabsContent>
+            <TabsContent value="mtr" className="mt-0">
+              <MtrTab
+                query={query}
+                loading={loading}
+                result={result}
+                error={error}
+              />
+            </TabsContent>
           </CardContent>
         </Card>
       </Tabs>
+
+      <Dialog open={showCaptcha} onOpenChange={setShowCaptcha}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {t.detail.security_check || "Security Check"}
+            </DialogTitle>
+            <DialogDescription>
+              {t.detail.complete_captcha ||
+                "Please complete the CAPTCHA to continue."}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-center py-4">
+            {config?.turnstile?.siteKey && (
+              <Turnstile
+                siteKey={config.turnstile.siteKey}
+                onSuccess={async (token) => {
+                  try {
+                    const res = await fetch("/api/verify", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ token }),
+                    });
+                    if (res.ok) {
+                      setShowCaptcha(false);
+                      if (pendingQuery) {
+                        query(pendingQuery.type, pendingQuery.args);
+                        setPendingQuery(null);
+                      }
+                    } else {
+                      setError("Verification failed");
+                    }
+                  } catch (e) {
+                    setError("Verification error");
+                  }
+                }}
+              />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -412,7 +513,7 @@ function RouteTab({
           className="flex-1 font-mono"
         />
         <Button onClick={handleSubmit} disabled={loading}>
-          {loading ? <Loader2 className="animate-spin" /> : t.detail.execute}
+          {loading ? <Spinner /> : t.detail.execute}
         </Button>
       </div>
       {error && (
@@ -454,7 +555,7 @@ function TracerouteTab({ query, loading, result, error }: TabProps) {
           className="flex-1 font-mono"
         />
         <Button onClick={handleSubmit} disabled={loading || !target}>
-          {loading ? <Loader2 className="animate-spin" /> : t.detail.run}
+          {loading ? <Spinner /> : t.detail.run}
         </Button>
       </div>
       {error && (
@@ -469,6 +570,86 @@ function TracerouteTab({ query, loading, result, error }: TabProps) {
           <pre className="text-sm font-mono whitespace-pre-wrap">
             {formatOutput(data)}
           </pre>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PingTab({ query, loading, result, error }: TabProps) {
+  const { t } = useTranslation();
+  const [target, setTarget] = useState("");
+  const handleSubmit = () => {
+    if (target) query("ping", target);
+  };
+  const data =
+    (result as { result?: { data: string }[] })?.result?.[0]?.data || "";
+
+  return (
+    <div className="space-y-4">
+      <h3 className="text-lg font-medium font-title">Ping</h3>
+      <div className="flex gap-2">
+        <Input
+          placeholder="IP address or hostname"
+          value={target}
+          onChange={(e) => setTarget(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
+          className="flex-1 font-mono"
+        />
+        <Button onClick={handleSubmit} disabled={loading || !target}>
+          {loading ? <Spinner /> : t.detail.run}
+        </Button>
+      </div>
+      {error && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>{t.common.error}</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+      {data && (
+        <div className="rounded-md bg-muted p-4 overflow-x-auto">
+          <pre className="text-sm font-mono whitespace-pre-wrap">{data}</pre>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MtrTab({ query, loading, result, error }: TabProps) {
+  const { t } = useTranslation();
+  const [target, setTarget] = useState("");
+  const handleSubmit = () => {
+    if (target) query("mtr", target);
+  };
+  const data =
+    (result as { result?: { data: string }[] })?.result?.[0]?.data || "";
+
+  return (
+    <div className="space-y-4">
+      <h3 className="text-lg font-medium font-title">MTR</h3>
+      <div className="flex gap-2">
+        <Input
+          placeholder="IP address or hostname"
+          value={target}
+          onChange={(e) => setTarget(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
+          className="flex-1 font-mono"
+        />
+        <Button onClick={handleSubmit} disabled={loading || !target}>
+          {loading ? <Spinner /> : t.detail.run}
+        </Button>
+      </div>
+      {error && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>{t.common.error}</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+      {data && (
+        <div className="rounded-md bg-muted p-4 overflow-x-auto">
+          <pre className="text-sm font-mono whitespace-pre-wrap">{data}</pre>
         </div>
       )}
     </div>

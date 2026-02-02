@@ -31,8 +31,15 @@ func main() {
 	api := app.Group("/api")
 	api.Get("/config", handleConfig(config))
 	api.Post("/verify", handleVerify(config))
-	api.Post("/query", handleQuery(config))
+	api.Post("/verify", handleVerify(config))
+	api.Post("/query", handleQuery(config)) // For ping, mtr, traceroute
+	api.Post("/bird", handleBird(config))   // For bird commands (SSO only)
 	api.Post("/whois", handleWhois())
+
+	// Auth routes
+	api.Get("/auth/login", handleLogtoLogin(config))
+	api.Get("/auth/logout", handleLogtoLogout(config)) // Add logout route
+	api.Get("/callback", handleLogtoCallback(config))
 
 	staticDir := config.StaticDir
 	indexFile := filepath.Join(staticDir, "index.html")
@@ -64,7 +71,7 @@ func main() {
 		log.Printf("Starting server on %s (prefork: %v)", config.ListenAddr, true)
 	}
 	if err := app.Listen(config.ListenAddr, fiber.ListenConfig{
-		EnablePrefork: true,
+		EnablePrefork: false,
 	}); err != nil {
 		log.Fatal(err)
 	}

@@ -38,7 +38,11 @@ export const dictionaries = {
         info: "Info",
       },
       traceroute_placeholder: "1.1.1.1 or example.com",
-      rate_limit_exceeded: "Server is busy. Please try again in a moment.",
+      auth_required: "Authentication required",
+      security_check: "Security Check",
+      complete_captcha: "Please complete the CAPTCHA to continue.",
+      rate_limit_exceeded:
+        "You have exceeded the rate limit. Please try again in a moment.",
     },
     whois: {
       title: "Whois Query",
@@ -91,7 +95,10 @@ export const dictionaries = {
         info: "信息",
       },
       traceroute_placeholder: "1.1.1.1 或 example.com",
-      rate_limit_exceeded: "服务器繁忙, 请稍后再试.",
+      auth_required: "需要验证",
+      security_check: "安全检查",
+      complete_captcha: "请完成验证码以继续.",
+      rate_limit_exceeded: "您已达到速率限制, 请稍后再试.",
     },
     whois: {
       title: "Whois 查询",

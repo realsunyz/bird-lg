@@ -105,6 +105,17 @@ func ValidateJWT(token, secret string) bool {
 	return true
 }
 
+func GetValidJWTPayload(token, secret string) *JWTPayload {
+	if !ValidateJWT(token, secret) {
+		return nil
+	}
+	parts := strings.Split(token, ".")
+	payloadBytes, _ := base64.RawURLEncoding.DecodeString(parts[1])
+	var payload JWTPayload
+	json.Unmarshal(payloadBytes, &payload)
+	return &payload
+}
+
 func signHS256(message, secret string) string {
 	h := hmac.New(sha256.New, []byte(secret))
 	h.Write([]byte(message))
