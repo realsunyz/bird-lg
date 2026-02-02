@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, Loader2, AlertCircle } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -10,6 +10,7 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Table,
@@ -221,7 +222,7 @@ function QueryInterface({
   };
 
   return (
-    <div className="flex-1 p-4 md:p-8 max-w-7xl mx-auto w-full">
+    <div className="flex-1 py-8 px-4 md:p-8 max-w-7xl mx-auto w-full">
       <Tabs
         value={activeTab}
         onValueChange={(v) => {
@@ -229,9 +230,9 @@ function QueryInterface({
           setResult(null);
           setError("");
         }}
-        className="w-full"
+        className="w-full gap-8"
       >
-        <TabsList className="grid w-full grid-cols-3 max-w-md mb-8">
+        <TabsList className="grid w-full grid-cols-3 max-w-md">
           <TabsTrigger value="summary">{t.detail.summary}</TabsTrigger>
           <TabsTrigger value="route">{t.detail.route}</TabsTrigger>
           <TabsTrigger value="traceroute">{t.detail.traceroute}</TabsTrigger>
@@ -312,9 +313,11 @@ function SummaryTab({
         </div>
       )}
       {error && (
-        <div className="p-4 rounded-md bg-destructive/10 text-destructive text-sm">
-          {error}
-        </div>
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>{t.common.error}</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
       )}
       {!loading && !error && filtered.length > 0 && (
         <div className="rounded-md border">
@@ -409,13 +412,15 @@ function RouteTab({
           className="flex-1 font-mono"
         />
         <Button onClick={handleSubmit} disabled={loading}>
-          {loading ? t.detail.executing : t.detail.execute}
+          {loading ? <Loader2 className="animate-spin" /> : t.detail.execute}
         </Button>
       </div>
       {error && (
-        <div className="p-4 rounded-md bg-destructive/10 text-destructive text-sm">
-          {error}
-        </div>
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>{t.common.error}</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
       )}
       {data && (
         <div className="rounded-md bg-muted p-4 overflow-x-auto">
@@ -449,13 +454,15 @@ function TracerouteTab({ query, loading, result, error }: TabProps) {
           className="flex-1 font-mono"
         />
         <Button onClick={handleSubmit} disabled={loading || !target}>
-          {loading ? t.detail.running : t.detail.run}
+          {loading ? <Loader2 className="animate-spin" /> : t.detail.run}
         </Button>
       </div>
       {error && (
-        <div className="p-4 rounded-md bg-destructive/10 text-destructive text-sm">
-          {error}
-        </div>
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>{t.common.error}</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
       )}
       {data && (
         <div className="rounded-md bg-muted p-4 overflow-x-auto">
