@@ -1,6 +1,12 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useTranslation } from "@/components/i18n-provider";
 
@@ -95,11 +101,11 @@ export default function CaptchaPage() {
             <CardTitle className="font-title">
               {t.detail.captcha_title}
             </CardTitle>
+            <CardDescription>
+              {t.detail.please_complete_captcha}
+            </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col items-center gap-4">
-            <p className="text-sm text-muted-foreground text-center">
-              {t.detail.please_complete_captcha}
-            </p>
             {error && <p className="text-destructive text-sm">{error}</p>}
 
             <div id="turnstile-container" className="min-h-[65px]" />
