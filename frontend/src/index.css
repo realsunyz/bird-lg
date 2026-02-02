@@ -1,10 +1,10 @@
+/* Google Fonts - match original Next.js config */
+@import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400&family=Lato:wght@400;700&family=Noto+Sans:wght@300;400;500;600;700&display=swap");
+
 @import "tailwindcss";
 @import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
-
-/* Google Fonts - match original Next.js config */
-@import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400&family=Lato:wght@400;700&family=Noto+Sans&display=swap");
 
 @theme inline {
   --font-sans: "Noto Sans", system-ui, sans-serif;
@@ -124,7 +124,7 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground font-sans;
+    @apply bg-background text-foreground font-sans antialiased;
   }
   .font-title {
     font-family: var(--font-title);
