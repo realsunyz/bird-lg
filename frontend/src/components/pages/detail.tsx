@@ -236,7 +236,7 @@ function QueryInterface({
   };
 
   const handleProtocolSelect = (name: string) => {
-    setRoutePreset("show protocols all");
+    setRoutePreset("show protocols");
     setRouteInput(name);
     // Stay on route tab
     query("bird", `show protocols all ${name}`);
@@ -429,8 +429,14 @@ function RouteTab({
   const { t } = useTranslation();
 
   const handleSubmit = () => {
-    if (preset === "show protocols" && !input.trim()) {
-      query("summary");
+    if (preset === "show protocols") {
+      if (!input.trim()) {
+        query("summary");
+      } else {
+        query("bird", `show protocols all ${input}`.trim());
+      }
+    } else if (preset === "custom") {
+      query("bird", input.trim());
     } else {
       query("bird", `${preset} ${input}`.trim());
     }
@@ -459,13 +465,17 @@ function RouteTab({
           <SelectContent>
             <SelectItem value="show protocols">show protocols</SelectItem>
             <SelectItem value="show route for">show route for</SelectItem>
-            <SelectItem value="show protocols all">
-              show protocols all
-            </SelectItem>
+            <SelectItem value="custom">custom</SelectItem>
           </SelectContent>
         </Select>
         <Input
-          placeholder={preset === "show protocols" ? "" : "1.1.1.0/24"}
+          placeholder={
+            preset === "show protocols"
+              ? "filter (optional)"
+              : preset === "custom"
+                ? "show status"
+                : "1.1.1.0/24"
+          }
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && handleSubmit()}

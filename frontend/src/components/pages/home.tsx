@@ -13,6 +13,10 @@ import {
 import { useTranslation } from "@/components/i18n-provider";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { LogIn, UserRound, LogOut, Database } from "lucide-react";
+import {
+  RotatingText,
+  RotatingTextContainer,
+} from "@/components/animate-ui/primitives/texts/rotating";
 
 interface ServerConfig {
   id: string;
@@ -51,7 +55,7 @@ export default function HomePage() {
   }
 
   return (
-      <div className="min-h-screen bg-background flex flex-col font-sans">
+    <div className="min-h-screen bg-background flex flex-col font-sans">
       <div className="border-b bg-card">
         <div className="flex h-16 items-center px-4 max-w-7xl mx-auto w-full justify-between">
           <span className="text-lg font-normal font-title tracking-tight">
@@ -99,8 +103,13 @@ export default function HomePage() {
       </div>
 
       <div className="flex-1 flex flex-col items-center justify-center p-8">
-        <h1 className="text-4xl font-normal font-title mb-2 text-foreground">
-          {t.home.app_title}
+        <h1 className="text-4xl font-normal font-title mb-2 text-foreground flex items-center justify-center">
+          <RotatingTextContainer
+            text="Looking Glass"
+            className="flex items-center justify-center"
+          >
+            <RotatingText />
+          </RotatingTextContainer>
         </h1>
         <p className="text-muted-foreground mb-8 text-lg font-sans">
           {t.home.select_server}

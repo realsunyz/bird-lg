@@ -3,12 +3,7 @@
 import * as React from "react";
 import { Tabs as TabsPrimitive } from "radix-ui";
 import { cn } from "@/lib/utils";
-import {
-  motion,
-  AnimatePresence,
-  type HTMLMotionProps,
-  type Transition,
-} from "motion/react";
+import { motion, type HTMLMotionProps, type Transition } from "motion/react";
 
 import {
   Highlight,
@@ -123,28 +118,23 @@ function TabsContent({
   ...props
 }: TabsContentProps) {
   return (
-    <AnimatePresence mode="wait">
-      <TabsPrimitive.Content
-        asChild
-        forceMount={forceMount}
-        value={value}
-        className={cn(
-          "mt-2 ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-          props.className,
-        )}
-      >
-        <motion.div
-          data-slot="tabs-content"
-          layout
-          layoutDependency={value}
-          initial={{ opacity: 0, filter: "blur(4px)" }}
-          animate={{ opacity: 1, filter: "blur(0px)" }}
-          exit={{ opacity: 0, filter: "blur(4px)" }}
-          transition={transition}
-          {...props}
-        />
-      </TabsPrimitive.Content>
-    </AnimatePresence>
+    <TabsPrimitive.Content
+      asChild
+      forceMount={forceMount}
+      value={value}
+      className={cn(
+        "mt-2 ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+        props.className,
+      )}
+    >
+      <motion.div
+        data-slot="tabs-content"
+        initial={{ opacity: 0, filter: "blur(4px)" }}
+        animate={{ opacity: 1, filter: "blur(0px)" }}
+        transition={transition}
+        {...props}
+      />
+    </TabsPrimitive.Content>
   );
 }
 
