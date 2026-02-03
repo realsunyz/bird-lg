@@ -177,12 +177,12 @@ function QueryInterface({
   useEffect(() => {
     // Small timeout to ensure layout is stable before triggering highlight
     const timer = setTimeout(() => {
-      setActiveTab(isSSO ? "summary" : "ping");
+      setActiveTab("ping");
     }, 0);
     return () => clearTimeout(timer);
-  }, [isSSO]);
+  }, []);
 
-  const [routePreset, setRoutePreset] = useState("show route for");
+  const [routePreset, setRoutePreset] = useState("show protocols");
   const [routeInput, setRouteInput] = useState("");
 
   const [showCaptcha, setShowCaptcha] = useState(false);
@@ -238,7 +238,7 @@ function QueryInterface({
   const handleProtocolSelect = (name: string) => {
     setRoutePreset("show protocols all");
     setRouteInput(name);
-    setActiveTab("route");
+    // Stay on route tab
     query("bird", `show protocols all ${name}`);
   };
 
@@ -277,26 +277,6 @@ function QueryInterface({
               transition={{ type: "spring", stiffness: 350, damping: 30 }}
             >
               <TabsList className="flex w-full min-w-max items-stretch justify-start gap-4 md:gap-8 bg-transparent p-0 px-4 md:px-6">
-                {isSSO && (
-                  <TabsHighlightItem value="summary" asChild>
-                    <TabsTrigger
-                      value="summary"
-                      className="rounded-none px-0 py-2 text-sm font-medium text-muted-foreground data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none"
-                    >
-                      {t.detail.summary}
-                    </TabsTrigger>
-                  </TabsHighlightItem>
-                )}
-                {isSSO && (
-                  <TabsHighlightItem value="route" asChild>
-                    <TabsTrigger
-                      value="route"
-                      className="rounded-none px-0 py-2 text-sm font-medium text-muted-foreground data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none"
-                    >
-                      {t.detail.route}
-                    </TabsTrigger>
-                  </TabsHighlightItem>
-                )}
                 <TabsHighlightItem value="ping" asChild>
                   <TabsTrigger
                     value="ping"
@@ -321,35 +301,20 @@ function QueryInterface({
                     MTR
                   </TabsTrigger>
                 </TabsHighlightItem>
+                {isSSO && (
+                  <TabsHighlightItem value="route" asChild>
+                    <TabsTrigger
+                      value="route"
+                      className="rounded-none px-0 py-2 text-sm font-medium text-muted-foreground data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none"
+                    >
+                      {t.detail.route}
+                    </TabsTrigger>
+                  </TabsHighlightItem>
+                )}
               </TabsList>
             </TabsHighlight>
           </CardHeader>
           <CardContent className="pt-6">
-            {isSSO && (
-              <>
-                <TabsContent value="summary" className="mt-0">
-                  <SummaryTab
-                    query={query}
-                    loading={loading}
-                    result={result}
-                    error={error}
-                    onProtocolSelect={handleProtocolSelect}
-                  />
-                </TabsContent>
-                <TabsContent value="route" className="mt-0">
-                  <RouteTab
-                    query={query}
-                    loading={loading}
-                    result={result}
-                    error={error}
-                    preset={routePreset}
-                    setPreset={setRoutePreset}
-                    input={routeInput}
-                    setInput={setRouteInput}
-                  />
-                </TabsContent>
-              </>
-            )}
             <TabsContent value="ping" className="mt-0">
               <PingTab
                 query={query}
@@ -374,6 +339,21 @@ function QueryInterface({
                 error={error}
               />
             </TabsContent>
+            {isSSO && (
+              <TabsContent value="route" className="mt-0">
+                <RouteTab
+                  query={query}
+                  loading={loading}
+                  result={result}
+                  error={error}
+                  preset={routePreset}
+                  setPreset={setRoutePreset}
+                  input={routeInput}
+                  setInput={setRouteInput}
+                  onProtocolSelect={handleProtocolSelect}
+                />
+              </TabsContent>
+            )}
           </CardContent>
         </Card>
       </Tabs>
@@ -429,92 +409,6 @@ interface TabProps {
   error: string;
 }
 
-function SummaryTab({
-  query,
-  loading,
-  result,
-  error,
-  onProtocolSelect,
-}: TabProps & { onProtocolSelect: (name: string) => void }) {
-  const { t } = useTranslation();
-  useEffect(() => {
-    query("summary");
-  }, []);
-  const protocols =
-    (result as { result?: { data: ProtocolInfo[] }[] })?.result?.[0]?.data ||
-    [];
-  const filtered = protocols.filter(
-    (p) =>
-      !["static", "device", "direct", "kernel"].includes(p.proto.toLowerCase()),
-  );
-
-  return (
-    <div className="space-y-4">
-      <h3 className="text-lg font-medium font-title">
-        {t.detail.protocol_summary}
-      </h3>
-      {loading && (
-        <div className="py-12 flex justify-center text-muted-foreground">
-          {t.detail.loading_protocols}
-        </div>
-      )}
-      {error && (
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>{t.common.error}</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
-      {!loading && !error && filtered.length > 0 && (
-        <div className="rounded-md border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>{t.detail.table.name}</TableHead>
-                <TableHead>{t.detail.table.proto}</TableHead>
-                <TableHead>{t.detail.table.state}</TableHead>
-                <TableHead>{t.detail.table.since}</TableHead>
-                <TableHead>{t.detail.table.info}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filtered.map((p, i) => (
-                <TableRow key={i}>
-                  <TableCell className="font-medium text-sm">
-                    <button
-                      onClick={() => onProtocolSelect(p.name)}
-                      className="hover:underline cursor-pointer text-primary focus:outline-none"
-                    >
-                      {p.name}
-                    </button>
-                  </TableCell>
-                  <TableCell className="text-sm">{p.proto}</TableCell>
-                  <TableCell>
-                    <span
-                      className={cn(
-                        "text-sm font-semibold",
-                        getStateColor(p.state),
-                      )}
-                    >
-                      {p.state}
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground text-sm whitespace-nowrap">
-                    {p.since}
-                  </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
-                    {p.info}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-      )}
-    </div>
-  );
-}
-
 function RouteTab({
   query,
   loading,
@@ -524,26 +418,46 @@ function RouteTab({
   setPreset,
   input,
   setInput,
+  onProtocolSelect,
 }: TabProps & {
   preset: string;
   setPreset: (v: string) => void;
   input: string;
   setInput: (v: string) => void;
+  onProtocolSelect: (v: string) => void;
 }) {
   const { t } = useTranslation();
-  const handleSubmit = () => query("bird", `${preset} ${input}`.trim());
-  const data =
+
+  const handleSubmit = () => {
+    if (preset === "show protocols" && !input.trim()) {
+      query("summary");
+    } else {
+      query("bird", `${preset} ${input}`.trim());
+    }
+  };
+
+  // Logic for Table Data (for show protocols)
+  const protocols =
+    (result as { result?: { data: ProtocolInfo[] }[] })?.result?.[0]?.data ||
+    [];
+  const filteredProtocols = protocols.filter(
+    (p) =>
+      !["static", "device", "direct", "kernel"].includes(p.proto.toLowerCase()),
+  );
+
+  // Logic for Code Block Data (for other queries)
+  const routeData =
     (result as { result?: { data: string }[] })?.result?.[0]?.data || "";
 
   return (
     <div className="space-y-4">
-      <h3 className="text-lg font-medium font-title">{t.detail.route_query}</h3>
       <div className="flex flex-col sm:flex-row gap-2">
         <Select value={preset} onValueChange={setPreset}>
           <SelectTrigger className="w-full sm:w-[200px]">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
+            <SelectItem value="show protocols">show protocols</SelectItem>
             <SelectItem value="show route for">show route for</SelectItem>
             <SelectItem value="show protocols all">
               show protocols all
@@ -551,7 +465,7 @@ function RouteTab({
           </SelectContent>
         </Select>
         <Input
-          placeholder="1.1.1.0/24"
+          placeholder={preset === "show protocols" ? "" : "1.1.1.0/24"}
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
@@ -568,10 +482,63 @@ function RouteTab({
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
-      {data && (
+
+      {/* Render Table if show protocols */}
+      {preset === "show protocols" &&
+        !loading &&
+        !error &&
+        filteredProtocols.length > 0 && (
+          <div className="rounded-md border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{t.detail.table.name}</TableHead>
+                  <TableHead>{t.detail.table.proto}</TableHead>
+                  <TableHead>{t.detail.table.state}</TableHead>
+                  <TableHead>{t.detail.table.since}</TableHead>
+                  <TableHead>{t.detail.table.info}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredProtocols.map((p, i) => (
+                  <TableRow key={i}>
+                    <TableCell className="font-medium text-sm">
+                      <button
+                        onClick={() => onProtocolSelect(p.name)}
+                        className="hover:underline cursor-pointer text-primary focus:outline-none"
+                      >
+                        {p.name}
+                      </button>
+                    </TableCell>
+                    <TableCell className="text-sm">{p.proto}</TableCell>
+                    <TableCell>
+                      <span
+                        className={cn(
+                          "text-sm font-semibold",
+                          getStateColor(p.state),
+                        )}
+                      >
+                        {p.state}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground text-sm whitespace-nowrap">
+                      {p.since}
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {p.info}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+
+      {/* Render Code Block if NOT show protocols */}
+      {preset !== "show protocols" && routeData && (
         <div className="rounded-md bg-muted p-4 overflow-x-auto">
           <pre className="text-sm font-mono whitespace-pre-wrap">
-            {formatOutput(data)}
+            {formatOutput(routeData)}
           </pre>
         </div>
       )}
@@ -590,7 +557,6 @@ function TracerouteTab({ query, loading, result, error }: TabProps) {
 
   return (
     <div className="space-y-4">
-      <h3 className="text-lg font-medium font-title">{t.detail.traceroute}</h3>
       <div className="flex gap-2">
         <Input
           placeholder={t.detail.traceroute_placeholder}
@@ -632,7 +598,6 @@ function PingTab({ query, loading, result, error }: TabProps) {
 
   return (
     <div className="space-y-4">
-      <h3 className="text-lg font-medium font-title">Ping</h3>
       <div className="flex gap-2">
         <Input
           placeholder="IP address or hostname"
@@ -672,7 +637,6 @@ function MtrTab({ query, loading, result, error }: TabProps) {
 
   return (
     <div className="space-y-4">
-      <h3 className="text-lg font-medium font-title">MTR</h3>
       <div className="flex gap-2">
         <Input
           placeholder="IP address or hostname"
