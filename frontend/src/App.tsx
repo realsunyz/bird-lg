@@ -49,7 +49,6 @@ function App() {
           <Routes>
             <Route path="/" element={<HomePage />} />
             <Route path="/detail/:serverId" element={<DetailPage />} />
-            <Route path="/detail/:serverId" element={<DetailPage />} />
             <Route path="/whois/:query" element={<WhoisPage />} />
             <Route path="/callback" element={<AuthCallback />} />
             <Route path="*" element={<Navigate to="/" replace />} />

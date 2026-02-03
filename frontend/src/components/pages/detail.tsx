@@ -17,6 +17,8 @@ import {
   TabsContent,
   TabsList,
   TabsTrigger,
+  TabsHighlight,
+  TabsHighlightItem,
 } from "@/components/animate-ui/primitives/radix/tabs";
 import {
   Table,
@@ -266,17 +268,59 @@ function QueryInterface({
         }}
         className="w-full gap-8"
       >
-        <TabsList
-          className={`grid w-full ${isSSO ? "grid-cols-5 max-w-2xl" : "grid-cols-3 max-w-md"} h-auto p-1`}
+        <TabsHighlight
+          className="inset-0 rounded-md bg-background shadow-sm ring-1 ring-border/50"
+          transition={{ type: "spring", stiffness: 350, damping: 30 }}
         >
-          {isSSO && (
-            <TabsTrigger value="summary">{t.detail.summary}</TabsTrigger>
-          )}
-          {isSSO && <TabsTrigger value="route">{t.detail.route}</TabsTrigger>}
-          <TabsTrigger value="ping">Ping</TabsTrigger>
-          <TabsTrigger value="traceroute">{t.detail.traceroute}</TabsTrigger>
-          <TabsTrigger value="mtr">MTR</TabsTrigger>
-        </TabsList>
+          <TabsList
+            className={`grid w-full ${isSSO ? "grid-cols-5 max-w-2xl" : "grid-cols-3 max-w-md"} h-auto p-1`}
+          >
+            {isSSO && (
+              <TabsHighlightItem value="summary" asChild>
+                <TabsTrigger
+                  value="summary"
+                  className="data-[state=active]:bg-transparent data-[state=active]:shadow-none"
+                >
+                  {t.detail.summary}
+                </TabsTrigger>
+              </TabsHighlightItem>
+            )}
+            {isSSO && (
+              <TabsHighlightItem value="route" asChild>
+                <TabsTrigger
+                  value="route"
+                  className="data-[state=active]:bg-transparent data-[state=active]:shadow-none"
+                >
+                  {t.detail.route}
+                </TabsTrigger>
+              </TabsHighlightItem>
+            )}
+            <TabsHighlightItem value="ping" asChild>
+              <TabsTrigger
+                value="ping"
+                className="data-[state=active]:bg-transparent data-[state=active]:shadow-none"
+              >
+                Ping
+              </TabsTrigger>
+            </TabsHighlightItem>
+            <TabsHighlightItem value="traceroute" asChild>
+              <TabsTrigger
+                value="traceroute"
+                className="data-[state=active]:bg-transparent data-[state=active]:shadow-none"
+              >
+                {t.detail.traceroute}
+              </TabsTrigger>
+            </TabsHighlightItem>
+            <TabsHighlightItem value="mtr" asChild>
+              <TabsTrigger
+                value="mtr"
+                className="data-[state=active]:bg-transparent data-[state=active]:shadow-none"
+              >
+                MTR
+              </TabsTrigger>
+            </TabsHighlightItem>
+          </TabsList>
+        </TabsHighlight>
 
         <Card>
           <CardContent className="p-6">
