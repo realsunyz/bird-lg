@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { ChevronLeft, AlertCircle } from "lucide-react";
+import { AlertCircle } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -36,7 +36,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "@/components/i18n-provider";
 import { LanguageSwitcher } from "@/components/language-switcher";
@@ -134,48 +140,19 @@ export default function DetailPage() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col font-sans">
-      <Header
-        title={config.app.title}
-        serverName={server.name}
-        onBack={() => navigate("/")}
-      />
+      <Header title={config.app.title} />
       <QueryInterface server={server} config={config} />
     </div>
   );
 }
 
-function Header({
-  title,
-  serverName,
-  onBack,
-}: {
-  title: string;
-  serverName?: string;
-  onBack: () => void;
-}) {
+function Header({ title }: { title: string }) {
   return (
     <div className="border-b bg-card">
       <div className="flex h-16 items-center px-4 max-w-7xl mx-auto w-full justify-between">
-        <div className="flex items-center">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onBack}
-            className="mr-2 -ml-2"
-          >
-            <ChevronLeft className="h-5 w-5" />
-          </Button>
-          <div className="flex items-center gap-3">
-            <span className="text-lg font-normal font-title tracking-tight">
-              {title}
-            </span>
-            {serverName && (
-              <Badge variant="secondary" className="font-sans font-normal">
-                {serverName}
-              </Badge>
-            )}
-          </div>
-        </div>
+        <span className="text-lg font-normal font-title tracking-tight">
+          {title}
+        </span>
         <LanguageSwitcher />
       </div>
     </div>
@@ -195,7 +172,15 @@ function QueryInterface({
   const [result, setResult] = useState<unknown>(null);
 
   const isSSO = config?.auth?.authType === "logto";
-  const [activeTab, setActiveTab] = useState(isSSO ? "summary" : "ping");
+  const [activeTab, setActiveTab] = useState("");
+
+  useEffect(() => {
+    // Small timeout to ensure layout is stable before triggering highlight
+    const timer = setTimeout(() => {
+      setActiveTab(isSSO ? "summary" : "ping");
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [isSSO]);
 
   const [routePreset, setRoutePreset] = useState("show route for");
   const [routeInput, setRouteInput] = useState("");
@@ -258,7 +243,21 @@ function QueryInterface({
   };
 
   return (
-    <div className="flex-1 py-8 px-4 md:p-8 max-w-7xl mx-auto w-full">
+    <div className="flex-1 px-4 max-w-7xl mx-auto w-full pt-6 pb-8 md:px-8 md:pb-8">
+      <Breadcrumb className="mb-6">
+        <BreadcrumbList className="font-sans">
+          <BreadcrumbItem>
+            <BreadcrumbLink asChild>
+              <Link to="/">PoPs</Link>
+            </BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator>{">"}</BreadcrumbSeparator>
+          <BreadcrumbItem>
+            <span className="text-foreground/80">{server.name}</span>
+          </BreadcrumbItem>
+        </BreadcrumbList>
+      </Breadcrumb>
+
       <Tabs
         value={activeTab}
         onValueChange={(v) => {
@@ -266,64 +265,66 @@ function QueryInterface({
           setResult(null);
           setError("");
         }}
-        className="w-full gap-8"
+        className="w-full gap-0"
       >
-        <TabsHighlight
-          className="inset-0 rounded-md bg-background shadow-sm ring-1 ring-border/50"
-          transition={{ type: "spring", stiffness: 350, damping: 30 }}
-        >
-          <TabsList
-            className={`grid w-full ${isSSO ? "grid-cols-5 max-w-2xl" : "grid-cols-3 max-w-md"} h-auto p-1`}
-          >
-            {isSSO && (
-              <TabsHighlightItem value="summary" asChild>
-                <TabsTrigger
-                  value="summary"
-                  className="data-[state=active]:bg-transparent data-[state=active]:shadow-none"
-                >
-                  {t.detail.summary}
-                </TabsTrigger>
-              </TabsHighlightItem>
-            )}
-            {isSSO && (
-              <TabsHighlightItem value="route" asChild>
-                <TabsTrigger
-                  value="route"
-                  className="data-[state=active]:bg-transparent data-[state=active]:shadow-none"
-                >
-                  {t.detail.route}
-                </TabsTrigger>
-              </TabsHighlightItem>
-            )}
-            <TabsHighlightItem value="ping" asChild>
-              <TabsTrigger
-                value="ping"
-                className="data-[state=active]:bg-transparent data-[state=active]:shadow-none"
-              >
-                Ping
-              </TabsTrigger>
-            </TabsHighlightItem>
-            <TabsHighlightItem value="traceroute" asChild>
-              <TabsTrigger
-                value="traceroute"
-                className="data-[state=active]:bg-transparent data-[state=active]:shadow-none"
-              >
-                {t.detail.traceroute}
-              </TabsTrigger>
-            </TabsHighlightItem>
-            <TabsHighlightItem value="mtr" asChild>
-              <TabsTrigger
-                value="mtr"
-                className="data-[state=active]:bg-transparent data-[state=active]:shadow-none"
-              >
-                MTR
-              </TabsTrigger>
-            </TabsHighlightItem>
-          </TabsList>
-        </TabsHighlight>
-
         <Card>
-          <CardContent className="p-6">
+          <CardHeader className="p-0 border-b">
+            <TabsHighlight
+              forceUpdateBounds
+              mode="parent"
+              containerClassName="w-full overflow-x-auto"
+              className="rounded-none bg-transparent border-b-2 border-foreground"
+              transition={{ type: "spring", stiffness: 350, damping: 30 }}
+            >
+              <TabsList className="flex w-full min-w-max items-stretch justify-start gap-4 md:gap-8 bg-transparent p-0 px-4 md:px-6">
+                {isSSO && (
+                  <TabsHighlightItem value="summary" asChild>
+                    <TabsTrigger
+                      value="summary"
+                      className="rounded-none px-0 py-2 text-sm font-medium text-muted-foreground data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none"
+                    >
+                      {t.detail.summary}
+                    </TabsTrigger>
+                  </TabsHighlightItem>
+                )}
+                {isSSO && (
+                  <TabsHighlightItem value="route" asChild>
+                    <TabsTrigger
+                      value="route"
+                      className="rounded-none px-0 py-2 text-sm font-medium text-muted-foreground data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none"
+                    >
+                      {t.detail.route}
+                    </TabsTrigger>
+                  </TabsHighlightItem>
+                )}
+                <TabsHighlightItem value="ping" asChild>
+                  <TabsTrigger
+                    value="ping"
+                    className="rounded-none px-0 py-2 text-sm font-medium text-muted-foreground data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none"
+                  >
+                    Ping
+                  </TabsTrigger>
+                </TabsHighlightItem>
+                <TabsHighlightItem value="traceroute" asChild>
+                  <TabsTrigger
+                    value="traceroute"
+                    className="rounded-none px-0 py-2 text-sm font-medium text-muted-foreground data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none"
+                  >
+                    Trace
+                  </TabsTrigger>
+                </TabsHighlightItem>
+                <TabsHighlightItem value="mtr" asChild>
+                  <TabsTrigger
+                    value="mtr"
+                    className="rounded-none px-0 py-2 text-sm font-medium text-muted-foreground data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none"
+                  >
+                    MTR
+                  </TabsTrigger>
+                </TabsHighlightItem>
+              </TabsList>
+            </TabsHighlight>
+          </CardHeader>
+          <CardContent className="pt-6">
             {isSSO && (
               <>
                 <TabsContent value="summary" className="mt-0">

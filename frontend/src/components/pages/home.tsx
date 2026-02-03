@@ -51,10 +51,10 @@ export default function HomePage() {
   }
 
   return (
-    <div className="min-h-screen bg-background flex flex-col font-sans">
-      <div className="border-b">
-        <div className="flex h-16 items-center px-4 max-w-5xl mx-auto w-full justify-between">
-          <span className="text-xl font-normal font-title tracking-tight">
+      <div className="min-h-screen bg-background flex flex-col font-sans">
+      <div className="border-b bg-card">
+        <div className="flex h-16 items-center px-4 max-w-7xl mx-auto w-full justify-between">
+          <span className="text-lg font-normal font-title tracking-tight">
             {config.app.title}
           </span>
           <div className="flex items-center">
