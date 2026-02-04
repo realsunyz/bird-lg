@@ -347,7 +347,11 @@ function QueryInterface({
                   result={result}
                   error={error}
                   preset={routePreset}
-                  setPreset={setRoutePreset}
+                  setPreset={(v) => {
+                    setRoutePreset(v);
+                    setResult(null);
+                    setError("");
+                  }}
                   input={routeInput}
                   setInput={setRouteInput}
                   onProtocolSelect={handleProtocolSelect}
