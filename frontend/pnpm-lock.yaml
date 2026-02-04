@@ -29,6 +29,9 @@ importers:
       '@radix-ui/react-tabs':
         specifier: ^1.1.13
         version: 1.1.13(@types/react-dom@19.2.3(@types/react@19.2.10))(@types/react@19.2.10)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+      '@sankyu/react-circle-flags':
+        specifier: ^1.5.5
+        version: 1.5.5(react@19.2.4)
       '@tailwindcss/vite':
         specifier: ^4.1.18
         version: 4.1.18(vite@7.3.1(@types/node@24.10.9)(jiti@2.6.1)(lightningcss@1.30.2))
@@ -1446,6 +1449,14 @@ packages:
     resolution: {integrity: sha512-mxRFDdHIWRxg3UfIIAwCm6NzvxG0jDX/wBN6KsQFTvKFqqg9vTrWUE68qEjHt19A5wwx5X5aUi2zuZT7YR0jrA==}
     cpu: [x64]
     os: [win32]
+
+  '@sankyu/circle-flags-core@1.5.5':
+    resolution: {integrity: sha512-M47F3lzGxfRNFS/DUFZFfeLsCtZ61F2Llqh1q9iQidVYFEsRjPRYEExeMYOLbhtUM1QCQokxs+FvvzNLi/xcyg==}
+
+  '@sankyu/react-circle-flags@1.5.5':
+    resolution: {integrity: sha512-6B/t2hZlt2Ru45FobpppgMxIfXA6q6/w9v36VD/dsLWNCjzK4hSQ8zY6LMgZIrmDWz8FZFeDfyIIq6Em1tLgug==}
+    peerDependencies:
+      react: '>=16.0.0'
 
   '@sec-ant/readable-stream@0.4.1':
     resolution: {integrity: sha512-831qok9r2t8AlxLko40y2ebgSDhenenCatLVeW/uBtnHPyhHOvG0C7TvfgecV+wHzIm5KUICgzmVpWS+IMEAeg==}
@@ -4698,6 +4709,13 @@ snapshots:
 
   '@rollup/rollup-win32-x64-msvc@4.57.1':
     optional: true
+
+  '@sankyu/circle-flags-core@1.5.5': {}
+
+  '@sankyu/react-circle-flags@1.5.5(react@19.2.4)':
+    dependencies:
+      '@sankyu/circle-flags-core': 1.5.5
+      react: 19.2.4
 
   '@sec-ant/readable-stream@0.4.1': {}
 

@@ -13,6 +13,7 @@ import {
 import { useTranslation } from "@/components/i18n-provider";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { LogIn, UserRound, LogOut, Database } from "lucide-react";
+import { DynamicFlag } from "@sankyu/react-circle-flags";
 import {
   RotatingText,
   RotatingTextContainer,
@@ -125,11 +126,23 @@ export default function HomePage() {
               <Card className="hover:shadow-lg transition-all hover:-translate-y-1 h-full">
                 <CardContent className="p-6">
                   <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-full border-2 flex items-center justify-center bg-muted/30 group-hover:bg-muted text-foreground transition-colors shrink-0 font-title">
-                      <span className="text-lg font-medium">
-                        {server.icon ||
-                          server.name.substring(0, 2).toUpperCase()}
-                      </span>
+                    <div className="w-12 h-12 rounded-full border-2 flex items-center justify-center bg-muted/30 group-hover:bg-muted text-foreground transition-colors shrink-0 font-title overflow-hidden">
+                      {server.icon && server.icon.length === 2 ? (
+                        <DynamicFlag
+                          code={server.icon.toLowerCase()}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <span className="text-lg font-medium">
+                          {server.icon ||
+                            server.name
+                              .split(" ")
+                              .map((n) => n[0])
+                              .join("")
+                              .slice(0, 2)
+                              .toUpperCase()}
+                        </span>
+                      )}
                     </div>
                     <div>
                       <h2 className="text-lg font-normal font-title leading-tight mb-1">
