@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"fmt"
 	"os/exec"
 	"strings"
@@ -17,43 +16,35 @@ func init() {
 }
 
 func detectPing() {
-	// Try finding ping binary
 	path, err := exec.LookPath("ping")
 	if err == nil {
 		pingBin = path
-		pingFlags = []string{"-c", "4", "-i", "0.2"} // Default: 4 packets, 0.2s interval for speed
+		pingFlags = []string{"-c", "4", "-i", "0.2"} // 4 packets, 0.2s interval for speed
 	}
 }
 
-func runPing(target string) (string, error) {
+func buildPingCommand(target string, count int) (bin string, args []string, err error) {
 	if pingBin == "" {
-		return "", fmt.Errorf("ping_not_found")
+		return "", nil, fmt.Errorf("ping_not_found")
 	}
 
 	target = strings.TrimSpace(target)
 	if target == "" {
-		return "", fmt.Errorf("empty_target")
+		return "", nil, fmt.Errorf("empty_target")
 	}
 
 	if strings.ContainsAny(target, ";&|`$(){}[]<>\\'\"\\n\\r\\t") {
-		return "", fmt.Errorf("invalid_target")
+		return "", nil, fmt.Errorf("invalid_target")
 	}
 
-	args := append(pingFlags, target)
-	cmd := exec.Command(pingBin, args...)
-
-	var stdout, stderr bytes.Buffer
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
-
-	err := cmd.Run()
-	if err != nil {
-		// Ping usually returns non-zero if packets are lost, but we still want the output
-		if stdout.Len() > 0 {
-			return stdout.String(), nil
-		}
-		return "", fmt.Errorf("ping_exec_failed")
+	if count <= 0 {
+		count = 4
+	}
+	if count > 20 {
+		count = 20
 	}
 
-	return stdout.String(), nil
+	args = []string{"-c", fmt.Sprintf("%d", count), "-i", "0.2"}
+	args = append(args, target)
+	return pingBin, args, nil
 }

@@ -9,7 +9,7 @@ export const dictionaries = {
       back: "Back",
     },
     home: {
-      app_title: "Looking Glass",
+      title: "Looking Glass",
       select_server: "Select a server to continue",
       no_servers: "No servers configured. Set SERVERS environment variable.",
       powered_by: "Powered by BIRD Looking Glass",
@@ -44,14 +44,6 @@ export const dictionaries = {
       rate_limit_exceeded:
         "You have exceeded the rate limit. Please try again in a moment.",
     },
-    whois: {
-      title: "Whois Query",
-      result: "Result",
-      loading: "Loading whois data...",
-      bogon_title: "Bogon Address",
-      bogon_asn: "AS{asn} is a bogon ASN, which is unallocated or reserved.",
-      bogon_ip: "{ip} is a bogon IP address, which is unallocated or reserved.",
-    },
     turnstile: {
       error_unavailable:
         "The CAPTCHA service is currently unavailable. Please try again later or contact the NOC.",
@@ -66,7 +58,7 @@ export const dictionaries = {
       back: "返回",
     },
     home: {
-      app_title: "路由之镜",
+      title: "路由之镜",
       select_server: "选择一个服务器以继续",
       no_servers: "未配置服务器。请配置 SERVERS 环境变量。",
       powered_by: "由 BIRD Looking Glass 驱动",
@@ -99,14 +91,6 @@ export const dictionaries = {
       security_check: "安全检查",
       complete_captcha: "请完成验证码以继续.",
       rate_limit_exceeded: "您已达到速率限制, 请稍后再试.",
-    },
-    whois: {
-      title: "Whois 查询",
-      result: "结果",
-      loading: "正在加载 Whois 数据...",
-      bogon_title: "Bogon 地址",
-      bogon_asn: "AS{asn} 是未分配或被保留的 Bogon ASN.",
-      bogon_ip: "{ip} 是未分配或被保留的 Bogon IP.",
     },
     turnstile: {
       error_unavailable:

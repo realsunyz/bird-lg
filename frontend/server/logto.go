@@ -1,34 +1,17 @@
 package main
 
 import (
+	"bird-lg/server/models"
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
-	"encoding/json"
 	"time"
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/client"
 )
 
-// LogtoTokenResponse from OIDC token endpoint
-type LogtoTokenResponse struct {
-	AccessToken  string `json:"access_token"`
-	IDToken      string `json:"id_token"`
-	RefreshToken string `json:"refresh_token,omitempty"`
-	ExpiresIn    int    `json:"expires_in"`
-	TokenType    string `json:"token_type"`
-}
-
-// LogtoUserInfo from userinfo endpoint
-type LogtoUserInfo struct {
-	Sub      string `json:"sub"`
-	Username string `json:"username,omitempty"`
-	Name     string `json:"name,omitempty"`
-	Email    string `json:"email,omitempty"`
-}
-
-// handleLogtoCallback handles the OAuth callback from Logto
+// OAuth callback from Logto
 func handleLogtoCallback(config *Config) fiber.Handler {
 	return func(c fiber.Ctx) error {
 		if config.LogtoEndpoint == "" || config.LogtoAppID == "" {
@@ -68,10 +51,10 @@ func handleLogtoCallback(config *Config) fiber.Handler {
 		userInfo, err := getLogtoUserInfo(config, tokenResp.AccessToken)
 		if err != nil {
 			// Even if userinfo fails, we can still issue token
-			userInfo = &LogtoUserInfo{Sub: "unknown"}
+			userInfo = &models.LogtoUserInfo{Sub: "unknown"}
 		}
 
-		// Issue our own JWT with Logto auth type
+		// Issue JWT with Logto auth type
 		token := GenerateJWTWithSub(config.JWTSecret, AuthTypeLogto, userInfo.Sub)
 		cookie := &fiber.Cookie{
 			Name:     config.CookieName(),
@@ -90,7 +73,7 @@ func handleLogtoCallback(config *Config) fiber.Handler {
 	}
 }
 
-func exchangeLogtoCode(config *Config, code, verifier string, c fiber.Ctx) (*LogtoTokenResponse, error) {
+func exchangeLogtoCode(config *Config, code, verifier string, c fiber.Ctx) (*models.LogtoTokenResponse, error) {
 	cc := client.New()
 	cc.SetTimeout(10 * time.Second)
 
@@ -108,15 +91,15 @@ func exchangeLogtoCode(config *Config, code, verifier string, c fiber.Ctx) (*Log
 		return nil, err
 	}
 
-	var tokenResp LogtoTokenResponse
-	if err := json.Unmarshal(resp.Body(), &tokenResp); err != nil {
+	var tokenResp models.LogtoTokenResponse
+	if err := tokenResp.UnmarshalJSON(resp.Body()); err != nil {
 		return nil, err
 	}
 
 	return &tokenResp, nil
 }
 
-func getLogtoUserInfo(config *Config, accessToken string) (*LogtoUserInfo, error) {
+func getLogtoUserInfo(config *Config, accessToken string) (*models.LogtoUserInfo, error) {
 	cc := client.New()
 	cc.SetTimeout(10 * time.Second)
 
@@ -130,8 +113,8 @@ func getLogtoUserInfo(config *Config, accessToken string) (*LogtoUserInfo, error
 		return nil, err
 	}
 
-	var userInfo LogtoUserInfo
-	if err := json.Unmarshal(resp.Body(), &userInfo); err != nil {
+	var userInfo models.LogtoUserInfo
+	if err := userInfo.UnmarshalJSON(resp.Body()); err != nil {
 		return nil, err
 	}
 
@@ -146,7 +129,7 @@ func getRedirectURI(c fiber.Ctx) string {
 	return scheme + "://" + c.Host() + "/api/callback"
 }
 
-// handleLogtoLogin initiates Logto OAuth flow
+// Logto OAuth flow
 func handleLogtoLogin(config *Config) fiber.Handler {
 	return func(c fiber.Ctx) error {
 		if config.LogtoEndpoint == "" || config.LogtoAppID == "" {
@@ -187,7 +170,7 @@ func handleLogtoLogin(config *Config) fiber.Handler {
 	}
 }
 
-// handleLogtoLogout clears auth cookie and redirects
+// Clear auth cookie and redirect
 func handleLogtoLogout(config *Config) fiber.Handler {
 	return func(c fiber.Ctx) error {
 		// Explicitly overwrite cookie with past expiry and matching attributes

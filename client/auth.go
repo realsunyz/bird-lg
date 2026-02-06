@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v3"
@@ -40,7 +41,9 @@ func verifySignature(c fiber.Ctx) error {
 
 	body := c.Body()
 
-	message := timestampStr + ":" + string(body)
+	method := strings.ToUpper(c.Method())
+	requestURI := string(c.RequestCtx().RequestURI()) // includes path+query
+	message := timestampStr + ":" + method + ":" + requestURI + ":" + string(body)
 	mac := hmac.New(sha256.New, []byte(sharedSecret))
 	mac.Write([]byte(message))
 	expectedSig := base64.StdEncoding.EncodeToString(mac.Sum(nil))

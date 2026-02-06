@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import { AlertCircle } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -28,6 +28,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { PingResult } from "@/components/ping-result";
+import { TracerouteResult } from "@/components/traceroute-result";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -54,6 +56,8 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Turnstile } from "@marsidev/react-turnstile";
+import { useConfig } from "@/contexts/config-context";
+import { type ClientConfig, type ServerConfig } from "@/lib/types";
 
 interface ProtocolInfo {
   name: string;
@@ -64,76 +68,27 @@ interface ProtocolInfo {
   info: string;
 }
 
-interface ServerConfig {
-  id: string;
-  name: string;
-  location: string;
-  icon?: string;
-}
-
-interface ClientConfig {
-  turnstile: { siteKey: string };
-  servers: ServerConfig[];
-  app: { title: string };
-  auth?: { isAuthenticated: boolean; user?: string; authType?: string };
-}
-
 export default function DetailPage() {
   const { serverId } = useParams<{ serverId: string }>();
-  const navigate = useNavigate();
   const { t } = useTranslation();
+  const config = useConfig();
 
-  const [config, setConfig] = useState<ClientConfig | null>(null);
-  const [server, setServer] = useState<ServerConfig | null>(null);
-  const [error, setError] = useState("");
+  const server = config.servers.find((s) => s.id === serverId);
 
-  useEffect(() => {
-    fetch("/api/config")
-      .then((res) => res.json())
-      .then((data: ClientConfig) => {
-        setConfig(data);
-        const s = data.servers.find((s) => s.id === serverId);
-        if (s) setServer(s);
-        else setError(t.detail.server_not_found);
-      })
-      .catch(() => setError(t.detail.failed_load_config));
-  }, [serverId, t]);
-
-  if (error) {
+  if (!server) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center font-sans">
         <Card className="max-w-md w-full border-destructive/50">
           <CardHeader>
             <CardTitle className="text-destructive">{t.common.error}</CardTitle>
-            <CardDescription>{error}</CardDescription>
+            <CardDescription>{t.detail.server_not_found}</CardDescription>
           </CardHeader>
           <CardContent>
-            <Button variant="outline" onClick={() => navigate("/")}>
-              {t.common.back_to_home}
+            <Button variant="outline" asChild>
+              <Link to="/">{t.common.back_to_home}</Link>
             </Button>
           </CardContent>
         </Card>
-      </div>
-    );
-  }
-
-  if (!config || !server) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="flex items-center gap-2 text-muted-foreground animate-pulse">
-          <div
-            className="w-2 h-2 rounded-full bg-current animate-bounce"
-            style={{ animationDelay: "0s" }}
-          />
-          <div
-            className="w-2 h-2 rounded-full bg-current animate-bounce"
-            style={{ animationDelay: "0.2s" }}
-          />
-          <div
-            className="w-2 h-2 rounded-full bg-current animate-bounce"
-            style={{ animationDelay: "0.4s" }}
-          />
-        </div>
       </div>
     );
   }
@@ -171,11 +126,10 @@ function QueryInterface({
   const [error, setError] = useState("");
   const [result, setResult] = useState<unknown>(null);
 
-  const isSSO = config?.auth?.authType === "logto";
+  const isSSO = config?.auth?.authType === "sso";
   const [activeTab, setActiveTab] = useState("");
 
   useEffect(() => {
-    // Small timeout to ensure layout is stable before triggering highlight
     const timer = setTimeout(() => {
       setActiveTab("ping");
     }, 0);
@@ -197,28 +151,46 @@ function QueryInterface({
     setResult(null);
 
     try {
-      const body: Record<string, string> = { type, server: server.id };
-      if (type === "traceroute" || type === "ping" || type === "mtr") {
-        body.target = args || "";
+      if (type === "ping" || type === "traceroute") {
+        const endpoint =
+          type === "ping" ? "/api/tool/ping" : "/api/tool/traceroute";
+        const res = await fetch(endpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ server: server.id, target: args || "" }),
+        });
+
+        if (res.status === 401) {
+          setPendingQuery({ type, args });
+          setShowCaptcha(true);
+          return;
+        }
+        if (res.status === 403) {
+          setError(t.detail.auth_required || "Authentication required");
+          return;
+        }
+
+        const data = await res.json();
+        if (data.rateLimit) setError(t.detail.rate_limit_exceeded);
+        else if (data.error) setError(data.error);
+        else setResult(data);
+        return;
       }
 
-      // Select endpoint based on query type
-      const endpoint =
-        type === "bird" || type === "summary" ? "/api/bird" : "/api/query";
+      const body: Record<string, string> = { type, server: server.id };
+      if (type === "bird") body.command = args || "";
 
-      const res = await fetch(endpoint, {
+      const res = await fetch("/api/bird", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
 
       if (res.status === 401) {
-        // Trigger Captcha Dialog
         setPendingQuery({ type, args });
         setShowCaptcha(true);
         return;
       }
-
       if (res.status === 403) {
         setError(t.detail.auth_required || "Authentication required");
         return;
@@ -238,7 +210,6 @@ function QueryInterface({
   const handleProtocolSelect = (name: string) => {
     setRoutePreset("show protocols");
     setRouteInput(name);
-    // Stay on route tab
     query("bird", `show protocols all ${name}`);
   };
 
@@ -293,14 +264,6 @@ function QueryInterface({
                     Trace
                   </TabsTrigger>
                 </TabsHighlightItem>
-                <TabsHighlightItem value="mtr" asChild>
-                  <TabsTrigger
-                    value="mtr"
-                    className="rounded-none px-0 py-2 text-sm font-medium text-muted-foreground data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none"
-                  >
-                    MTR
-                  </TabsTrigger>
-                </TabsHighlightItem>
                 {isSSO && (
                   <TabsHighlightItem value="route" asChild>
                     <TabsTrigger
@@ -317,27 +280,12 @@ function QueryInterface({
           <CardContent className="pt-6">
             <TabsContent value="ping" className="mt-0">
               <PingTab
-                query={query}
-                loading={loading}
-                result={result}
-                error={error}
+                activeServer={server.id}
+                isSSO={!!config?.auth?.isAuthenticated}
               />
             </TabsContent>
             <TabsContent value="traceroute" className="mt-0">
-              <TracerouteTab
-                query={query}
-                loading={loading}
-                result={result}
-                error={error}
-              />
-            </TabsContent>
-            <TabsContent value="mtr" className="mt-0">
-              <MtrTab
-                query={query}
-                loading={loading}
-                result={result}
-                error={error}
-              />
+              <TracerouteTab activeServer={server.id} />
             </TabsContent>
             {isSSO && (
               <TabsContent value="route" className="mt-0">
@@ -393,7 +341,7 @@ function QueryInterface({
                     } else {
                       setError("Verification failed");
                     }
-                  } catch (e) {
+                  } catch {
                     setError("Verification error");
                   }
                 }}
@@ -446,18 +394,21 @@ function RouteTab({
     }
   };
 
-  // Logic for Table Data (for show protocols)
-  const protocols =
-    (result as { result?: { data: ProtocolInfo[] }[] })?.result?.[0]?.data ||
-    [];
-  const filteredProtocols = protocols.filter(
-    (p) =>
-      !["static", "device", "direct", "kernel"].includes(p.proto.toLowerCase()),
-  );
+  const protocolsData = (result as { result?: { data: unknown }[] })
+    ?.result?.[0]?.data;
+  const protocols: ProtocolInfo[] = Array.isArray(protocolsData)
+    ? (protocolsData as ProtocolInfo[])
+    : [];
+  const filteredProtocols = protocols.filter((p) => {
+    const proto = typeof p?.proto === "string" ? p.proto : "";
+    return !["static", "device", "direct", "kernel"].includes(
+      proto.toLowerCase(),
+    );
+  });
 
-  // Logic for Code Block Data (for other queries)
-  const routeData =
-    (result as { result?: { data: string }[] })?.result?.[0]?.data || "";
+  const routeDataRaw = (result as { result?: { data: unknown }[] })?.result?.[0]
+    ?.data;
+  const routeData = typeof routeDataRaw === "string" ? routeDataRaw : "";
 
   return (
     <div className="space-y-4">
@@ -483,7 +434,7 @@ function RouteTab({
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
-          className="flex-1 font-mono"
+          className="w-full sm:flex-1 font-mono text-sm"
         />
         <Button onClick={handleSubmit} disabled={loading}>
           {loading ? <Spinner /> : t.detail.execute}
@@ -497,7 +448,6 @@ function RouteTab({
         </Alert>
       )}
 
-      {/* Render Table if show protocols */}
       {preset === "show protocols" &&
         !loading &&
         !error &&
@@ -548,26 +498,73 @@ function RouteTab({
           </div>
         )}
 
-      {/* Render Code Block if NOT show protocols */}
-      {preset !== "show protocols" && routeData && (
-        <div className="rounded-md bg-muted p-4 overflow-x-auto">
-          <pre className="text-sm font-mono whitespace-pre-wrap">
-            {formatOutput(routeData)}
-          </pre>
-        </div>
-      )}
+      {routeData &&
+        (preset !== "show protocols" || filteredProtocols.length === 0) && (
+          <div className="rounded-md bg-muted p-4 overflow-x-auto">
+            <pre className="text-sm font-mono whitespace-pre-wrap">
+              {routeData}
+            </pre>
+          </div>
+        )}
     </div>
   );
 }
 
-function TracerouteTab({ query, loading, result, error }: TabProps) {
+function TracerouteTab({ activeServer }: { activeServer: string }) {
   const { t } = useTranslation();
   const [target, setTarget] = useState("");
-  const handleSubmit = () => {
-    if (target) query("traceroute", target);
+  const [loading, setLoading] = useState(false);
+  const [rawData, setRawData] = useState("");
+  const [error, setError] = useState("");
+
+  const handleTraceroute = async () => {
+    if (!target) return;
+    setLoading(true);
+    setRawData("");
+    setError("");
+
+    try {
+      const response = await fetch(
+        `/api/tool/traceroute/stream?server=${activeServer}&target=${target}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ target }),
+        },
+      );
+
+      if (!response.ok) {
+        const errJson = await response.json().catch(() => ({}));
+        throw new Error(errJson.error || "Failed to start traceroute");
+      }
+
+      const reader = response.body?.getReader();
+      if (!reader) throw new Error("No response stream");
+
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value, { stream: true });
+        buffer += chunk;
+        const lines = buffer.split("\n\n");
+        buffer = lines.pop() || "";
+
+        lines.forEach((line) => {
+          if (line.startsWith("data: ")) {
+            setRawData((prev) => prev + line.substring(6) + "\n");
+          }
+        });
+      }
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setLoading(false);
+    }
   };
-  const data =
-    (result as { result?: { data: string }[] })?.result?.[0]?.data || "";
 
   return (
     <div className="space-y-4">
@@ -576,10 +573,10 @@ function TracerouteTab({ query, loading, result, error }: TabProps) {
           placeholder={t.detail.traceroute_placeholder}
           value={target}
           onChange={(e) => setTarget(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
-          className="flex-1 font-mono"
+          onKeyDown={(e) => e.key === "Enter" && handleTraceroute()}
+          className="flex-1 font-mono text-sm"
         />
-        <Button onClick={handleSubmit} disabled={loading || !target}>
+        <Button onClick={handleTraceroute} disabled={loading || !target}>
           {loading ? <Spinner /> : t.detail.run}
         </Button>
       </div>
@@ -590,25 +587,75 @@ function TracerouteTab({ query, loading, result, error }: TabProps) {
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
-      {data && (
-        <div className="rounded-md bg-muted p-4 overflow-x-auto">
-          <pre className="text-sm font-mono whitespace-pre-wrap">
-            {formatOutput(data)}
-          </pre>
-        </div>
-      )}
+      {rawData && <TracerouteResult rawOutput={rawData} />}
     </div>
   );
 }
 
-function PingTab({ query, loading, result, error }: TabProps) {
+function PingTab({
+  activeServer,
+  isSSO,
+}: {
+  activeServer: string;
+  isSSO: boolean;
+}) {
   const { t } = useTranslation();
   const [target, setTarget] = useState("");
-  const handleSubmit = () => {
-    if (target) query("ping", target);
+  const [count, setCount] = useState("4");
+  const [loading, setLoading] = useState(false);
+  const [rawData, setRawData] = useState("");
+  const [error, setError] = useState("");
+
+  const handlePing = async () => {
+    if (!target) return;
+    setLoading(true);
+    setRawData("");
+    setError("");
+
+    try {
+      const countInt = parseInt(count) || 4;
+      const response = await fetch(
+        `/api/tool/ping/stream?server=${activeServer}&target=${target}&count=${countInt}`,
+        {
+          method: "POST",
+
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ target, count: countInt }),
+        },
+      );
+
+      if (!response.ok) {
+        const errJson = await response.json().catch(() => ({}));
+        throw new Error(errJson.error || "Failed to start ping");
+      }
+
+      const reader = response.body?.getReader();
+      if (!reader) throw new Error("No response stream");
+
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value, { stream: true });
+        buffer += chunk;
+        const lines = buffer.split("\n\n");
+        buffer = lines.pop() || "";
+
+        lines.forEach((line) => {
+          if (line.startsWith("data: ")) {
+            setRawData((prev) => prev + line.substring(6) + "\n");
+          }
+        });
+      }
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setLoading(false);
+    }
   };
-  const data =
-    (result as { result?: { data: string }[] })?.result?.[0]?.data || "";
 
   return (
     <div className="space-y-4">
@@ -617,10 +664,45 @@ function PingTab({ query, loading, result, error }: TabProps) {
           placeholder="IP address or hostname"
           value={target}
           onChange={(e) => setTarget(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
-          className="flex-1 font-mono"
+          onKeyDown={(e) => e.key === "Enter" && handlePing()}
+          className="flex-1 font-mono text-sm"
         />
-        <Button onClick={handleSubmit} disabled={loading || !target}>
+        <Select value={count} onValueChange={setCount}>
+          <SelectTrigger className="w-[130px]">
+            <SelectValue placeholder="Count" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="1">
+              <span className="hidden sm:inline">1 Packet</span>
+              <span className="sm:hidden">1 Pack</span>
+            </SelectItem>
+            <SelectItem value="2">
+              <span className="hidden sm:inline">2 Packets</span>
+              <span className="sm:hidden">2 Packs</span>
+            </SelectItem>
+            <SelectItem value="4">
+              <span className="hidden sm:inline">4 Packets</span>
+              <span className="sm:hidden">4 Packs</span>
+            </SelectItem>
+            <SelectItem value="8">
+              <span className="hidden sm:inline">8 Packets</span>
+              <span className="sm:hidden">8 Packs</span>
+            </SelectItem>
+            {isSSO && (
+              <>
+                <SelectItem value="10">
+                  <span className="hidden sm:inline">10 Packets</span>
+                  <span className="sm:hidden">10 Packs</span>
+                </SelectItem>
+                <SelectItem value="20">
+                  <span className="hidden sm:inline">20 Packets</span>
+                  <span className="sm:hidden">20 Packs</span>
+                </SelectItem>
+              </>
+            )}
+          </SelectContent>
+        </Select>
+        <Button onClick={handlePing} disabled={loading || !target}>
           {loading ? <Spinner /> : t.detail.run}
         </Button>
       </div>
@@ -631,50 +713,7 @@ function PingTab({ query, loading, result, error }: TabProps) {
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
-      {data && (
-        <div className="rounded-md bg-muted p-4 overflow-x-auto">
-          <pre className="text-sm font-mono whitespace-pre-wrap">{data}</pre>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function MtrTab({ query, loading, result, error }: TabProps) {
-  const { t } = useTranslation();
-  const [target, setTarget] = useState("");
-  const handleSubmit = () => {
-    if (target) query("mtr", target);
-  };
-  const data =
-    (result as { result?: { data: string }[] })?.result?.[0]?.data || "";
-
-  return (
-    <div className="space-y-4">
-      <div className="flex gap-2">
-        <Input
-          placeholder="IP address or hostname"
-          value={target}
-          onChange={(e) => setTarget(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
-          className="flex-1 font-mono"
-        />
-        <Button onClick={handleSubmit} disabled={loading || !target}>
-          {loading ? <Spinner /> : t.detail.run}
-        </Button>
-      </div>
-      {error && (
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>{t.common.error}</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
-      {data && (
-        <div className="rounded-md bg-muted p-4 overflow-x-auto">
-          <pre className="text-sm font-mono whitespace-pre-wrap">{data}</pre>
-        </div>
-      )}
+      {rawData && <PingResult rawOutput={rawData} />}
     </div>
   );
 }
@@ -686,79 +725,4 @@ function getStateColor(state: string): string {
     return "text-yellow-600";
   if (lower.includes("down") || lower.includes("idle")) return "text-red-500";
   return "text-muted-foreground";
-}
-
-function formatOutput(text: string) {
-  const parts = text.split(/(\s+)/);
-  return parts.map((part, index, arr) => {
-    if (part.match(/^\s+$/)) return part;
-    if (/^AS\d+$/i.test(part)) {
-      return (
-        <Link
-          key={index}
-          to={`/whois/${part.toUpperCase()}`}
-          target="_blank"
-          className="text-primary hover:underline"
-        >
-          {part}
-        </Link>
-      );
-    }
-    if (/^\d+$/.test(part)) {
-      let prevPart = "";
-      for (let i = index - 1; i >= 0; i--) {
-        if (arr[i] && !/^\s+$/.test(arr[i])) {
-          prevPart = arr[i];
-          break;
-        }
-      }
-      if (/AS:?$/i.test(prevPart)) {
-        return (
-          <Link
-            key={index}
-            to={`/whois/AS${part}`}
-            target="_blank"
-            className="text-primary hover:underline"
-          >
-            {part}
-          </Link>
-        );
-      }
-    }
-    const ipv4Match = part.match(
-      /^((?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?))(%[a-zA-Z0-9_-]+)?$/,
-    );
-    if (ipv4Match) {
-      return (
-        <span key={index}>
-          <Link
-            to={`/whois/${ipv4Match[1]}`}
-            target="_blank"
-            className="text-primary hover:underline"
-          >
-            {ipv4Match[1]}
-          </Link>
-          {ipv4Match[2] || ""}
-        </span>
-      );
-    }
-    const ipv6Match = part.match(
-      /^((?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}|(?:[0-9a-fA-F]{1,4}:){1,7}:|(?:[0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|(?:[0-9a-fA-F]{1,4}:){1,5}(?::[0-9a-fA-F]{1,4}){1,2}|(?:[0-9a-fA-F]{1,4}:){1,4}(?::[0-9a-fA-F]{1,4}){1,3}|(?:[0-9a-fA-F]{1,4}:){1,3}(?::[0-9a-fA-F]{1,4}){1,4}|(?:[0-9a-fA-F]{1,4}:){1,2}(?::[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:(?::[0-9a-fA-F]{1,4}){1,6}|:(?::[0-9a-fA-F]{1,4}){1,7}|::)(%[a-zA-Z0-9_-]+)?$/,
-    );
-    if (ipv6Match) {
-      return (
-        <span key={index}>
-          <Link
-            to={`/whois/${ipv6Match[1]}`}
-            target="_blank"
-            className="text-primary hover:underline"
-          >
-            {ipv6Match[1]}
-          </Link>
-          {ipv6Match[2] || ""}
-        </span>
-      );
-    }
-    return part;
-  });
 }

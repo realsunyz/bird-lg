@@ -3,32 +3,21 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { LogtoProvider, type LogtoConfig } from "@logto/react";
 import { ThemeProvider } from "@/components/theme-provider";
 import { I18nProvider } from "@/components/i18n-provider";
+import { ConfigProvider } from "@/contexts/config-context";
+import { type ClientConfig } from "@/lib/types";
 import HomePage from "@/components/pages/home";
 import DetailPage from "@/components/pages/detail";
-import WhoisPage from "@/components/pages/whois";
 import { AuthCallback } from "@/components/auth-callback";
 
-interface AppConfig {
-  logto?: {
-    endpoint: string;
-    appId: string;
-  };
-}
-
 function App() {
-  const [logtoConfig, setLogtoConfig] = useState<LogtoConfig | null>(null);
+  const [config, setConfig] = useState<ClientConfig | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetch("/api/config")
       .then((res) => res.json())
-      .then((config: AppConfig) => {
-        if (config.logto?.endpoint && config.logto?.appId) {
-          setLogtoConfig({
-            endpoint: config.logto.endpoint,
-            appId: config.logto.appId,
-          });
-        }
+      .then((data: ClientConfig) => {
+        setConfig(data);
       })
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -43,22 +32,27 @@ function App() {
   }
 
   const AppContent = (
-    <ThemeProvider>
-      <I18nProvider>
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<HomePage />} />
-            <Route path="/detail/:serverId" element={<DetailPage />} />
-            <Route path="/whois/:query" element={<WhoisPage />} />
-            <Route path="/callback" element={<AuthCallback />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </BrowserRouter>
-      </I18nProvider>
-    </ThemeProvider>
+    <ConfigProvider value={config || ({} as ClientConfig)}>
+      <ThemeProvider>
+        <I18nProvider>
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<HomePage />} />
+              <Route path="/detail/:serverId" element={<DetailPage />} />
+              <Route path="/callback" element={<AuthCallback />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </BrowserRouter>
+        </I18nProvider>
+      </ThemeProvider>
+    </ConfigProvider>
   );
 
-  if (logtoConfig) {
+  if (config?.logto?.endpoint && config?.logto?.appId) {
+    const logtoConfig: LogtoConfig = {
+      endpoint: config.logto.endpoint,
+      appId: config.logto.appId,
+    };
     return <LogtoProvider config={logtoConfig}>{AppContent}</LogtoProvider>;
   }
 

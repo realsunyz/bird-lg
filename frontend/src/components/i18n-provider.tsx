@@ -16,12 +16,10 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    // Load preference from local storage
     const stored = localStorage.getItem("bird-lg-locale") as Locale;
     if (stored && (stored === "en" || stored === "zh")) {
       setLocaleState(stored);
     } else {
-      // Auto-detect based on navigator
       const browserLang = navigator.language.toLowerCase();
       if (browserLang.startsWith("zh")) {
         setLocaleState("zh");
@@ -38,9 +36,6 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
   const t = dictionaries[locale];
 
   if (!mounted) {
-    // Prevent hydration mismatch by rendering nothing or default until mounted
-    // Or render children with default logic, but suppressor warning is already on HTML
-    // Better to render with default 'en' state to avoid layout shift, hydration warning handles mismatch
     return (
       <I18nContext.Provider
         value={{ locale: "en", setLocale, t: dictionaries.en }}

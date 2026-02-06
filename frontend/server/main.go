@@ -13,7 +13,6 @@ import (
 func main() {
 	config := LoadConfig()
 
-	// Log only in main process, not in prefork children
 	if !fiber.IsChild() {
 		log.Printf("Loaded config: %d servers, static_dir=%s", len(config.Servers), config.StaticDir)
 	}
@@ -31,14 +30,15 @@ func main() {
 	api := app.Group("/api")
 	api.Get("/config", handleConfig(config))
 	api.Post("/verify", handleVerify(config))
-	api.Post("/verify", handleVerify(config))
-	api.Post("/query", handleQuery(config)) // For ping, mtr, traceroute
-	api.Post("/bird", handleBird(config))   // For bird commands (SSO only)
-	api.Post("/whois", handleWhois())
+	api.Post("/bird", handleBird(config)) // For bird commands (SSO only)
+	api.Post("/tool/ping", handleToolPing(config))
+	api.Post("/tool/ping/stream", handleToolPingStream(config))
+	api.Post("/tool/traceroute", handleToolTraceroute(config))
+	api.Post("/tool/traceroute/stream", handleToolTracerouteStream(config))
 
 	// Auth routes
 	api.Get("/auth/login", handleLogtoLogin(config))
-	api.Get("/auth/logout", handleLogtoLogout(config)) // Add logout route
+	api.Get("/auth/logout", handleLogtoLogout(config))
 	api.Get("/callback", handleLogtoCallback(config))
 
 	staticDir := config.StaticDir

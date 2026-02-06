@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -18,42 +17,11 @@ import {
   RotatingText,
   RotatingTextContainer,
 } from "@/components/animate-ui/primitives/texts/rotating";
-
-interface ServerConfig {
-  id: string;
-  name: string;
-  location: string;
-  icon?: string;
-}
-
-interface ClientConfig {
-  turnstile: { siteKey: string };
-  logto: { endpoint: string; appId: string };
-  servers: ServerConfig[];
-  app: { title: string };
-  auth?: { isAuthenticated: boolean; user?: string; authType?: string };
-}
+import { useConfig } from "@/contexts/config-context";
 
 export default function HomePage() {
   const { t } = useTranslation();
-  const [config, setConfig] = useState<ClientConfig | null>(null);
-
-  useEffect(() => {
-    fetch("/api/config")
-      .then((res) => res.json())
-      .then(setConfig)
-      .catch(() => {});
-  }, []);
-
-  if (!config) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="animate-pulse text-muted-foreground">
-          {t.common.loading}
-        </div>
-      </div>
-    );
-  }
+  const config = useConfig();
 
   return (
     <div className="min-h-screen bg-background flex flex-col font-sans">
@@ -106,7 +74,7 @@ export default function HomePage() {
       <div className="flex-1 flex flex-col items-center justify-center p-8">
         <h1 className="text-4xl font-normal font-title mb-2 text-foreground flex items-center justify-center">
           <RotatingTextContainer
-            text="Looking Glass"
+            text={t.home.title}
             className="flex items-center justify-center"
           >
             <RotatingText />

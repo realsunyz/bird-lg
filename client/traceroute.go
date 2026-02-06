@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"fmt"
 	"os/exec"
 	"strings"
@@ -21,9 +20,9 @@ func detectTraceroute() {
 		bin   string
 		flags []string
 	}{
-		{"mtr", []string{"-w", "-c1", "-Z1", "-G1", "-b"}},
 		{"traceroute", []string{"-q1", "-N32", "-w1"}},
 		{"traceroute", []string{"-q1", "-w1"}},
+		{"mtr", []string{"-w", "-c1", "-Z1", "-G1", "-b"}},
 		{"traceroute", nil},
 	}
 
@@ -46,34 +45,20 @@ func detectTraceroute() {
 	tracerouteFlags = nil
 }
 
-func runTraceroute(target string) (string, error) {
+func buildTracerouteCommand(target string) (bin string, args []string, err error) {
 	if tracerouteBin == "" {
-		return "", fmt.Errorf("traceroute_not_found")
+		return "", nil, fmt.Errorf("traceroute_not_found")
 	}
 
 	target = strings.TrimSpace(target)
 	if target == "" {
-		return "", fmt.Errorf("empty_target")
+		return "", nil, fmt.Errorf("empty_target")
 	}
 
 	if strings.ContainsAny(target, ";&|`$(){}[]<>\\'\"\\n\\r\\t") {
-		return "", fmt.Errorf("invalid_target")
+		return "", nil, fmt.Errorf("invalid_target")
 	}
 
-	args := append(tracerouteFlags, target)
-	cmd := exec.Command(tracerouteBin, args...)
-
-	var stdout, stderr bytes.Buffer
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
-
-	err := cmd.Run()
-	if err != nil {
-		if stdout.Len() > 0 {
-			return stdout.String(), nil
-		}
-		return "", fmt.Errorf("traceroute_exec_failed")
-	}
-
-	return stdout.String(), nil
+	args = append(append([]string(nil), tracerouteFlags...), target)
+	return tracerouteBin, args, nil
 }

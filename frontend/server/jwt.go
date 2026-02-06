@@ -11,14 +11,14 @@ import (
 
 // Auth types
 const (
-	AuthTypeTurnstile = "turnstile" // 5 minutes expiry
-	AuthTypeLogto     = "logto"     // 7 days expiry
+	AuthTypeTurnstile = "captcha"
+	AuthTypeLogto     = "sso"
 )
 
 // Expiry durations
 const (
-	ExpiryTurnstile = 5 * time.Minute
-	ExpiryLogto     = 7 * 24 * time.Hour
+	ExpiryTurnstile = 5 * time.Minute    // 5 minutes
+	ExpiryLogto     = 7 * 24 * time.Hour // 7 days
 )
 
 type JWTHeader struct {
@@ -33,12 +33,10 @@ type JWTPayload struct {
 	Sub      string `json:"sub,omitempty"` // User ID for Logto users
 }
 
-// GenerateJWT creates a JWT (backward compatible - uses turnstile type)
 func GenerateJWT(secret string) string {
 	return GenerateJWTWithType(secret, AuthTypeTurnstile, "")
 }
 
-// GenerateJWTWithType creates a JWT with auth_type and optional sub claims
 func GenerateJWTWithType(secret, authType, sub string) string {
 	header := JWTHeader{Alg: "HS256", Typ: "JWT"}
 	headerBytes, _ := json.Marshal(header)
@@ -69,7 +67,6 @@ func GenerateJWTWithType(secret, authType, sub string) string {
 	return message + "." + signature
 }
 
-// GenerateJWTWithSub is an alias for GenerateJWTWithType
 func GenerateJWTWithSub(secret, authType, sub string) string {
 	return GenerateJWTWithType(secret, authType, sub)
 }

@@ -53,7 +53,11 @@ func main() {
 		AllowCredentials: false,
 	}))
 
-	app.Post("/api/query", authMiddleware(handleQuery))
+	app.Post("/api/tool/ping", authMiddleware(handleToolPing))
+	app.Post("/api/tool/ping/stream", authMiddleware(handleToolPingStream))
+	app.Post("/api/tool/traceroute", authMiddleware(handleToolTraceroute))
+	app.Post("/api/tool/traceroute/stream", authMiddleware(handleToolTracerouteStream))
+	app.Post("/api/tool/bird", authMiddleware(handleToolBird))
 	app.Get("/api/health", handleHealth)
 
 	log.Printf("[INFO] Starting on %s", listenAddr)
