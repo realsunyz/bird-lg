@@ -35,7 +35,7 @@ export default function HomePage() {
             {config.logto?.endpoint &&
               config.logto?.appId &&
               (config.auth?.isAuthenticated &&
-              config.auth?.authType === "logto" ? (
+              config.auth?.authType === "sso" ? (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" size="icon" aria-label="User menu">

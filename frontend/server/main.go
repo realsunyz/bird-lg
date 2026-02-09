@@ -3,7 +3,9 @@ package main
 import (
 	"log"
 	"os"
+	"path"
 	"path/filepath"
+	"strings"
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/middleware/logger"
@@ -44,9 +46,8 @@ func main() {
 	staticDir := config.StaticDir
 	indexFile := filepath.Join(staticDir, "index.html")
 
-	// Static files for assets only using static middleware
-	app.Get("/_next/*", static.New(staticDir))
-	app.Get("/favicon.ico", static.New(staticDir))
+	// Static file middleware (best-effort). SPA fallback below handles the rest.
+	app.Use(static.New(staticDir))
 
 	// Root index
 	app.Get("/", func(c fiber.Ctx) error {
@@ -55,12 +56,25 @@ func main() {
 
 	// SPA catch-all: serve root index.html for all other routes
 	app.Get("/*", func(c fiber.Ctx) error {
-		path := c.Path()
+		reqPath := c.Path()
 
 		// Check if it's a static file request
-		fullPath := filepath.Join(staticDir, path)
-		if info, err := os.Stat(fullPath); err == nil && !info.IsDir() {
-			return c.SendFile(fullPath)
+		rel := strings.TrimPrefix(reqPath, "/")
+		rel = strings.TrimPrefix(path.Clean("/"+rel), "/")
+		if rel != "" && rel != "." {
+			fullPath := filepath.Join(staticDir, rel)
+
+			absStaticDir, err1 := filepath.Abs(staticDir)
+			absFullPath, err2 := filepath.Abs(fullPath)
+			if err1 == nil && err2 == nil {
+				if absFullPath != absStaticDir && !strings.HasPrefix(absFullPath, absStaticDir+string(os.PathSeparator)) {
+					return c.SendStatus(fiber.StatusNotFound)
+				}
+			}
+
+			if info, err := os.Stat(fullPath); err == nil && !info.IsDir() {
+				return c.SendFile(fullPath)
+			}
 		}
 
 		// Otherwise serve root index.html for SPA routing

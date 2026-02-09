@@ -140,10 +140,25 @@ function QueryInterface({
   const [routeInput, setRouteInput] = useState("");
 
   const [showCaptcha, setShowCaptcha] = useState(false);
-  const [pendingQuery, setPendingQuery] = useState<{
-    type: string;
-    args?: string;
-  } | null>(null);
+  const [pendingAction, setPendingAction] = useState<
+    | {
+        kind: "query";
+        type: string;
+        args?: string;
+      }
+    | {
+        kind: "retry";
+        run: () => void;
+      }
+    | null
+  >(null);
+  const [captchaError, setCaptchaError] = useState("");
+
+  const requestCaptcha = (run: () => void) => {
+    setCaptchaError("");
+    setPendingAction({ kind: "retry", run });
+    setShowCaptcha(true);
+  };
 
   const query = async (type: string, args?: string) => {
     setLoading(true);
@@ -161,7 +176,8 @@ function QueryInterface({
         });
 
         if (res.status === 401) {
-          setPendingQuery({ type, args });
+          setCaptchaError("");
+          setPendingAction({ kind: "query", type, args });
           setShowCaptcha(true);
           return;
         }
@@ -187,7 +203,8 @@ function QueryInterface({
       });
 
       if (res.status === 401) {
-        setPendingQuery({ type, args });
+        setCaptchaError("");
+        setPendingAction({ kind: "query", type, args });
         setShowCaptcha(true);
         return;
       }
@@ -282,10 +299,14 @@ function QueryInterface({
               <PingTab
                 activeServer={server.id}
                 isSSO={!!config?.auth?.isAuthenticated}
+                onUnauthorized={(retry) => requestCaptcha(retry)}
               />
             </TabsContent>
             <TabsContent value="traceroute" className="mt-0">
-              <TracerouteTab activeServer={server.id} />
+              <TracerouteTab
+                activeServer={server.id}
+                onUnauthorized={(retry) => requestCaptcha(retry)}
+              />
             </TabsContent>
             {isSSO && (
               <TabsContent value="route" className="mt-0">
@@ -310,7 +331,16 @@ function QueryInterface({
         </Card>
       </Tabs>
 
-      <Dialog open={showCaptcha} onOpenChange={setShowCaptcha}>
+      <Dialog
+        open={showCaptcha}
+        onOpenChange={(open) => {
+          setShowCaptcha(open);
+          if (!open) {
+            setPendingAction(null);
+            setCaptchaError("");
+          }
+        }}
+      >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>
@@ -334,20 +364,38 @@ function QueryInterface({
                     });
                     if (res.ok) {
                       setShowCaptcha(false);
-                      if (pendingQuery) {
-                        query(pendingQuery.type, pendingQuery.args);
-                        setPendingQuery(null);
+                      const pending = pendingAction;
+                      setPendingAction(null);
+                      if (pending?.kind === "query") {
+                        query(pending.type, pending.args);
+                      } else if (pending?.kind === "retry") {
+                        pending.run();
                       }
                     } else {
-                      setError("Verification failed");
+                      const errJson = await res.json().catch(() => ({}));
+                      setCaptchaError(
+                        typeof errJson?.error === "string" && errJson.error
+                          ? errJson.error
+                          : t.detail.verification_failed ||
+                              "Verification failed",
+                      );
                     }
                   } catch {
-                    setError("Verification error");
+                    setCaptchaError(
+                      t.detail.verification_failed || "Verification failed",
+                    );
                   }
                 }}
               />
             )}
           </div>
+          {captchaError && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>{t.common.error}</AlertTitle>
+              <AlertDescription>{captchaError}</AlertDescription>
+            </Alert>
+          )}
         </DialogContent>
       </Dialog>
     </div>
@@ -510,7 +558,13 @@ function RouteTab({
   );
 }
 
-function TracerouteTab({ activeServer }: { activeServer: string }) {
+function TracerouteTab({
+  activeServer,
+  onUnauthorized,
+}: {
+  activeServer: string;
+  onUnauthorized: (retry: () => void) => void;
+}) {
   const { t } = useTranslation();
   const [target, setTarget] = useState("");
   const [loading, setLoading] = useState(false);
@@ -532,6 +586,11 @@ function TracerouteTab({ activeServer }: { activeServer: string }) {
           body: JSON.stringify({ target }),
         },
       );
+
+      if (response.status === 401) {
+        onUnauthorized(handleTraceroute);
+        return;
+      }
 
       if (!response.ok) {
         const errJson = await response.json().catch(() => ({}));
@@ -595,9 +654,11 @@ function TracerouteTab({ activeServer }: { activeServer: string }) {
 function PingTab({
   activeServer,
   isSSO,
+  onUnauthorized,
 }: {
   activeServer: string;
   isSSO: boolean;
+  onUnauthorized: (retry: () => void) => void;
 }) {
   const { t } = useTranslation();
   const [target, setTarget] = useState("");
@@ -623,6 +684,11 @@ function PingTab({
           body: JSON.stringify({ target, count: countInt }),
         },
       );
+
+      if (response.status === 401) {
+        onUnauthorized(handlePing);
+        return;
+      }
 
       if (!response.ok) {
         const errJson = await response.json().catch(() => ({}));
