@@ -1,11 +1,11 @@
 package main
 
 import (
-	"encoding/json"
 	"time"
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/client"
+	jlexer "github.com/mailru/easyjson/jlexer"
 )
 
 type VerifyRequest struct {
@@ -17,11 +17,65 @@ type TurnstileResponse struct {
 	ErrorCodes []string `json:"error-codes,omitempty"`
 }
 
+func unmarshalTurnstileResponse(data []byte) (*TurnstileResponse, error) {
+	in := jlexer.Lexer{Data: data}
+	out := &TurnstileResponse{}
+
+	if in.IsNull() {
+		in.Skip()
+		in.Consumed()
+		return out, in.Error()
+	}
+
+	in.Delim('{')
+	for !in.IsDelim('}') {
+		key := in.UnsafeFieldName(false)
+		in.WantColon()
+		switch key {
+		case "success":
+			if in.IsNull() {
+				in.Skip()
+			} else {
+				out.Success = in.Bool()
+			}
+		case "error-codes":
+			if in.IsNull() {
+				in.Skip()
+				break
+			}
+			in.Delim('[')
+			if out.ErrorCodes == nil {
+				if !in.IsDelim(']') {
+					out.ErrorCodes = make([]string, 0, 4)
+				} else {
+					out.ErrorCodes = []string{}
+				}
+			}
+			for !in.IsDelim(']') {
+				if in.IsNull() {
+					in.Skip()
+					out.ErrorCodes = append(out.ErrorCodes, "")
+				} else {
+					out.ErrorCodes = append(out.ErrorCodes, string(in.String()))
+				}
+				in.WantComma()
+			}
+			in.Delim(']')
+		default:
+			in.SkipRecursive()
+		}
+		in.WantComma()
+	}
+	in.Delim('}')
+	in.Consumed()
+	return out, in.Error()
+}
+
 func handleVerify(config *Config) fiber.Handler {
 	return func(c fiber.Ctx) error {
 		var req VerifyRequest
 		if err := c.Bind().JSON(&req); err != nil {
-			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid request"})
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": publicErrorFromKey("invalid_request")})
 		}
 
 		// Skip CAPTCHA if no key configured
@@ -55,16 +109,16 @@ func verifyTurnstile(secretKey, token, remoteIP string) (bool, string) {
 
 	resp, err := req.Post("https://challenges.cloudflare.com/turnstile/v0/siteverify")
 	if err != nil {
-		return false, "turnstile.error_unavailable"
+		return false, formatPublicError(errCodeCaptchaUnavailable, "The CAPTCHA service is currently unavailable. Please try again later or contact the NOC for more information")
 	}
 
-	var result TurnstileResponse
-	if err := json.Unmarshal(resp.Body(), &result); err != nil {
-		return false, "turnstile.error_unavailable"
+	result, err := unmarshalTurnstileResponse(resp.Body())
+	if err != nil {
+		return false, formatPublicError(errCodeCaptchaUnavailable, "The CAPTCHA service is currently unavailable. Please try again later or contact the NOC for more information")
 	}
 
 	if !result.Success {
-		return false, "turnstile.verification_failed"
+		return false, formatPublicError(errCodeCaptchaVerificationFail, "CAPTCHA verification failed")
 	}
 
 	return true, ""

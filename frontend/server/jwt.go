@@ -4,9 +4,11 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/base64"
-	"encoding/json"
 	"strings"
 	"time"
+
+	jlexer "github.com/mailru/easyjson/jlexer"
+	jwriter "github.com/mailru/easyjson/jwriter"
 )
 
 // Auth types
@@ -33,13 +35,99 @@ type JWTPayload struct {
 	Sub      string `json:"sub,omitempty"` // User ID for Logto users
 }
 
+func marshalJWTHeader(header JWTHeader) ([]byte, error) {
+	var w jwriter.Writer
+	w.RawByte('{')
+	w.RawString("\"alg\":")
+	w.String(header.Alg)
+	w.RawByte(',')
+	w.RawString("\"typ\":")
+	w.String(header.Typ)
+	w.RawByte('}')
+	return w.Buffer.BuildBytes(), w.Error
+}
+
+func marshalJWTPayload(payload JWTPayload) ([]byte, error) {
+	var w jwriter.Writer
+	w.RawByte('{')
+
+	w.RawString("\"exp\":")
+	w.Int64(payload.Exp)
+	w.RawByte(',')
+	w.RawString("\"iat\":")
+	w.Int64(payload.Iat)
+
+	if payload.AuthType != "" {
+		w.RawByte(',')
+		w.RawString("\"auth_type\":")
+		w.String(payload.AuthType)
+	}
+	if payload.Sub != "" {
+		w.RawByte(',')
+		w.RawString("\"sub\":")
+		w.String(payload.Sub)
+	}
+
+	w.RawByte('}')
+	return w.Buffer.BuildBytes(), w.Error
+}
+
+func unmarshalJWTPayload(data []byte) (*JWTPayload, error) {
+	in := jlexer.Lexer{Data: data}
+	out := &JWTPayload{}
+
+	if in.IsNull() {
+		in.Skip()
+		in.Consumed()
+		return out, in.Error()
+	}
+
+	in.Delim('{')
+	for !in.IsDelim('}') {
+		key := in.UnsafeFieldName(false)
+		in.WantColon()
+		switch key {
+		case "exp":
+			if in.IsNull() {
+				in.Skip()
+			} else {
+				out.Exp = in.Int64()
+			}
+		case "iat":
+			if in.IsNull() {
+				in.Skip()
+			} else {
+				out.Iat = in.Int64()
+			}
+		case "auth_type":
+			if in.IsNull() {
+				in.Skip()
+			} else {
+				out.AuthType = string(in.String())
+			}
+		case "sub":
+			if in.IsNull() {
+				in.Skip()
+			} else {
+				out.Sub = string(in.String())
+			}
+		default:
+			in.SkipRecursive()
+		}
+		in.WantComma()
+	}
+	in.Delim('}')
+	in.Consumed()
+	return out, in.Error()
+}
+
 func GenerateJWT(secret string) string {
 	return GenerateJWTWithType(secret, AuthTypeTurnstile, "")
 }
 
 func GenerateJWTWithType(secret, authType, sub string) string {
 	header := JWTHeader{Alg: "HS256", Typ: "JWT"}
-	headerBytes, _ := json.Marshal(header)
+	headerBytes, _ := marshalJWTHeader(header)
 	headerB64 := base64.RawURLEncoding.EncodeToString(headerBytes)
 
 	var expiry time.Duration
@@ -58,7 +146,7 @@ func GenerateJWTWithType(secret, authType, sub string) string {
 		AuthType: authType,
 		Sub:      sub,
 	}
-	payloadBytes, _ := json.Marshal(payload)
+	payloadBytes, _ := marshalJWTPayload(payload)
 	payloadB64 := base64.RawURLEncoding.EncodeToString(payloadBytes)
 
 	message := headerB64 + "." + payloadB64
@@ -89,8 +177,8 @@ func ValidateJWT(token, secret string) bool {
 		return false
 	}
 
-	var payload JWTPayload
-	if err := json.Unmarshal(payloadBytes, &payload); err != nil {
+	payload, err := unmarshalJWTPayload(payloadBytes)
+	if err != nil {
 		return false
 	}
 
@@ -108,9 +196,11 @@ func GetValidJWTPayload(token, secret string) *JWTPayload {
 	}
 	parts := strings.Split(token, ".")
 	payloadBytes, _ := base64.RawURLEncoding.DecodeString(parts[1])
-	var payload JWTPayload
-	json.Unmarshal(payloadBytes, &payload)
-	return &payload
+	payload, err := unmarshalJWTPayload(payloadBytes)
+	if err != nil {
+		return nil
+	}
+	return payload
 }
 
 func signHS256(message, secret string) string {

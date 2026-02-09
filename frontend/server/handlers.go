@@ -59,22 +59,25 @@ func findServer(config *Config, id string) *ServerConfig {
 func handleToolPing(config *Config) fiber.Handler {
 	return func(c fiber.Ctx) error {
 		if !requireBasicAuth(config, c) {
-			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "unauthorized"})
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": formatPublicError(errCodeAuthUnauthorized, "Authentication required")})
 		}
 
 		var req models.ToolRunRequest
 		if err := req.UnmarshalJSON(c.Body()); err != nil {
-			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "invalid_request"})
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": publicErrorFromKey("invalid_request")})
 		}
 
 		server := findServer(config, req.Server)
 		if server == nil {
-			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "server_not_found"})
+			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": publicErrorFromKey("server_not_found")})
 		}
 
 		result, err := proxyToClientPath(server.Endpoint, "/api/tool/ping", models.TargetRequest{Target: req.Target}, config.HMACSecret)
 		if err != nil {
-			return c.Status(fiber.StatusBadGateway).JSON(fiber.Map{"error": err.Error()})
+			if fiberErr, ok := err.(*fiber.Error); ok {
+				return c.Status(fiber.StatusBadGateway).JSON(fiber.Map{"error": fiberErr.Message})
+			}
+			return c.Status(fiber.StatusBadGateway).JSON(fiber.Map{"error": formatPublicError(errCodeUpstreamBadStatus, "Upstream client returned an error")})
 		}
 		return c.JSON(result)
 	}
@@ -83,19 +86,19 @@ func handleToolPing(config *Config) fiber.Handler {
 func handleToolPingStream(config *Config) fiber.Handler {
 	return func(c fiber.Ctx) error {
 		if !requireBasicAuth(config, c) {
-			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "unauthorized"})
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": formatPublicError(errCodeAuthUnauthorized, "Authentication required")})
 		}
 
 		serverID := c.Query("server")
 		target := c.Query("target")
 
 		if serverID == "" || target == "" {
-			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "invalid_request"})
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": publicErrorFromKey("invalid_request")})
 		}
 
 		server := findServer(config, serverID)
 		if server == nil {
-			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "server_not_found"})
+			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": publicErrorFromKey("server_not_found")})
 		}
 
 		count, _ := strconv.Atoi(c.Query("count"))
@@ -132,7 +135,7 @@ func handleToolPingStream(config *Config) fiber.Handler {
 			}
 
 			if err := cc.DoTimeout(rawReq, resp.RawResponse, 30*time.Second); err != nil {
-				fmt.Fprintf(w, "error: %v\n", err)
+				fmt.Fprintf(w, "error: %s\n", formatPublicError(errCodeUpstreamConnectFailed, "Failed to connect to upstream client"))
 				return
 			}
 
@@ -160,19 +163,19 @@ func handleToolPingStream(config *Config) fiber.Handler {
 func handleToolTracerouteStream(config *Config) fiber.Handler {
 	return func(c fiber.Ctx) error {
 		if !requireBasicAuth(config, c) {
-			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "unauthorized"})
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": formatPublicError(errCodeAuthUnauthorized, "Authentication required")})
 		}
 
 		serverID := c.Query("server")
 		target := c.Query("target")
 
 		if serverID == "" || target == "" {
-			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "invalid_request"})
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": publicErrorFromKey("invalid_request")})
 		}
 
 		server := findServer(config, serverID)
 		if server == nil {
-			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "server_not_found"})
+			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": publicErrorFromKey("server_not_found")})
 		}
 
 		reqObj := models.TargetRequest{Target: target}
@@ -208,7 +211,7 @@ func handleToolTracerouteStream(config *Config) fiber.Handler {
 			}
 
 			if err := cc.DoTimeout(rawReq, resp.RawResponse, 60*time.Second); err != nil {
-				fmt.Fprintf(w, "error: %v\n", err)
+				fmt.Fprintf(w, "error: %s\n", formatPublicError(errCodeUpstreamConnectFailed, "Failed to connect to upstream client"))
 				return
 			}
 
@@ -236,22 +239,25 @@ func handleToolTracerouteStream(config *Config) fiber.Handler {
 func handleToolTraceroute(config *Config) fiber.Handler {
 	return func(c fiber.Ctx) error {
 		if !requireBasicAuth(config, c) {
-			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "unauthorized"})
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": formatPublicError(errCodeAuthUnauthorized, "Authentication required")})
 		}
 
 		var req models.ToolRunRequest
 		if err := req.UnmarshalJSON(c.Body()); err != nil {
-			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "invalid_request"})
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": publicErrorFromKey("invalid_request")})
 		}
 
 		server := findServer(config, req.Server)
 		if server == nil {
-			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "server_not_found"})
+			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": publicErrorFromKey("server_not_found")})
 		}
 
 		result, err := proxyToClientPath(server.Endpoint, "/api/tool/traceroute", models.TargetRequest{Target: req.Target}, config.HMACSecret)
 		if err != nil {
-			return c.Status(fiber.StatusBadGateway).JSON(fiber.Map{"error": err.Error()})
+			if fiberErr, ok := err.(*fiber.Error); ok {
+				return c.Status(fiber.StatusBadGateway).JSON(fiber.Map{"error": fiberErr.Message})
+			}
+			return c.Status(fiber.StatusBadGateway).JSON(fiber.Map{"error": formatPublicError(errCodeUpstreamBadStatus, "Upstream client returned an error")})
 		}
 		return c.JSON(result)
 	}
@@ -262,12 +268,12 @@ func handleBird(config *Config) fiber.Handler {
 		token := c.Cookies(config.CookieName())
 		payload := GetValidJWTPayload(token, config.JWTSecret)
 		if payload == nil || payload.AuthType != AuthTypeLogto {
-			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"error": "SSO authentication required"})
+			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"error": formatPublicError(errCodeAuthSSORequired, "SSO authentication required")})
 		}
 
 		var req models.QueryRequest
 		if err := req.UnmarshalJSON(c.Body()); err != nil {
-			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid request"})
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": publicErrorFromKey("invalid_request")})
 		}
 
 		var server *ServerConfig
@@ -278,7 +284,7 @@ func handleBird(config *Config) fiber.Handler {
 			}
 		}
 		if server == nil {
-			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "Server not found"})
+			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": publicErrorFromKey("server_not_found")})
 		}
 
 		switch req.Type {
@@ -288,7 +294,10 @@ func handleBird(config *Config) fiber.Handler {
 			}
 			result, err := proxyToClientPath(server.Endpoint, "/api/tool/bird", proxyReq, config.HMACSecret)
 			if err != nil {
-				return c.Status(fiber.StatusBadGateway).JSON(fiber.Map{"error": err.Error()})
+				if fiberErr, ok := err.(*fiber.Error); ok {
+					return c.Status(fiber.StatusBadGateway).JSON(fiber.Map{"error": fiberErr.Message})
+				}
+				return c.Status(fiber.StatusBadGateway).JSON(fiber.Map{"error": formatPublicError(errCodeUpstreamBadStatus, "Upstream client returned an error")})
 			}
 			return c.JSON(result)
 		case "summary":
@@ -297,23 +306,18 @@ func handleBird(config *Config) fiber.Handler {
 			}
 			result, err := proxyToClientPath(server.Endpoint, "/api/tool/bird", proxyReq, config.HMACSecret)
 			if err != nil {
-				return c.Status(fiber.StatusBadGateway).JSON(fiber.Map{"error": err.Error()})
-			}
-			if m, ok := result.(models.GenericResponse); ok {
-				if _, hasError := m["error"]; hasError {
-					return c.JSON(result)
+				if fiberErr, ok := err.(*fiber.Error); ok {
+					return c.Status(fiber.StatusBadGateway).JSON(fiber.Map{"error": fiberErr.Message})
 				}
+				return c.Status(fiber.StatusBadGateway).JSON(fiber.Map{"error": formatPublicError(errCodeUpstreamBadStatus, "Upstream client returned an error")})
+			}
+			if result.Error != "" {
+				return c.JSON(result)
 			}
 
 			output := ""
-			if m, ok := result.(models.GenericResponse); ok {
-				if resAny, ok := m["result"].([]any); ok && len(resAny) > 0 {
-					if first, ok := resAny[0].(map[string]any); ok {
-						if data, ok := first["data"].(string); ok {
-							output = data
-						}
-					}
-				}
+			if len(result.Result) > 0 {
+				output = result.Result[0].Data
 			}
 
 			summary := parseProtocolSummary(output)
@@ -326,7 +330,7 @@ func handleBird(config *Config) fiber.Handler {
 				},
 			})
 		default:
-			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid query type for bird endpoint"})
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": formatPublicError(errCodeReqBadRequest, "Invalid query type for bird endpoint")})
 		}
 	}
 }
@@ -337,10 +341,10 @@ func computeSignature(secret, timestamp, method, requestURI string, body []byte)
 	return base64.StdEncoding.EncodeToString(h.Sum(nil))
 }
 
-func proxyToClientPath(endpoint, path string, request marshaler, hmacSecret string) (interface{}, error) {
+func proxyToClientPath(endpoint, path string, request marshaler, hmacSecret string) (models.ApiGenericResponse, error) {
 	body, err := request.MarshalJSON()
 	if err != nil {
-		return nil, err
+		return models.ApiGenericResponse{}, err
 	}
 
 	cc := client.New()
@@ -359,12 +363,12 @@ func proxyToClientPath(endpoint, path string, request marshaler, hmacSecret stri
 
 	resp, err := req.Post(endpoint + path)
 	if err != nil {
-		return nil, fiber.NewError(fiber.StatusBadGateway, "failed to connect to client")
+		return models.ApiGenericResponse{}, fiber.NewError(fiber.StatusBadGateway, formatPublicError(errCodeUpstreamConnectFailed, "Failed to connect to upstream client"))
 	}
 
-	var result models.GenericResponse
+	var result models.ApiGenericResponse
 	if err := result.UnmarshalJSON(resp.Body()); err != nil {
-		return nil, err
+		return models.ApiGenericResponse{}, err
 	}
 
 	if resp.StatusCode() == fiber.StatusTooManyRequests {
@@ -372,7 +376,7 @@ func proxyToClientPath(endpoint, path string, request marshaler, hmacSecret stri
 	}
 
 	if resp.StatusCode() != fiber.StatusOK {
-		return nil, fiber.NewError(fiber.StatusBadGateway, "client error: "+strconv.Itoa(resp.StatusCode()))
+		return models.ApiGenericResponse{}, fiber.NewError(fiber.StatusBadGateway, formatPublicError(errCodeUpstreamBadStatus, "Upstream client returned an error"))
 	}
 
 	return result, nil

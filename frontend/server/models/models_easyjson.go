@@ -648,83 +648,7 @@ func (v *LogtoTokenResponse) UnmarshalJSON(data []byte) error {
 func (v *LogtoTokenResponse) UnmarshalEasyJSON(l *jlexer.Lexer) {
 	easyjsonD2b7633eDecodeBirdLgServerModels6(l, v)
 }
-func easyjsonD2b7633eDecodeBirdLgServerModels7(in *jlexer.Lexer, out *GenericResponse) {
-	isTopLevel := in.IsStart()
-	if in.IsNull() {
-		in.Skip()
-	} else {
-		in.Delim('{')
-		*out = make(GenericResponse)
-		for !in.IsDelim('}') {
-			key := string(in.String())
-			in.WantColon()
-			var v1 interface{}
-			if m, ok := v1.(easyjson.Unmarshaler); ok {
-				m.UnmarshalEasyJSON(in)
-			} else if m, ok := v1.(json.Unmarshaler); ok {
-				_ = m.UnmarshalJSON(in.Raw())
-			} else {
-				v1 = in.Interface()
-			}
-			(*out)[key] = v1
-			in.WantComma()
-		}
-		in.Delim('}')
-	}
-	if isTopLevel {
-		in.Consumed()
-	}
-}
-func easyjsonD2b7633eEncodeBirdLgServerModels7(out *jwriter.Writer, in GenericResponse) {
-	if in == nil && (out.Flags&jwriter.NilMapAsEmpty) == 0 {
-		out.RawString(`null`)
-	} else {
-		out.RawByte('{')
-		v2First := true
-		for v2Name, v2Value := range in {
-			if v2First {
-				v2First = false
-			} else {
-				out.RawByte(',')
-			}
-			out.String(string(v2Name))
-			out.RawByte(':')
-			if m, ok := v2Value.(easyjson.Marshaler); ok {
-				m.MarshalEasyJSON(out)
-			} else if m, ok := v2Value.(json.Marshaler); ok {
-				out.Raw(m.MarshalJSON())
-			} else {
-				out.Raw(json.Marshal(v2Value))
-			}
-		}
-		out.RawByte('}')
-	}
-}
-
-// MarshalJSON supports json.Marshaler interface
-func (v GenericResponse) MarshalJSON() ([]byte, error) {
-	w := jwriter.Writer{}
-	easyjsonD2b7633eEncodeBirdLgServerModels7(&w, v)
-	return w.Buffer.BuildBytes(), w.Error
-}
-
-// MarshalEasyJSON supports easyjson.Marshaler interface
-func (v GenericResponse) MarshalEasyJSON(w *jwriter.Writer) {
-	easyjsonD2b7633eEncodeBirdLgServerModels7(w, v)
-}
-
-// UnmarshalJSON supports json.Unmarshaler interface
-func (v *GenericResponse) UnmarshalJSON(data []byte) error {
-	r := jlexer.Lexer{Data: data}
-	easyjsonD2b7633eDecodeBirdLgServerModels7(&r, v)
-	return r.Error()
-}
-
-// UnmarshalEasyJSON supports easyjson.Unmarshaler interface
-func (v *GenericResponse) UnmarshalEasyJSON(l *jlexer.Lexer) {
-	easyjsonD2b7633eDecodeBirdLgServerModels7(l, v)
-}
-func easyjsonD2b7633eDecodeBirdLgServerModels8(in *jlexer.Lexer, out *BogonResult) {
+func easyjsonD2b7633eDecodeBirdLgServerModels7(in *jlexer.Lexer, out *BogonResult) {
 	isTopLevel := in.IsStart()
 	if in.IsNull() {
 		if isTopLevel {
@@ -763,13 +687,13 @@ func easyjsonD2b7633eDecodeBirdLgServerModels8(in *jlexer.Lexer, out *BogonResul
 				for !in.IsDelim('}') {
 					key := string(in.String())
 					in.WantColon()
-					var v3 string
+					var v1 string
 					if in.IsNull() {
 						in.Skip()
 					} else {
-						v3 = string(in.String())
+						v1 = string(in.String())
 					}
-					(out.Params)[key] = v3
+					(out.Params)[key] = v1
 					in.WantComma()
 				}
 				in.Delim('}')
@@ -784,7 +708,7 @@ func easyjsonD2b7633eDecodeBirdLgServerModels8(in *jlexer.Lexer, out *BogonResul
 		in.Consumed()
 	}
 }
-func easyjsonD2b7633eEncodeBirdLgServerModels8(out *jwriter.Writer, in BogonResult) {
+func easyjsonD2b7633eEncodeBirdLgServerModels7(out *jwriter.Writer, in BogonResult) {
 	out.RawByte('{')
 	first := true
 	_ = first
@@ -803,16 +727,16 @@ func easyjsonD2b7633eEncodeBirdLgServerModels8(out *jwriter.Writer, in BogonResu
 		out.RawString(prefix)
 		{
 			out.RawByte('{')
-			v4First := true
-			for v4Name, v4Value := range in.Params {
-				if v4First {
-					v4First = false
+			v2First := true
+			for v2Name, v2Value := range in.Params {
+				if v2First {
+					v2First = false
 				} else {
 					out.RawByte(',')
 				}
-				out.String(string(v4Name))
+				out.String(string(v2Name))
 				out.RawByte(':')
-				out.String(string(v4Value))
+				out.String(string(v2Value))
 			}
 			out.RawByte('}')
 		}
@@ -823,27 +747,27 @@ func easyjsonD2b7633eEncodeBirdLgServerModels8(out *jwriter.Writer, in BogonResu
 // MarshalJSON supports json.Marshaler interface
 func (v BogonResult) MarshalJSON() ([]byte, error) {
 	w := jwriter.Writer{}
-	easyjsonD2b7633eEncodeBirdLgServerModels8(&w, v)
+	easyjsonD2b7633eEncodeBirdLgServerModels7(&w, v)
 	return w.Buffer.BuildBytes(), w.Error
 }
 
 // MarshalEasyJSON supports easyjson.Marshaler interface
 func (v BogonResult) MarshalEasyJSON(w *jwriter.Writer) {
-	easyjsonD2b7633eEncodeBirdLgServerModels8(w, v)
+	easyjsonD2b7633eEncodeBirdLgServerModels7(w, v)
 }
 
 // UnmarshalJSON supports json.Unmarshaler interface
 func (v *BogonResult) UnmarshalJSON(data []byte) error {
 	r := jlexer.Lexer{Data: data}
-	easyjsonD2b7633eDecodeBirdLgServerModels8(&r, v)
+	easyjsonD2b7633eDecodeBirdLgServerModels7(&r, v)
 	return r.Error()
 }
 
 // UnmarshalEasyJSON supports easyjson.Unmarshaler interface
 func (v *BogonResult) UnmarshalEasyJSON(l *jlexer.Lexer) {
-	easyjsonD2b7633eDecodeBirdLgServerModels8(l, v)
+	easyjsonD2b7633eDecodeBirdLgServerModels7(l, v)
 }
-func easyjsonD2b7633eDecodeBirdLgServerModels9(in *jlexer.Lexer, out *BirdCommandRequest) {
+func easyjsonD2b7633eDecodeBirdLgServerModels8(in *jlexer.Lexer, out *BirdCommandRequest) {
 	isTopLevel := in.IsStart()
 	if in.IsNull() {
 		if isTopLevel {
@@ -873,7 +797,7 @@ func easyjsonD2b7633eDecodeBirdLgServerModels9(in *jlexer.Lexer, out *BirdComman
 		in.Consumed()
 	}
 }
-func easyjsonD2b7633eEncodeBirdLgServerModels9(out *jwriter.Writer, in BirdCommandRequest) {
+func easyjsonD2b7633eEncodeBirdLgServerModels8(out *jwriter.Writer, in BirdCommandRequest) {
 	out.RawByte('{')
 	first := true
 	_ = first
@@ -888,23 +812,227 @@ func easyjsonD2b7633eEncodeBirdLgServerModels9(out *jwriter.Writer, in BirdComma
 // MarshalJSON supports json.Marshaler interface
 func (v BirdCommandRequest) MarshalJSON() ([]byte, error) {
 	w := jwriter.Writer{}
-	easyjsonD2b7633eEncodeBirdLgServerModels9(&w, v)
+	easyjsonD2b7633eEncodeBirdLgServerModels8(&w, v)
 	return w.Buffer.BuildBytes(), w.Error
 }
 
 // MarshalEasyJSON supports easyjson.Marshaler interface
 func (v BirdCommandRequest) MarshalEasyJSON(w *jwriter.Writer) {
-	easyjsonD2b7633eEncodeBirdLgServerModels9(w, v)
+	easyjsonD2b7633eEncodeBirdLgServerModels8(w, v)
 }
 
 // UnmarshalJSON supports json.Unmarshaler interface
 func (v *BirdCommandRequest) UnmarshalJSON(data []byte) error {
+	r := jlexer.Lexer{Data: data}
+	easyjsonD2b7633eDecodeBirdLgServerModels8(&r, v)
+	return r.Error()
+}
+
+// UnmarshalEasyJSON supports easyjson.Unmarshaler interface
+func (v *BirdCommandRequest) UnmarshalEasyJSON(l *jlexer.Lexer) {
+	easyjsonD2b7633eDecodeBirdLgServerModels8(l, v)
+}
+func easyjsonD2b7633eDecodeBirdLgServerModels9(in *jlexer.Lexer, out *ApiGenericResultPair) {
+	isTopLevel := in.IsStart()
+	if in.IsNull() {
+		if isTopLevel {
+			in.Consumed()
+		}
+		in.Skip()
+		return
+	}
+	in.Delim('{')
+	for !in.IsDelim('}') {
+		key := in.UnsafeFieldName(false)
+		in.WantColon()
+		switch key {
+		case "server":
+			if in.IsNull() {
+				in.Skip()
+			} else {
+				out.Server = string(in.String())
+			}
+		case "data":
+			if in.IsNull() {
+				in.Skip()
+			} else {
+				out.Data = string(in.String())
+			}
+		default:
+			in.SkipRecursive()
+		}
+		in.WantComma()
+	}
+	in.Delim('}')
+	if isTopLevel {
+		in.Consumed()
+	}
+}
+func easyjsonD2b7633eEncodeBirdLgServerModels9(out *jwriter.Writer, in ApiGenericResultPair) {
+	out.RawByte('{')
+	first := true
+	_ = first
+	{
+		const prefix string = ",\"server\":"
+		out.RawString(prefix[1:])
+		out.String(string(in.Server))
+	}
+	{
+		const prefix string = ",\"data\":"
+		out.RawString(prefix)
+		out.String(string(in.Data))
+	}
+	out.RawByte('}')
+}
+
+// MarshalJSON supports json.Marshaler interface
+func (v ApiGenericResultPair) MarshalJSON() ([]byte, error) {
+	w := jwriter.Writer{}
+	easyjsonD2b7633eEncodeBirdLgServerModels9(&w, v)
+	return w.Buffer.BuildBytes(), w.Error
+}
+
+// MarshalEasyJSON supports easyjson.Marshaler interface
+func (v ApiGenericResultPair) MarshalEasyJSON(w *jwriter.Writer) {
+	easyjsonD2b7633eEncodeBirdLgServerModels9(w, v)
+}
+
+// UnmarshalJSON supports json.Unmarshaler interface
+func (v *ApiGenericResultPair) UnmarshalJSON(data []byte) error {
 	r := jlexer.Lexer{Data: data}
 	easyjsonD2b7633eDecodeBirdLgServerModels9(&r, v)
 	return r.Error()
 }
 
 // UnmarshalEasyJSON supports easyjson.Unmarshaler interface
-func (v *BirdCommandRequest) UnmarshalEasyJSON(l *jlexer.Lexer) {
+func (v *ApiGenericResultPair) UnmarshalEasyJSON(l *jlexer.Lexer) {
 	easyjsonD2b7633eDecodeBirdLgServerModels9(l, v)
+}
+func easyjsonD2b7633eDecodeBirdLgServerModels10(in *jlexer.Lexer, out *ApiGenericResponse) {
+	isTopLevel := in.IsStart()
+	if in.IsNull() {
+		if isTopLevel {
+			in.Consumed()
+		}
+		in.Skip()
+		return
+	}
+	in.Delim('{')
+	for !in.IsDelim('}') {
+		key := in.UnsafeFieldName(false)
+		in.WantColon()
+		switch key {
+		case "error":
+			if in.IsNull() {
+				in.Skip()
+			} else {
+				out.Error = string(in.String())
+			}
+		case "result":
+			if in.IsNull() {
+				in.Skip()
+				out.Result = nil
+			} else {
+				in.Delim('[')
+				if out.Result == nil {
+					if !in.IsDelim(']') {
+						out.Result = make([]ApiGenericResultPair, 0, 2)
+					} else {
+						out.Result = []ApiGenericResultPair{}
+					}
+				} else {
+					out.Result = (out.Result)[:0]
+				}
+				for !in.IsDelim(']') {
+					var v3 ApiGenericResultPair
+					if in.IsNull() {
+						in.Skip()
+					} else {
+						(v3).UnmarshalEasyJSON(in)
+					}
+					out.Result = append(out.Result, v3)
+					in.WantComma()
+				}
+				in.Delim(']')
+			}
+		case "rateLimit":
+			if in.IsNull() {
+				in.Skip()
+			} else {
+				out.RateLimit = bool(in.Bool())
+			}
+		default:
+			in.SkipRecursive()
+		}
+		in.WantComma()
+	}
+	in.Delim('}')
+	if isTopLevel {
+		in.Consumed()
+	}
+}
+func easyjsonD2b7633eEncodeBirdLgServerModels10(out *jwriter.Writer, in ApiGenericResponse) {
+	out.RawByte('{')
+	first := true
+	_ = first
+	if in.Error != "" {
+		const prefix string = ",\"error\":"
+		first = false
+		out.RawString(prefix[1:])
+		out.String(string(in.Error))
+	}
+	if len(in.Result) != 0 {
+		const prefix string = ",\"result\":"
+		if first {
+			first = false
+			out.RawString(prefix[1:])
+		} else {
+			out.RawString(prefix)
+		}
+		{
+			out.RawByte('[')
+			for v4, v5 := range in.Result {
+				if v4 > 0 {
+					out.RawByte(',')
+				}
+				(v5).MarshalEasyJSON(out)
+			}
+			out.RawByte(']')
+		}
+	}
+	if in.RateLimit {
+		const prefix string = ",\"rateLimit\":"
+		if first {
+			first = false
+			out.RawString(prefix[1:])
+		} else {
+			out.RawString(prefix)
+		}
+		out.Bool(bool(in.RateLimit))
+	}
+	out.RawByte('}')
+}
+
+// MarshalJSON supports json.Marshaler interface
+func (v ApiGenericResponse) MarshalJSON() ([]byte, error) {
+	w := jwriter.Writer{}
+	easyjsonD2b7633eEncodeBirdLgServerModels10(&w, v)
+	return w.Buffer.BuildBytes(), w.Error
+}
+
+// MarshalEasyJSON supports easyjson.Marshaler interface
+func (v ApiGenericResponse) MarshalEasyJSON(w *jwriter.Writer) {
+	easyjsonD2b7633eEncodeBirdLgServerModels10(w, v)
+}
+
+// UnmarshalJSON supports json.Unmarshaler interface
+func (v *ApiGenericResponse) UnmarshalJSON(data []byte) error {
+	r := jlexer.Lexer{Data: data}
+	easyjsonD2b7633eDecodeBirdLgServerModels10(&r, v)
+	return r.Error()
+}
+
+// UnmarshalEasyJSON supports easyjson.Unmarshaler interface
+func (v *ApiGenericResponse) UnmarshalEasyJSON(l *jlexer.Lexer) {
+	easyjsonD2b7633eDecodeBirdLgServerModels10(l, v)
 }

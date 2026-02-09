@@ -26,17 +26,17 @@ func verifySignature(c fiber.Ctx) error {
 	timestampStr := c.Get("X-Timestamp")
 
 	if signature == "" || timestampStr == "" {
-		return fiber.NewError(fiber.StatusUnauthorized, "missing_signature")
+		return fiber.NewError(fiber.StatusUnauthorized, formatPublicError(errCodeAuthMissingSignature, "Missing signature headers"))
 	}
 
 	timestamp, err := strconv.ParseInt(timestampStr, 10, 64)
 	if err != nil {
-		return fiber.NewError(fiber.StatusUnauthorized, "invalid_timestamp")
+		return fiber.NewError(fiber.StatusUnauthorized, formatPublicError(errCodeAuthInvalidTimestamp, "Invalid timestamp"))
 	}
 
 	now := time.Now().Unix()
 	if now-timestamp > 300 || timestamp-now > 60 {
-		return fiber.NewError(fiber.StatusUnauthorized, "timestamp_expired")
+		return fiber.NewError(fiber.StatusUnauthorized, formatPublicError(errCodeAuthTimestampExpired, "Timestamp expired"))
 	}
 
 	body := c.Body()
@@ -49,7 +49,7 @@ func verifySignature(c fiber.Ctx) error {
 	expectedSig := base64.StdEncoding.EncodeToString(mac.Sum(nil))
 
 	if signature != expectedSig {
-		return fiber.NewError(fiber.StatusUnauthorized, "signature_invalid")
+		return fiber.NewError(fiber.StatusUnauthorized, formatPublicError(errCodeAuthSignatureInvalid, "Invalid signature"))
 	}
 
 	return nil
@@ -61,7 +61,7 @@ func authMiddleware(handler fiber.Handler) fiber.Handler {
 			if fiberErr, ok := err.(*fiber.Error); ok {
 				return c.Status(fiberErr.Code).JSON(fiber.Map{"error": fiberErr.Message})
 			}
-			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "auth_failed"})
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": formatPublicError(errCodeAuthFailed, "Authentication failed")})
 		}
 		return handler(c)
 	}

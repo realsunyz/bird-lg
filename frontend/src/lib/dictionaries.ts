@@ -15,9 +15,9 @@ export const dictionaries = {
       powered_by: "Powered by BIRD Looking Glass",
     },
     detail: {
-      server_not_found: "Server not found",
-      failed_load_config: "Failed to load config",
-      verification_failed: "Verification failed",
+      server_not_found: "Server not found. (ERR-SERVER-404).",
+      failed_load_config: "Failed to load config. (ERR-CONFIG-500).",
+      verification_failed: "Verification failed. (ERR-AUTH-401).",
       captcha_title: "CAPTCHA Required",
       please_complete_captcha: "Please complete the CAPTCHA first.",
       summary: "Summary",
@@ -38,16 +38,16 @@ export const dictionaries = {
         info: "Info",
       },
       traceroute_placeholder: "1.1.1.1 or example.com",
-      auth_required: "Authentication required",
+      auth_required: "Authentication required. (ERR-AUTH-403-SSO_REQUIRED).",
       security_check: "Security Check",
       complete_captcha: "Please complete the CAPTCHA to continue.",
       rate_limit_exceeded:
-        "You have exceeded the rate limit. Please try again in a moment.",
+        "You have exceeded the rate limit. Please try again in a moment. (ERR-RATE-429).",
     },
     turnstile: {
       error_unavailable:
-        "The CAPTCHA service is currently unavailable. Please try again later or contact the NOC.",
-      verification_failed: "Verification failed",
+        "The CAPTCHA service is currently unavailable. Please try again later or contact the NOC. (ERR-CAPTCHA-503).",
+      verification_failed: "Verification failed. (ERR-CAPTCHA-403).",
     },
   },
   zh: {
@@ -64,9 +64,9 @@ export const dictionaries = {
       powered_by: "由 BIRD Looking Glass 驱动",
     },
     detail: {
-      server_not_found: "未找到服务器",
-      failed_load_config: "加载配置失败",
-      verification_failed: "验证失败",
+      server_not_found: "未找到服务器 (ERR-SERVER-404).",
+      failed_load_config: "加载配置失败 (ERR-CONFIG-500).",
+      verification_failed: "验证失败 (ERR-AUTH-401).",
       please_complete_captcha: "请先完成验证码",
       captcha_title: "需要验证",
       summary: "概览",
@@ -87,15 +87,15 @@ export const dictionaries = {
         info: "信息",
       },
       traceroute_placeholder: "1.1.1.1 或 example.com",
-      auth_required: "需要验证",
+      auth_required: "需要验证 (ERR-AUTH-403-SSO_REQUIRED).",
       security_check: "安全检查",
       complete_captcha: "请完成验证码以继续.",
-      rate_limit_exceeded: "您已达到速率限制, 请稍后再试.",
+      rate_limit_exceeded: "您已达到速率限制, 请稍后再试. (ERR-RATE-429).",
     },
     turnstile: {
       error_unavailable:
-        "CAPTCHA 服务当前不可用. 请稍后再试或联系网络运维中心.",
-      verification_failed: "验证失败",
+        "CAPTCHA 服务当前不可用. 请稍后再试或联系网络运维中心. (ERR-CAPTCHA-503).",
+      verification_failed: "验证失败 (ERR-CAPTCHA-403).",
     },
   },
 };

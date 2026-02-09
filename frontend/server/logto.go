@@ -15,27 +15,28 @@ import (
 func handleLogtoCallback(config *Config) fiber.Handler {
 	return func(c fiber.Ctx) error {
 		if config.LogtoEndpoint == "" || config.LogtoAppID == "" {
-			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "logto_not_configured"})
+			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": formatPublicError(errCodeSSONotConfigured, "SSO is not configured")})
 		}
 
 		// Check for error from Logto
 		if errStr := c.Query("error"); errStr != "" {
 			desc := c.Query("error_description")
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-				"error":             errStr,
-				"error_description": desc,
+				"error":                      formatPublicError(errCodeReqBadRequest, "SSO provider returned an error"),
+				"provider_error":             errStr,
+				"provider_error_description": desc,
 			})
 		}
 
 		code := c.Query("code")
 		if code == "" {
-			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "missing_code"})
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": formatPublicError(errCodeSSOMissingCode, "Missing OAuth code")})
 		}
 
 		// Get code verifier from cookie
 		verifier := c.Cookies("logto_code_verifier")
 		if verifier == "" {
-			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "missing_code_verifier"})
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": formatPublicError(errCodeSSOMissingCodeVerifier, "Missing PKCE code verifier")})
 		}
 
 		// Clear verifier cookie
@@ -44,7 +45,7 @@ func handleLogtoCallback(config *Config) fiber.Handler {
 		// Exchange code for tokens
 		tokenResp, err := exchangeLogtoCode(config, code, verifier, c)
 		if err != nil {
-			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "token_exchange_failed"})
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": formatPublicError(errCodeSSOTokenExchangeFailed, "Token exchange failed")})
 		}
 
 		// Get user info
@@ -133,7 +134,7 @@ func getRedirectURI(c fiber.Ctx) string {
 func handleLogtoLogin(config *Config) fiber.Handler {
 	return func(c fiber.Ctx) error {
 		if config.LogtoEndpoint == "" || config.LogtoAppID == "" {
-			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "logto_not_configured"})
+			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": formatPublicError(errCodeSSONotConfigured, "SSO is not configured")})
 		}
 
 		redirect := c.Query("redirect", "/")
@@ -142,7 +143,7 @@ func handleLogtoLogin(config *Config) fiber.Handler {
 		// PKCE: Generate verifier and challenge
 		verifier, err := generateCodeVerifier()
 		if err != nil {
-			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "failed_to_generate_verifier"})
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": formatPublicError(errCodeSSOVerifierGenFailed, "Failed to generate PKCE verifier")})
 		}
 		challenge := generateCodeChallenge(verifier)
 

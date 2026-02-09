@@ -66,4 +66,14 @@ type BirdCommandRequest struct {
 }
 
 //easyjson:json
-type GenericResponse map[string]interface{}
+type ApiGenericResultPair struct {
+	Server string `json:"server"`
+	Data   string `json:"data"`
+}
+
+//easyjson:json
+type ApiGenericResponse struct {
+	Error     string                 `json:"error,omitempty"`
+	Result    []ApiGenericResultPair `json:"result,omitempty"`
+	RateLimit bool                   `json:"rateLimit,omitempty"`
+}
