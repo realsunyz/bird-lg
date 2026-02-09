@@ -1,4 +1,4 @@
-FROM node:22-alpine AS frontend
+FROM node:24-alpine AS frontend
 
 WORKDIR /app
 
@@ -26,7 +26,6 @@ WORKDIR /app
 
 COPY --from=backend /app/server ./
 
-# Vite outputs to dist/ instead of out/
 COPY --from=frontend /app/dist ./static
 
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup

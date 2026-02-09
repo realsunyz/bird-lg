@@ -1,10 +1,10 @@
 # Build stage
-FROM golang:1.21-alpine AS builder
+FROM golang:1.25-alpine AS builder
 
 WORKDIR /app
 
 # Copy go mod files
-COPY go.mod ./
+COPY go.mod go.sum ./
 
 # Download dependencies
 RUN go mod download
@@ -18,8 +18,8 @@ RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o bird-lg-client .
 # Production stage
 FROM alpine:latest
 
-# Install traceroute and whois
-RUN apk add --no-cache traceroute whois ca-certificates
+# Install traceroute
+RUN apk add --no-cache traceroute ca-certificates
 
 WORKDIR /app
 
