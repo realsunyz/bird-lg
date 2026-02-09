@@ -13,6 +13,8 @@ jobs:
   build-client-binary:
     name: Build Client Binary
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     strategy:
       fail-fast: false
       matrix:
@@ -24,7 +26,7 @@ jobs:
       - name: Setup Golang
         uses: actions/setup-go@v5
         with:
-          go-version: "1.21"
+          go-version-file: client/go.mod
 
       - name: Build Client
         env:
