@@ -46,10 +46,6 @@ func detectTraceroute() {
 }
 
 func buildTracerouteCommand(target string) (bin string, args []string, err error) {
-	if tracerouteBin == "" {
-		return "", nil, fmt.Errorf("traceroute_not_found")
-	}
-
 	target = strings.TrimSpace(target)
 	if target == "" {
 		return "", nil, fmt.Errorf("empty_target")

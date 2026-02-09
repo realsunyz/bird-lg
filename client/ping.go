@@ -7,8 +7,7 @@ import (
 )
 
 var (
-	pingBin   string
-	pingFlags []string
+	pingBin string
 )
 
 func init() {
@@ -19,7 +18,6 @@ func detectPing() {
 	path, err := exec.LookPath("ping")
 	if err == nil {
 		pingBin = path
-		pingFlags = []string{"-c", "4", "-i", "0.2"} // 4 packets, 0.2s interval for speed
 	}
 }
 

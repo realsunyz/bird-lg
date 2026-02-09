@@ -3,30 +3,20 @@ package main
 import "strings"
 
 const (
-	errCodeReqBadRequest           = "ERR-REQ-400"
-	errCodeTargetEmpty             = "ERR-TARGET-400-EMPTY"
-	errCodeTargetInvalid           = "ERR-TARGET-400-INVALID"
-	errCodeAuthMissingSignature    = "ERR-AUTH-401-MISSING_SIG"
-	errCodeAuthInvalidTimestamp    = "ERR-AUTH-401-BAD_TS"
-	errCodeAuthTimestampExpired    = "ERR-AUTH-401-TS_EXPIRED"
-	errCodeAuthSignatureInvalid    = "ERR-AUTH-401-SIG_INVALID"
-	errCodeAuthFailed              = "ERR-AUTH-401"
-	errCodeCmdForbidden            = "ERR-CMD-403"
-	errCodeRateLimit               = "ERR-RATE-429"
-	errCodePingUnavailable         = "ERR-PING-500"
-	errCodeTracerouteUnavailable   = "ERR-TRACE-500"
-	errCodeToolExecFailed          = "ERR-TOOL-500-EXEC"
-	errCodeToolTimeout             = "ERR-TOOL-504"
-	errCodeBirdQueryFailed         = "ERR-BIRD-502"
-	errCodeUpstreamConnectFailed   = "ERR-UPSTREAM-502-CONNECT"
-	errCodeUpstreamBadStatus       = "ERR-UPSTREAM-502-STATUS"
-	errCodeSSONotConfigured        = "ERR-SSO-404"
-	errCodeSSOMissingCode          = "ERR-SSO-400-MISSING_CODE"
-	errCodeSSOMissingCodeVerifier  = "ERR-SSO-400-MISSING_VERIFIER"
-	errCodeSSOTokenExchangeFailed  = "ERR-SSO-401-TOKEN_EXCHANGE"
-	errCodeSSOVerifierGenFailed    = "ERR-SSO-500-VERIFIER_GEN"
-	errCodeCaptchaUnavailable      = "ERR-CAPTCHA-503"
-	errCodeCaptchaVerificationFail = "ERR-CAPTCHA-403"
+	errCodeReqBadRequest        = "ERR-REQ-400"
+	errCodeTargetEmpty          = "ERR-TARGET-400-EMPTY"
+	errCodeTargetInvalid        = "ERR-TARGET-400-INVALID"
+	errCodeAuthMissingSignature = "ERR-AUTH-401-MISSING_SIG"
+	errCodeAuthInvalidTimestamp = "ERR-AUTH-401-BAD_TS"
+	errCodeAuthTimestampExpired = "ERR-AUTH-401-TS_EXPIRED"
+	errCodeAuthSignatureInvalid = "ERR-AUTH-401-SIG_INVALID"
+	errCodeAuthFailed           = "ERR-AUTH-401"
+	errCodeCmdForbidden         = "ERR-CMD-403"
+	errCodeRateLimit            = "ERR-RATE-429"
+	errCodePingUnavailable      = "ERR-PING-500"
+	errCodeToolExecFailed       = "ERR-TOOL-500-EXEC"
+	errCodeToolTimeout          = "ERR-TOOL-504"
+	errCodeBirdQueryFailed      = "ERR-BIRD-502"
 )
 
 func formatPublicError(code, explanation string) string {
@@ -62,8 +52,6 @@ func publicErrorFromKey(key string) string {
 		return formatPublicError(errCodeTargetInvalid, "Invalid target")
 	case "ping_not_found":
 		return formatPublicError(errCodePingUnavailable, "Ping tool is not available on this server")
-	case "traceroute_not_found":
-		return formatPublicError(errCodeTracerouteUnavailable, "Traceroute tool is not available on this server")
 	case "timeout":
 		return formatPublicError(errCodeToolTimeout, "Command timed out")
 	case "exec_failed":
