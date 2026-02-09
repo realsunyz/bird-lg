@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"crypto/hmac"
 	"crypto/sha256"
-	"embed"
 	"encoding/base64"
 	"fmt"
 	"strconv"
@@ -16,9 +15,6 @@ import (
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/client"
 )
-
-//go:embed dist/*
-var content embed.FS
 
 type marshaler interface {
 	MarshalJSON() ([]byte, error)
