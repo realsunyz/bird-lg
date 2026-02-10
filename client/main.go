@@ -7,7 +7,15 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/fiber/v3/middleware/compress"
 	"github.com/gofiber/fiber/v3/middleware/cors"
+	"github.com/gofiber/fiber/v3/middleware/etag"
+	"github.com/gofiber/fiber/v3/middleware/favicon"
+	"github.com/gofiber/fiber/v3/middleware/healthcheck"
+	"github.com/gofiber/fiber/v3/middleware/helmet"
+	"github.com/gofiber/fiber/v3/middleware/limiter"
+	recovermw "github.com/gofiber/fiber/v3/middleware/recover"
+	"github.com/gofiber/fiber/v3/middleware/timeout"
 )
 
 var (
@@ -30,10 +38,8 @@ func main() {
 	flag.Parse()
 
 	if rateLimitMs > 0 {
-		setRateLimitInterval(time.Duration(rateLimitMs) * time.Millisecond)
 		log.Printf("[INFO] Rate limit: %dms", rateLimitMs)
 	} else {
-		setRateLimitInterval(0)
 		log.Printf("[INFO] Rate limit: disabled")
 	}
 
@@ -44,7 +50,18 @@ func main() {
 		log.Printf("[WARN] HMAC verification: disabled")
 	}
 
-	app := fiber.New()
+	app := fiber.New(fiber.Config{
+		JSONEncoder: jsonMarshal,
+		JSONDecoder: jsonUnmarshal,
+	})
+
+	app.Use(recovermw.New())
+	app.Use(helmet.New())
+	app.Use(favicon.New())
+	app.Use(compress.New(compress.Config{
+		Level: compress.LevelBestSpeed,
+	}))
+	app.Use(etag.New())
 
 	app.Use(cors.New(cors.Config{
 		AllowOrigins:     strings.Split(allowedOrigins, ","),
@@ -53,12 +70,28 @@ func main() {
 		AllowCredentials: false,
 	}))
 
-	app.Post("/api/tool/ping", authMiddleware(handleToolPing))
+	if rateLimitMs > 0 {
+		app.Use("/api/tool", limiter.New(limiter.Config{
+			Max:        1,
+			Expiration: time.Duration(rateLimitMs) * time.Millisecond,
+			KeyGenerator: func(_ fiber.Ctx) string {
+				return "global"
+			},
+			LimitReached: func(c fiber.Ctx) error {
+				return c.Status(fiber.StatusTooManyRequests).JSON(fiber.Map{
+					"error":     publicErrorFromKey("rate_limit_exceeded"),
+					"rateLimit": true,
+				})
+			},
+		}))
+	}
+
+	app.Post("/api/tool/ping", authMiddleware(withTimeout(handleToolPing, 30*time.Second)))
 	app.Post("/api/tool/ping/stream", authMiddleware(handleToolPingStream))
-	app.Post("/api/tool/traceroute", authMiddleware(handleToolTraceroute))
+	app.Post("/api/tool/traceroute", authMiddleware(withTimeout(handleToolTraceroute, 70*time.Second)))
 	app.Post("/api/tool/traceroute/stream", authMiddleware(handleToolTracerouteStream))
-	app.Post("/api/tool/bird", authMiddleware(handleToolBird))
-	app.Get("/api/health", handleHealth)
+	app.Post("/api/tool/bird", authMiddleware(withTimeout(handleToolBird, 35*time.Second)))
+	app.Get("/api/health", healthcheck.New())
 
 	log.Printf("[INFO] Starting on %s", listenAddr)
 	log.Printf("[INFO] BIRD socket: %s", birdSocket)
@@ -66,4 +99,15 @@ func main() {
 	if err := app.Listen(listenAddr); err != nil {
 		log.Fatalf("[ERROR] Server failed: %v", err)
 	}
+}
+
+func withTimeout(handler fiber.Handler, d time.Duration) fiber.Handler {
+	return timeout.New(handler, timeout.Config{
+		Timeout: d,
+		OnTimeout: func(c fiber.Ctx) error {
+			return c.Status(fiber.StatusRequestTimeout).JSON(fiber.Map{
+				"error": formatPublicError("ERR-REQ-408", "Request timeout"),
+			})
+		},
+	})
 }

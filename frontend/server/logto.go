@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v3"
-	"github.com/gofiber/fiber/v3/client"
 )
 
 func trimTrailingSlash(s string) string {
@@ -109,7 +108,7 @@ func handleLogtoCallback(config *Config) fiber.Handler {
 }
 
 func exchangeLogtoCode(config *Config, code, verifier string, c fiber.Ctx) (*models.LogtoTokenResponse, error) {
-	cc := client.New()
+	cc := newHTTPClient()
 	cc.SetTimeout(10 * time.Second)
 
 	tokenURL := trimTrailingSlash(config.LogtoEndpoint) + "/oidc/token"
@@ -127,7 +126,7 @@ func exchangeLogtoCode(config *Config, code, verifier string, c fiber.Ctx) (*mod
 	}
 
 	var tokenResp models.LogtoTokenResponse
-	if err := tokenResp.UnmarshalJSON(resp.Body()); err != nil {
+	if err := resp.JSON(&tokenResp); err != nil {
 		return nil, err
 	}
 
@@ -135,7 +134,7 @@ func exchangeLogtoCode(config *Config, code, verifier string, c fiber.Ctx) (*mod
 }
 
 func getLogtoUserInfo(config *Config, accessToken string) (*models.LogtoUserInfo, error) {
-	cc := client.New()
+	cc := newHTTPClient()
 	cc.SetTimeout(10 * time.Second)
 
 	userinfoURL := trimTrailingSlash(config.LogtoEndpoint) + "/oidc/me"
@@ -149,7 +148,7 @@ func getLogtoUserInfo(config *Config, accessToken string) (*models.LogtoUserInfo
 	}
 
 	var userInfo models.LogtoUserInfo
-	if err := userInfo.UnmarshalJSON(resp.Body()); err != nil {
+	if err := resp.JSON(&userInfo); err != nil {
 		return nil, err
 	}
 

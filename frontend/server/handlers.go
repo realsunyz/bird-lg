@@ -12,15 +12,13 @@ import (
 
 	"bird-lg/server/models"
 
+	jwtware "github.com/gofiber/contrib/v3/jwt"
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/client"
+	"github.com/golang-jwt/jwt/v5"
 )
 
-type marshaler interface {
-	MarshalJSON() ([]byte, error)
-}
-
-type streamBodyBuilder func(c fiber.Ctx, target string) ([]byte, error)
+type streamBodyBuilder func(c fiber.Ctx, target string) (any, error)
 
 func handleConfig(config *Config) fiber.Handler {
 	return func(c fiber.Ctx) error {
@@ -37,14 +35,6 @@ func handleConfig(config *Config) fiber.Handler {
 	}
 }
 
-func requireBasicAuth(config *Config, c fiber.Ctx) bool {
-	if config.TurnstileSecretKey == "" {
-		return true
-	}
-	token := c.Cookies(config.CookieName())
-	return token != "" && ValidateJWT(token, config.JWTSecret)
-}
-
 func findServer(config *Config, id string) *ServerConfig {
 	for i := range config.Servers {
 		if config.Servers[i].ID == id {
@@ -52,10 +42,6 @@ func findServer(config *Config, id string) *ServerConfig {
 		}
 	}
 	return nil
-}
-
-func unauthorizedToolResponse(c fiber.Ctx) error {
-	return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": formatPublicError(errCodeAuthUnauthorized, "Authentication required")})
 }
 
 func proxyErrorResponse(c fiber.Ctx, err error) error {
@@ -67,12 +53,8 @@ func proxyErrorResponse(c fiber.Ctx, err error) error {
 
 func handleToolRequest(config *Config, upstreamPath string) fiber.Handler {
 	return func(c fiber.Ctx) error {
-		if !requireBasicAuth(config, c) {
-			return unauthorizedToolResponse(c)
-		}
-
 		var req models.ToolRunRequest
-		if err := req.UnmarshalJSON(c.Body()); err != nil {
+		if err := c.Bind().JSON(&req); err != nil {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": publicErrorFromKey("invalid_request")})
 		}
 
@@ -91,10 +73,6 @@ func handleToolRequest(config *Config, upstreamPath string) fiber.Handler {
 
 func handleToolStream(config *Config, upstreamPath string, timeout time.Duration, buildBody streamBodyBuilder) fiber.Handler {
 	return func(c fiber.Ctx) error {
-		if !requireBasicAuth(config, c) {
-			return unauthorizedToolResponse(c)
-		}
-
 		serverID := c.Query("server")
 		target := c.Query("target")
 
@@ -107,7 +85,7 @@ func handleToolStream(config *Config, upstreamPath string, timeout time.Duration
 			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": publicErrorFromKey("server_not_found")})
 		}
 
-		reqBody, err := buildBody(c, target)
+		reqPayload, err := buildBody(c, target)
 		if err != nil {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": publicErrorFromKey("invalid_request")})
 		}
@@ -118,17 +96,22 @@ func handleToolStream(config *Config, upstreamPath string, timeout time.Duration
 		c.Set("Transfer-Encoding", "chunked")
 
 		c.RequestCtx().SetBodyStreamWriter(func(w *bufio.Writer) {
-			streamFromUpstream(w, server.Endpoint, upstreamPath, reqBody, config.HMACSecret, timeout)
+			streamFromUpstream(w, server.Endpoint, upstreamPath, reqPayload, config.HMACSecret, timeout)
 		})
 
 		return nil
 	}
 }
 
-func streamFromUpstream(w *bufio.Writer, endpoint, upstreamPath string, reqBody []byte, hmacSecret string, timeout time.Duration) {
-	cc := client.New()
+func streamFromUpstream(w *bufio.Writer, endpoint, upstreamPath string, reqPayload any, hmacSecret string, timeout time.Duration) {
+	cc := newHTTPClient()
 	if fc := cc.FasthttpClient(); fc != nil {
 		fc.StreamResponseBody = true
+	}
+	reqBody, err := marshalClientJSON(cc, reqPayload)
+	if err != nil {
+		fmt.Fprintf(w, "error: %s\n", formatPublicError(errCodeReqBadRequest, "Invalid request"))
+		return
 	}
 
 	req := cc.R()
@@ -176,10 +159,9 @@ func handleToolPing(config *Config) fiber.Handler {
 }
 
 func handleToolPingStream(config *Config) fiber.Handler {
-	return handleToolStream(config, "/api/tool/ping/stream", 30*time.Second, func(c fiber.Ctx, target string) ([]byte, error) {
+	return handleToolStream(config, "/api/tool/ping/stream", 30*time.Second, func(c fiber.Ctx, target string) (any, error) {
 		count, _ := strconv.Atoi(c.Query("count"))
-		reqObj := models.PingStreamRequest{Target: target, Count: count}
-		return reqObj.MarshalJSON()
+		return models.PingStreamRequest{Target: target, Count: count}, nil
 	})
 }
 
@@ -188,9 +170,8 @@ func handleToolTraceroute(config *Config) fiber.Handler {
 }
 
 func handleToolTracerouteStream(config *Config) fiber.Handler {
-	return handleToolStream(config, "/api/tool/traceroute/stream", 60*time.Second, func(_ fiber.Ctx, target string) ([]byte, error) {
-		reqObj := models.TargetRequest{Target: target}
-		return reqObj.MarshalJSON()
+	return handleToolStream(config, "/api/tool/traceroute/stream", 60*time.Second, func(_ fiber.Ctx, target string) (any, error) {
+		return models.TargetRequest{Target: target}, nil
 	})
 }
 
@@ -202,14 +183,17 @@ func proxyBirdCommand(endpoint, command, hmacSecret string) (models.ApiGenericRe
 
 func handleBird(config *Config) fiber.Handler {
 	return func(c fiber.Ctx) error {
-		token := c.Cookies(config.CookieName())
-		payload := GetValidJWTPayload(token, config.JWTSecret)
-		if payload == nil || payload.AuthType != AuthTypeLogto {
+		token := jwtware.FromContext(c)
+		if token == nil {
+			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"error": formatPublicError(errCodeAuthSSORequired, "SSO authentication required")})
+		}
+		claims, ok := token.Claims.(jwt.MapClaims)
+		if !ok || claimString(claims, "auth_type") != AuthTypeLogto {
 			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"error": formatPublicError(errCodeAuthSSORequired, "SSO authentication required")})
 		}
 
 		var req models.QueryRequest
-		if err := req.UnmarshalJSON(c.Body()); err != nil {
+		if err := c.Bind().JSON(&req); err != nil {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": publicErrorFromKey("invalid_request")})
 		}
 
@@ -260,14 +244,18 @@ func computeSignature(secret, timestamp, method, requestURI string, body []byte)
 	return base64.StdEncoding.EncodeToString(h.Sum(nil))
 }
 
-func proxyToClientPath(endpoint, path string, request marshaler, hmacSecret string) (models.ApiGenericResponse, error) {
-	body, err := request.MarshalJSON()
+func marshalClientJSON(cc *client.Client, payload any) ([]byte, error) {
+	return cc.JSONMarshal()(payload)
+}
+
+func proxyToClientPath(endpoint, path string, request any, hmacSecret string) (models.ApiGenericResponse, error) {
+	cc := newHTTPClient()
+	cc.SetTimeout(30 * time.Second)
+
+	body, err := marshalClientJSON(cc, request)
 	if err != nil {
 		return models.ApiGenericResponse{}, err
 	}
-
-	cc := client.New()
-	cc.SetTimeout(30 * time.Second)
 
 	req := cc.R()
 	req.SetHeader("Content-Type", "application/json")
@@ -286,7 +274,7 @@ func proxyToClientPath(endpoint, path string, request marshaler, hmacSecret stri
 	}
 
 	var result models.ApiGenericResponse
-	if err := result.UnmarshalJSON(resp.Body()); err != nil {
+	if err := resp.JSON(&result); err != nil {
 		return models.ApiGenericResponse{}, err
 	}
 

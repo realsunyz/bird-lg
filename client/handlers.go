@@ -1,13 +1,5 @@
 package main
 
-import (
-	"github.com/gofiber/fiber/v3"
-)
-
-func handleHealth(c fiber.Ctx) error {
-	return c.JSON(fiber.Map{"status": "ok"})
-}
-
 func isAllowedCommand(cmd string) bool {
 	allowed := []string{
 		"show route",

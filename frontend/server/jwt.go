@@ -1,14 +1,12 @@
 package main
 
 import (
-	"crypto/hmac"
-	"crypto/sha256"
-	"encoding/base64"
+	"errors"
+	"strconv"
 	"strings"
 	"time"
 
-	jlexer "github.com/mailru/easyjson/jlexer"
-	jwriter "github.com/mailru/easyjson/jwriter"
+	"github.com/golang-jwt/jwt/v5"
 )
 
 // Auth types
@@ -23,11 +21,6 @@ const (
 	ExpiryLogto     = 7 * 24 * time.Hour // 7 days
 )
 
-type JWTHeader struct {
-	Alg string `json:"alg"`
-	Typ string `json:"typ"`
-}
-
 type JWTPayload struct {
 	Exp      int64  `json:"exp"`
 	Iat      int64  `json:"iat"`
@@ -35,101 +28,11 @@ type JWTPayload struct {
 	Sub      string `json:"sub,omitempty"` // User ID for Logto users
 }
 
-func marshalJWTHeader(header JWTHeader) ([]byte, error) {
-	var w jwriter.Writer
-	w.RawByte('{')
-	w.RawString("\"alg\":")
-	w.String(header.Alg)
-	w.RawByte(',')
-	w.RawString("\"typ\":")
-	w.String(header.Typ)
-	w.RawByte('}')
-	return w.Buffer.BuildBytes(), w.Error
-}
-
-func marshalJWTPayload(payload JWTPayload) ([]byte, error) {
-	var w jwriter.Writer
-	w.RawByte('{')
-
-	w.RawString("\"exp\":")
-	w.Int64(payload.Exp)
-	w.RawByte(',')
-	w.RawString("\"iat\":")
-	w.Int64(payload.Iat)
-
-	if payload.AuthType != "" {
-		w.RawByte(',')
-		w.RawString("\"auth_type\":")
-		w.String(payload.AuthType)
-	}
-	if payload.Sub != "" {
-		w.RawByte(',')
-		w.RawString("\"sub\":")
-		w.String(payload.Sub)
-	}
-
-	w.RawByte('}')
-	return w.Buffer.BuildBytes(), w.Error
-}
-
-func unmarshalJWTPayload(data []byte) (*JWTPayload, error) {
-	in := jlexer.Lexer{Data: data}
-	out := &JWTPayload{}
-
-	if in.IsNull() {
-		in.Skip()
-		in.Consumed()
-		return out, in.Error()
-	}
-
-	in.Delim('{')
-	for !in.IsDelim('}') {
-		key := in.UnsafeFieldName(false)
-		in.WantColon()
-		switch key {
-		case "exp":
-			if in.IsNull() {
-				in.Skip()
-			} else {
-				out.Exp = in.Int64()
-			}
-		case "iat":
-			if in.IsNull() {
-				in.Skip()
-			} else {
-				out.Iat = in.Int64()
-			}
-		case "auth_type":
-			if in.IsNull() {
-				in.Skip()
-			} else {
-				out.AuthType = string(in.String())
-			}
-		case "sub":
-			if in.IsNull() {
-				in.Skip()
-			} else {
-				out.Sub = string(in.String())
-			}
-		default:
-			in.SkipRecursive()
-		}
-		in.WantComma()
-	}
-	in.Delim('}')
-	in.Consumed()
-	return out, in.Error()
-}
-
 func GenerateJWT(secret string) string {
 	return GenerateJWTWithType(secret, AuthTypeTurnstile, "")
 }
 
 func GenerateJWTWithType(secret, authType, sub string) string {
-	header := JWTHeader{Alg: "HS256", Typ: "JWT"}
-	headerBytes, _ := marshalJWTHeader(header)
-	headerB64 := base64.RawURLEncoding.EncodeToString(headerBytes)
-
 	var expiry time.Duration
 	switch authType {
 	case AuthTypeLogto:
@@ -146,65 +49,103 @@ func GenerateJWTWithType(secret, authType, sub string) string {
 		AuthType: authType,
 		Sub:      sub,
 	}
-	payloadBytes, _ := marshalJWTPayload(payload)
-	payloadB64 := base64.RawURLEncoding.EncodeToString(payloadBytes)
+	claims := jwt.MapClaims{
+		"iat":       payload.Iat,
+		"exp":       payload.Exp,
+		"auth_type": payload.AuthType,
+	}
+	if payload.Sub != "" {
+		claims["sub"] = payload.Sub
+	}
 
-	message := headerB64 + "." + payloadB64
-	signature := signHS256(message, secret)
-
-	return message + "." + signature
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	signedToken, err := token.SignedString([]byte(secret))
+	if err != nil {
+		return ""
+	}
+	return signedToken
 }
 
 func GenerateJWTWithSub(secret, authType, sub string) string {
 	return GenerateJWTWithType(secret, authType, sub)
 }
 
-func ValidateJWT(token, secret string) bool {
-	parts := strings.Split(token, ".")
-	if len(parts) != 3 {
-		return false
-	}
-
-	message := parts[0] + "." + parts[1]
-	expectedSig := signHS256(message, secret)
-	if parts[2] != expectedSig {
-		return false
-	}
-
-	// Decode payload
-	payloadBytes, err := base64.RawURLEncoding.DecodeString(parts[1])
-	if err != nil {
-		return false
-	}
-
-	payload, err := unmarshalJWTPayload(payloadBytes)
-	if err != nil {
-		return false
-	}
-
-	// Check expiry
-	if time.Now().Unix() > payload.Exp {
-		return false
-	}
-
-	return true
-}
-
 func GetValidJWTPayload(token, secret string) *JWTPayload {
-	if !ValidateJWT(token, secret) {
-		return nil
-	}
-	parts := strings.Split(token, ".")
-	payloadBytes, _ := base64.RawURLEncoding.DecodeString(parts[1])
-	payload, err := unmarshalJWTPayload(payloadBytes)
+	claims, err := parseJWTClaims(token, secret)
 	if err != nil {
 		return nil
 	}
-	return payload
+
+	exp, ok := claimInt64(claims, "exp")
+	if !ok {
+		return nil
+	}
+	iat, ok := claimInt64(claims, "iat")
+	if !ok {
+		return nil
+	}
+
+	return &JWTPayload{
+		Exp:      exp,
+		Iat:      iat,
+		AuthType: claimString(claims, "auth_type"),
+		Sub:      claimString(claims, "sub"),
+	}
 }
 
-func signHS256(message, secret string) string {
-	h := hmac.New(sha256.New, []byte(secret))
-	h.Write([]byte(message))
-	return base64.RawURLEncoding.EncodeToString(h.Sum(nil))
+func parseJWTClaims(token, secret string) (jwt.MapClaims, error) {
+	parsedToken, err := jwt.Parse(token, func(t *jwt.Token) (any, error) {
+		return []byte(secret), nil
+	}, jwt.WithValidMethods([]string{jwt.SigningMethodHS256.Alg()}), jwt.WithExpirationRequired(), jwt.WithIssuedAt())
+	if err != nil {
+		return nil, err
+	}
+	if !parsedToken.Valid {
+		return nil, errors.New("invalid token")
+	}
+
+	claims, ok := parsedToken.Claims.(jwt.MapClaims)
+	if !ok {
+		return nil, errors.New("invalid token claims")
+	}
+	return claims, nil
+}
+
+func claimString(claims jwt.MapClaims, key string) string {
+	raw, ok := claims[key]
+	if !ok {
+		return ""
+	}
+	val, ok := raw.(string)
+	if !ok {
+		return ""
+	}
+	return strings.TrimSpace(val)
+}
+
+func claimInt64(claims jwt.MapClaims, key string) (int64, bool) {
+	raw, ok := claims[key]
+	if !ok {
+		return 0, false
+	}
+
+	switch v := raw.(type) {
+	case float64:
+		return int64(v), true
+	case float32:
+		return int64(v), true
+	case int64:
+		return v, true
+	case int32:
+		return int64(v), true
+	case int:
+		return int64(v), true
+	case string:
+		parsed, err := strconv.ParseInt(strings.TrimSpace(v), 10, 64)
+		if err == nil {
+			return parsed, true
+		}
+	}
+
+	return 0, false
 }

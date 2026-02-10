@@ -4,8 +4,6 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v3"
-	"github.com/gofiber/fiber/v3/client"
-	jlexer "github.com/mailru/easyjson/jlexer"
 )
 
 type VerifyRequest struct {
@@ -15,60 +13,6 @@ type VerifyRequest struct {
 type TurnstileResponse struct {
 	Success    bool     `json:"success"`
 	ErrorCodes []string `json:"error-codes,omitempty"`
-}
-
-func unmarshalTurnstileResponse(data []byte) (*TurnstileResponse, error) {
-	in := jlexer.Lexer{Data: data}
-	out := &TurnstileResponse{}
-
-	if in.IsNull() {
-		in.Skip()
-		in.Consumed()
-		return out, in.Error()
-	}
-
-	in.Delim('{')
-	for !in.IsDelim('}') {
-		key := in.UnsafeFieldName(false)
-		in.WantColon()
-		switch key {
-		case "success":
-			if in.IsNull() {
-				in.Skip()
-			} else {
-				out.Success = in.Bool()
-			}
-		case "error-codes":
-			if in.IsNull() {
-				in.Skip()
-				break
-			}
-			in.Delim('[')
-			if out.ErrorCodes == nil {
-				if !in.IsDelim(']') {
-					out.ErrorCodes = make([]string, 0, 4)
-				} else {
-					out.ErrorCodes = []string{}
-				}
-			}
-			for !in.IsDelim(']') {
-				if in.IsNull() {
-					in.Skip()
-					out.ErrorCodes = append(out.ErrorCodes, "")
-				} else {
-					out.ErrorCodes = append(out.ErrorCodes, string(in.String()))
-				}
-				in.WantComma()
-			}
-			in.Delim(']')
-		default:
-			in.SkipRecursive()
-		}
-		in.WantComma()
-	}
-	in.Delim('}')
-	in.Consumed()
-	return out, in.Error()
 }
 
 func handleVerify(config *Config) fiber.Handler {
@@ -97,7 +41,7 @@ func handleVerify(config *Config) fiber.Handler {
 }
 
 func verifyTurnstile(secretKey, token, remoteIP string) (bool, string) {
-	cc := client.New()
+	cc := newHTTPClient()
 	cc.SetTimeout(5 * time.Second)
 
 	req := cc.R()
@@ -112,8 +56,8 @@ func verifyTurnstile(secretKey, token, remoteIP string) (bool, string) {
 		return false, formatPublicError(errCodeCaptchaUnavailable, "The CAPTCHA service is currently unavailable. Please try again later or contact the NOC for more information")
 	}
 
-	result, err := unmarshalTurnstileResponse(resp.Body())
-	if err != nil {
+	var result TurnstileResponse
+	if err := resp.JSON(&result); err != nil {
 		return false, formatPublicError(errCodeCaptchaUnavailable, "The CAPTCHA service is currently unavailable. Please try again later or contact the NOC for more information")
 	}
 

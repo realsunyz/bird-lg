@@ -16,10 +16,6 @@ import (
 type toolCommandBuilder func(req models.ToolTargetRequest) (bin string, args []string, err error)
 
 func runTool(c fiber.Ctx, timeout time.Duration, build toolCommandBuilder) error {
-	if !checkRateLimit() {
-		return c.JSON(fiber.Map{"error": publicErrorFromKey("rate_limit_exceeded"), "rateLimit": true})
-	}
-
 	var req models.ToolTargetRequest
 	if err := c.Bind().JSON(&req); err != nil {
 		return c.JSON(models.ApiGenericResponse{Error: publicErrorFromKey("invalid_request")})
@@ -49,10 +45,6 @@ func runTool(c fiber.Ctx, timeout time.Duration, build toolCommandBuilder) error
 }
 
 func streamTool(c fiber.Ctx, timeout time.Duration, build toolCommandBuilder) error {
-	if !checkRateLimit() {
-		return c.Status(fiber.StatusTooManyRequests).JSON(fiber.Map{"error": publicErrorFromKey("rate_limit_exceeded")})
-	}
-
 	var req models.ToolTargetRequest
 	if err := c.Bind().JSON(&req); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(models.ApiGenericResponse{Error: publicErrorFromKey("invalid_request")})
@@ -120,13 +112,6 @@ func handleToolTracerouteStream(c fiber.Ctx) error {
 }
 
 func handleToolBird(c fiber.Ctx) error {
-	if !checkRateLimit() {
-		return c.JSON(fiber.Map{
-			"error":     publicErrorFromKey("rate_limit_exceeded"),
-			"rateLimit": true,
-		})
-	}
-
 	var req models.ToolBirdRequest
 	if err := c.Bind().JSON(&req); err != nil {
 		return c.JSON(models.ApiGenericResponse{Error: publicErrorFromKey("invalid_request")})

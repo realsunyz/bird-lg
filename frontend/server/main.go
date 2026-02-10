@@ -3,13 +3,22 @@ package main
 import (
 	"log"
 	"os"
-	"path"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/fiber/v3/middleware/compress"
+	"github.com/gofiber/fiber/v3/middleware/csrf"
+	"github.com/gofiber/fiber/v3/middleware/etag"
+	"github.com/gofiber/fiber/v3/middleware/favicon"
+	"github.com/gofiber/fiber/v3/middleware/healthcheck"
+	"github.com/gofiber/fiber/v3/middleware/helmet"
+	"github.com/gofiber/fiber/v3/middleware/limiter"
 	"github.com/gofiber/fiber/v3/middleware/logger"
+	recovermw "github.com/gofiber/fiber/v3/middleware/recover"
 	"github.com/gofiber/fiber/v3/middleware/static"
+	"github.com/gofiber/fiber/v3/middleware/timeout"
 )
 
 func main() {
@@ -23,62 +32,70 @@ func main() {
 		CaseSensitive: true,
 		StrictRouting: false,
 		ServerHeader:  "bird-lg",
+		JSONEncoder:   jsonMarshal,
+		JSONDecoder:   jsonUnmarshal,
 	})
 
 	// Middleware
+	app.Use(recovermw.New())
 	app.Use(logger.New())
+	app.Use(helmet.New(helmet.Config{
+		HSTSMaxAge:         31536000,
+		HSTSPreloadEnabled: false,
+	}))
+	app.Use(favicon.New(serverFaviconConfig(config.StaticDir)))
+	app.Use(compress.New(compress.Config{
+		Level: compress.LevelBestSpeed,
+	}))
+	app.Use(etag.New())
 
 	// API routes
 	api := app.Group("/api")
-	api.Get("/config", handleConfig(config))
-	api.Post("/verify", handleVerify(config))
-	api.Post("/bird", handleBird(config))
-	api.Post("/tool/ping", handleToolPing(config))
-	api.Post("/tool/ping/stream", handleToolPingStream(config))
-	api.Post("/tool/traceroute", handleToolTraceroute(config))
-	api.Post("/tool/traceroute/stream", handleToolTracerouteStream(config))
+	api.Use(limiter.New(limiter.Config{
+		Max:        120,
+		Expiration: time.Minute,
+		LimitReached: func(c fiber.Ctx) error {
+			return c.Status(fiber.StatusTooManyRequests).JSON(fiber.Map{
+				"error": formatPublicError("ERR-RATE-429", "Rate limit exceeded"),
+			})
+		},
+	}))
+	api.Use(csrf.New(csrf.Config{
+		CookieSecure: config.HTTPS,
+		CookieName:   "csrf_",
+		ErrorHandler: func(c fiber.Ctx, _ error) error {
+			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+				"error": formatPublicError("ERR-REQ-403-CSRF", "CSRF token validation failed"),
+			})
+		},
+	}))
+	toolAuth := toolJWTMiddleware(config)
+	ssoAuth := ssoJWTMiddleware(config)
+	api.Get("/config", withTimeout(handleConfig(config), 5*time.Second))
+	api.Get("/health", healthcheck.New())
+	api.Post("/verify", withTimeout(handleVerify(config), 10*time.Second))
+	api.Post("/bird", ssoAuth, withTimeout(handleBird(config), 35*time.Second))
+	api.Post("/tool/ping", toolAuth, withTimeout(handleToolPing(config), 35*time.Second))
+	api.Post("/tool/ping/stream", toolAuth, handleToolPingStream(config))
+	api.Post("/tool/traceroute", toolAuth, withTimeout(handleToolTraceroute(config), 70*time.Second))
+	api.Post("/tool/traceroute/stream", toolAuth, handleToolTracerouteStream(config))
 
 	// Auth routes
-	api.Get("/auth/login", handleLogtoLogin(config))
-	api.Get("/auth/logout", handleLogtoLogout(config))
-	app.Get("/auth/callback", handleLogtoCallback(config))
+	api.Get("/auth/login", withTimeout(handleLogtoLogin(config), 10*time.Second))
+	api.Get("/auth/logout", withTimeout(handleLogtoLogout(config), 5*time.Second))
+	app.Get("/auth/callback", withTimeout(handleLogtoCallback(config), 20*time.Second))
 
 	staticDir := config.StaticDir
 	indexFile := filepath.Join(staticDir, "index.html")
 
-	app.Use(static.New(staticDir))
-
-	// Root index
-	app.Get("/", func(c fiber.Ctx) error {
-		return c.SendFile(indexFile)
-	})
-
-	// SPA catch-all: serve root index.html for all other routes
-	app.Get("/*", func(c fiber.Ctx) error {
-		reqPath := c.Path()
-
-		// Check if it's a static file request
-		rel := strings.TrimPrefix(reqPath, "/")
-		rel = strings.TrimPrefix(path.Clean("/"+rel), "/")
-		if rel != "" && rel != "." {
-			fullPath := filepath.Join(staticDir, rel)
-
-			absStaticDir, err1 := filepath.Abs(staticDir)
-			absFullPath, err2 := filepath.Abs(fullPath)
-			if err1 == nil && err2 == nil {
-				if absFullPath != absStaticDir && !strings.HasPrefix(absFullPath, absStaticDir+string(os.PathSeparator)) {
-					return c.SendStatus(fiber.StatusNotFound)
-				}
+	app.Use(static.New(staticDir, static.Config{
+		NotFoundHandler: func(c fiber.Ctx) error {
+			if strings.HasPrefix(c.Path(), "/api/") || strings.HasPrefix(c.Path(), "/auth/") {
+				return c.SendStatus(fiber.StatusNotFound)
 			}
-
-			if info, err := os.Stat(fullPath); err == nil && !info.IsDir() {
-				return c.SendFile(fullPath)
-			}
-		}
-
-		// Otherwise serve root index.html for SPA routing
-		return c.SendFile(indexFile)
-	})
+			return c.SendFile(indexFile)
+		},
+	}))
 
 	if !fiber.IsChild() {
 		log.Printf("Starting server on %s (prefork: %v)", config.ListenAddr, true)
@@ -88,4 +105,23 @@ func main() {
 	}); err != nil {
 		log.Fatal(err)
 	}
+}
+
+func withTimeout(handler fiber.Handler, d time.Duration) fiber.Handler {
+	return timeout.New(handler, timeout.Config{
+		Timeout: d,
+		OnTimeout: func(c fiber.Ctx) error {
+			return c.Status(fiber.StatusRequestTimeout).JSON(fiber.Map{
+				"error": formatPublicError("ERR-REQ-408", "Request timeout"),
+			})
+		},
+	})
+}
+
+func serverFaviconConfig(staticDir string) favicon.Config {
+	faviconPath := filepath.Join(staticDir, "favicon.ico")
+	if info, err := os.Stat(faviconPath); err == nil && !info.IsDir() {
+		return favicon.Config{File: faviconPath}
+	}
+	return favicon.Config{}
 }

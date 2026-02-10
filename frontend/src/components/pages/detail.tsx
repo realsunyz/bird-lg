@@ -58,6 +58,7 @@ import {
 import { Turnstile } from "@marsidev/react-turnstile";
 import { useConfig } from "@/contexts/config-context";
 import { type ClientConfig, type ServerConfig } from "@/lib/types";
+import { buildPostJSONHeaders } from "@/lib/csrf";
 
 interface ProtocolInfo {
   name: string;
@@ -118,7 +119,7 @@ async function runStreamRequest({
 }: StreamRequestOptions) {
   const response = await fetch(url, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: buildPostJSONHeaders(),
     body: JSON.stringify(body),
   });
 
@@ -251,7 +252,7 @@ function QueryInterface({
           type === "ping" ? "/api/tool/ping" : "/api/tool/traceroute";
         const res = await fetch(endpoint, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: buildPostJSONHeaders(),
           body: JSON.stringify({ server: server.id, target: args || "" }),
         });
 
@@ -278,7 +279,7 @@ function QueryInterface({
 
       const res = await fetch("/api/bird", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: buildPostJSONHeaders(),
         body: JSON.stringify(body),
       });
 
@@ -439,7 +440,7 @@ function QueryInterface({
                   try {
                     const res = await fetch("/api/verify", {
                       method: "POST",
-                      headers: { "Content-Type": "application/json" },
+                      headers: buildPostJSONHeaders(),
                       body: JSON.stringify({ token }),
                     });
                     if (res.ok) {
