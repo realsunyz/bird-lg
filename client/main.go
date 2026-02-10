@@ -60,8 +60,15 @@ func main() {
 	app.Use(favicon.New())
 	app.Use(compress.New(compress.Config{
 		Level: compress.LevelBestSpeed,
+		Next: func(c fiber.Ctx) bool {
+			return isStreamPath(c.Path())
+		},
 	}))
-	app.Use(etag.New())
+	app.Use(etag.New(etag.Config{
+		Next: func(c fiber.Ctx) bool {
+			return isStreamPath(c.Path())
+		},
+	}))
 
 	app.Use(cors.New(cors.Config{
 		AllowOrigins:     strings.Split(allowedOrigins, ","),
@@ -110,4 +117,8 @@ func withTimeout(handler fiber.Handler, d time.Duration) fiber.Handler {
 			})
 		},
 	})
+}
+
+func isStreamPath(p string) bool {
+	return strings.HasSuffix(p, "/stream")
 }
