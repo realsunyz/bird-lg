@@ -1,17 +1,10 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import {
-  ChevronDown,
-  ChevronUp,
-  Activity,
-  AlertTriangle,
-  CheckCircle2,
-  Clock,
-} from "lucide-react";
+import { Activity, AlertTriangle, CheckCircle2, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { RawOutputPanel } from "@/components/raw-output-panel";
 
 interface PingResultProps {
   rawOutput: string;
@@ -38,8 +31,6 @@ interface PingSequence {
 }
 
 export function PingResult({ rawOutput }: PingResultProps) {
-  const [showRaw, setShowRaw] = useState(false);
-
   const { stats, sequences } = useMemo<{
     stats: PingStats | null;
     sequences: PingSequence[];
@@ -216,28 +207,7 @@ export function PingResult({ rawOutput }: PingResultProps) {
         </CardContent>
       </Card>
 
-      {/* Raw Output Toggle */}
-      <div className="border rounded-md">
-        <Button
-          variant="ghost"
-          className="w-full flex justify-between items-center p-4 h-auto"
-          onClick={() => setShowRaw(!showRaw)}
-        >
-          <span className="font-medium">Raw Output</span>
-          {showRaw ? (
-            <ChevronUp className="h-4 w-4" />
-          ) : (
-            <ChevronDown className="h-4 w-4" />
-          )}
-        </Button>
-        {showRaw && (
-          <div className="p-4 bg-muted/30 border-t overflow-x-auto">
-            <pre className="text-xs font-mono whitespace-pre-wrap">
-              {rawOutput}
-            </pre>
-          </div>
-        )}
-      </div>
+      <RawOutputPanel output={rawOutput} />
     </div>
   );
 }

@@ -16,7 +16,7 @@ COPY . .
 RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o bird-lg-client .
 
 # Production stage
-FROM alpine:latest
+FROM alpine:3.23
 
 # Install traceroute
 RUN apk add --no-cache traceroute ca-certificates

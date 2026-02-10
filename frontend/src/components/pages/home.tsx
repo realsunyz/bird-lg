@@ -19,6 +19,11 @@ import {
 } from "@/components/animate-ui/primitives/texts/rotating";
 import { useConfig } from "@/contexts/config-context";
 
+const navContainerClass =
+  "flex h-16 items-center px-4 max-w-7xl mx-auto w-full justify-between";
+const serverCardIconClass =
+  "w-12 h-12 rounded-full border-2 flex items-center justify-center bg-muted/30 group-hover:bg-muted text-foreground transition-colors shrink-0 font-title overflow-hidden";
+
 export default function HomePage() {
   const { t } = useTranslation();
   const config = useConfig();
@@ -26,7 +31,7 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-background flex flex-col font-sans">
       <div className="border-b bg-card">
-        <div className="flex h-16 items-center px-4 max-w-7xl mx-auto w-full justify-between">
+        <div className={navContainerClass}>
           <span className="text-lg font-normal font-title tracking-tight">
             {config.app.title}
           </span>
@@ -94,7 +99,7 @@ export default function HomePage() {
               <Card className="hover:shadow-lg transition-all hover:-translate-y-1 h-full">
                 <CardContent className="p-6">
                   <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-full border-2 flex items-center justify-center bg-muted/30 group-hover:bg-muted text-foreground transition-colors shrink-0 font-title overflow-hidden">
+                    <div className={serverCardIconClass}>
                       {server.icon && server.icon.length === 2 ? (
                         <DynamicFlag
                           code={server.icon.toLowerCase()}

@@ -20,6 +20,8 @@ type marshaler interface {
 	MarshalJSON() ([]byte, error)
 }
 
+type streamBodyBuilder func(c fiber.Ctx, target string) ([]byte, error)
+
 func handleConfig(config *Config) fiber.Handler {
 	return func(c fiber.Ctx) error {
 		clientConfig := config.ToClientConfig()
@@ -52,10 +54,21 @@ func findServer(config *Config, id string) *ServerConfig {
 	return nil
 }
 
-func handleToolPing(config *Config) fiber.Handler {
+func unauthorizedToolResponse(c fiber.Ctx) error {
+	return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": formatPublicError(errCodeAuthUnauthorized, "Authentication required")})
+}
+
+func proxyErrorResponse(c fiber.Ctx, err error) error {
+	if fiberErr, ok := err.(*fiber.Error); ok {
+		return c.Status(fiber.StatusBadGateway).JSON(fiber.Map{"error": fiberErr.Message})
+	}
+	return c.Status(fiber.StatusBadGateway).JSON(fiber.Map{"error": formatPublicError(errCodeUpstreamBadStatus, "Upstream client returned an error")})
+}
+
+func handleToolRequest(config *Config, upstreamPath string) fiber.Handler {
 	return func(c fiber.Ctx) error {
 		if !requireBasicAuth(config, c) {
-			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": formatPublicError(errCodeAuthUnauthorized, "Authentication required")})
+			return unauthorizedToolResponse(c)
 		}
 
 		var req models.ToolRunRequest
@@ -68,195 +81,123 @@ func handleToolPing(config *Config) fiber.Handler {
 			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": publicErrorFromKey("server_not_found")})
 		}
 
-		result, err := proxyToClientPath(server.Endpoint, "/api/tool/ping", models.TargetRequest{Target: req.Target}, config.HMACSecret)
+		result, err := proxyToClientPath(server.Endpoint, upstreamPath, models.TargetRequest{Target: req.Target}, config.HMACSecret)
 		if err != nil {
-			if fiberErr, ok := err.(*fiber.Error); ok {
-				return c.Status(fiber.StatusBadGateway).JSON(fiber.Map{"error": fiberErr.Message})
-			}
-			return c.Status(fiber.StatusBadGateway).JSON(fiber.Map{"error": formatPublicError(errCodeUpstreamBadStatus, "Upstream client returned an error")})
+			return proxyErrorResponse(c, err)
 		}
 		return c.JSON(result)
 	}
+}
+
+func handleToolStream(config *Config, upstreamPath string, timeout time.Duration, buildBody streamBodyBuilder) fiber.Handler {
+	return func(c fiber.Ctx) error {
+		if !requireBasicAuth(config, c) {
+			return unauthorizedToolResponse(c)
+		}
+
+		serverID := c.Query("server")
+		target := c.Query("target")
+
+		if serverID == "" || target == "" {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": publicErrorFromKey("invalid_request")})
+		}
+
+		server := findServer(config, serverID)
+		if server == nil {
+			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": publicErrorFromKey("server_not_found")})
+		}
+
+		reqBody, err := buildBody(c, target)
+		if err != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": publicErrorFromKey("invalid_request")})
+		}
+
+		c.Set("Content-Type", "text/event-stream")
+		c.Set("Cache-Control", "no-cache")
+		c.Set("Connection", "keep-alive")
+		c.Set("Transfer-Encoding", "chunked")
+
+		c.RequestCtx().SetBodyStreamWriter(func(w *bufio.Writer) {
+			streamFromUpstream(w, server.Endpoint, upstreamPath, reqBody, config.HMACSecret, timeout)
+		})
+
+		return nil
+	}
+}
+
+func streamFromUpstream(w *bufio.Writer, endpoint, upstreamPath string, reqBody []byte, hmacSecret string, timeout time.Duration) {
+	cc := client.New()
+	if fc := cc.FasthttpClient(); fc != nil {
+		fc.StreamResponseBody = true
+	}
+
+	req := cc.R()
+	resp := client.AcquireResponse()
+	defer client.ReleaseRequest(req)
+	defer client.ReleaseResponse(resp)
+
+	rawReq := req.RawRequest
+	rawReq.SetRequestURI(endpoint + upstreamPath)
+	rawReq.Header.SetMethod(fiber.MethodPost)
+	rawReq.Header.SetContentType("application/json")
+	rawReq.SetBody(reqBody)
+
+	if hmacSecret != "" {
+		timestamp := strconv.FormatInt(time.Now().Unix(), 10)
+		signature := computeSignature(hmacSecret, timestamp, fiber.MethodPost, upstreamPath, reqBody)
+		rawReq.Header.Set("X-Signature", signature)
+		rawReq.Header.Set("X-Timestamp", timestamp)
+	}
+
+	if err := cc.DoTimeout(rawReq, resp.RawResponse, timeout); err != nil {
+		fmt.Fprintf(w, "error: %s\n", formatPublicError(errCodeUpstreamConnectFailed, "Failed to connect to upstream client"))
+		return
+	}
+
+	stream := resp.RawResponse.BodyStream()
+	if stream == nil {
+		fmt.Fprint(w, string(resp.Body()))
+		return
+	}
+
+	reader := bufio.NewReader(stream)
+	for {
+		line, err := reader.ReadString('\n')
+		if err != nil {
+			break
+		}
+		fmt.Fprint(w, line)
+		w.Flush()
+	}
+}
+
+func handleToolPing(config *Config) fiber.Handler {
+	return handleToolRequest(config, "/api/tool/ping")
 }
 
 func handleToolPingStream(config *Config) fiber.Handler {
-	return func(c fiber.Ctx) error {
-		if !requireBasicAuth(config, c) {
-			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": formatPublicError(errCodeAuthUnauthorized, "Authentication required")})
-		}
-
-		serverID := c.Query("server")
-		target := c.Query("target")
-
-		if serverID == "" || target == "" {
-			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": publicErrorFromKey("invalid_request")})
-		}
-
-		server := findServer(config, serverID)
-		if server == nil {
-			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": publicErrorFromKey("server_not_found")})
-		}
-
+	return handleToolStream(config, "/api/tool/ping/stream", 30*time.Second, func(c fiber.Ctx, target string) ([]byte, error) {
 		count, _ := strconv.Atoi(c.Query("count"))
 		reqObj := models.PingStreamRequest{Target: target, Count: count}
-		reqBody, _ := reqObj.MarshalJSON()
-
-		c.Set("Content-Type", "text/event-stream")
-		c.Set("Cache-Control", "no-cache")
-		c.Set("Connection", "keep-alive")
-		c.Set("Transfer-Encoding", "chunked")
-
-		c.RequestCtx().SetBodyStreamWriter(func(w *bufio.Writer) {
-			cc := client.New()
-			if fc := cc.FasthttpClient(); fc != nil {
-				fc.StreamResponseBody = true
-			}
-
-			req := cc.R()
-			resp := client.AcquireResponse()
-			defer client.ReleaseRequest(req)
-			defer client.ReleaseResponse(resp)
-
-			rawReq := req.RawRequest
-			rawReq.SetRequestURI(server.Endpoint + "/api/tool/ping/stream")
-			rawReq.Header.SetMethod(fiber.MethodPost)
-			rawReq.Header.SetContentType("application/json")
-			rawReq.SetBody(reqBody)
-
-			if config.HMACSecret != "" {
-				timestamp := strconv.FormatInt(time.Now().Unix(), 10)
-				signature := computeSignature(config.HMACSecret, timestamp, fiber.MethodPost, "/api/tool/ping/stream", reqBody)
-				rawReq.Header.Set("X-Signature", signature)
-				rawReq.Header.Set("X-Timestamp", timestamp)
-			}
-
-			if err := cc.DoTimeout(rawReq, resp.RawResponse, 30*time.Second); err != nil {
-				fmt.Fprintf(w, "error: %s\n", formatPublicError(errCodeUpstreamConnectFailed, "Failed to connect to upstream client"))
-				return
-			}
-
-			stream := resp.RawResponse.BodyStream()
-			if stream == nil {
-				fmt.Fprint(w, string(resp.Body()))
-				return
-			}
-
-			reader := bufio.NewReader(stream)
-			for {
-				line, err := reader.ReadString('\n')
-				if err != nil {
-					break
-				}
-				fmt.Fprint(w, line)
-				w.Flush()
-			}
-		})
-
-		return nil
-	}
-}
-
-func handleToolTracerouteStream(config *Config) fiber.Handler {
-	return func(c fiber.Ctx) error {
-		if !requireBasicAuth(config, c) {
-			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": formatPublicError(errCodeAuthUnauthorized, "Authentication required")})
-		}
-
-		serverID := c.Query("server")
-		target := c.Query("target")
-
-		if serverID == "" || target == "" {
-			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": publicErrorFromKey("invalid_request")})
-		}
-
-		server := findServer(config, serverID)
-		if server == nil {
-			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": publicErrorFromKey("server_not_found")})
-		}
-
-		reqObj := models.TargetRequest{Target: target}
-		reqBody, _ := reqObj.MarshalJSON()
-
-		c.Set("Content-Type", "text/event-stream")
-		c.Set("Cache-Control", "no-cache")
-		c.Set("Connection", "keep-alive")
-		c.Set("Transfer-Encoding", "chunked")
-
-		c.RequestCtx().SetBodyStreamWriter(func(w *bufio.Writer) {
-			cc := client.New()
-			if fc := cc.FasthttpClient(); fc != nil {
-				fc.StreamResponseBody = true
-			}
-
-			req := cc.R()
-			resp := client.AcquireResponse()
-			defer client.ReleaseRequest(req)
-			defer client.ReleaseResponse(resp)
-
-			rawReq := req.RawRequest
-			rawReq.SetRequestURI(server.Endpoint + "/api/tool/traceroute/stream")
-			rawReq.Header.SetMethod(fiber.MethodPost)
-			rawReq.Header.SetContentType("application/json")
-			rawReq.SetBody(reqBody)
-
-			if config.HMACSecret != "" {
-				timestamp := strconv.FormatInt(time.Now().Unix(), 10)
-				signature := computeSignature(config.HMACSecret, timestamp, fiber.MethodPost, "/api/tool/traceroute/stream", reqBody)
-				rawReq.Header.Set("X-Signature", signature)
-				rawReq.Header.Set("X-Timestamp", timestamp)
-			}
-
-			if err := cc.DoTimeout(rawReq, resp.RawResponse, 60*time.Second); err != nil {
-				fmt.Fprintf(w, "error: %s\n", formatPublicError(errCodeUpstreamConnectFailed, "Failed to connect to upstream client"))
-				return
-			}
-
-			stream := resp.RawResponse.BodyStream()
-			if stream == nil {
-				fmt.Fprint(w, string(resp.Body()))
-				return
-			}
-
-			reader := bufio.NewReader(stream)
-			for {
-				line, err := reader.ReadString('\n')
-				if err != nil {
-					break
-				}
-				fmt.Fprint(w, line)
-				w.Flush()
-			}
-		})
-
-		return nil
-	}
+		return reqObj.MarshalJSON()
+	})
 }
 
 func handleToolTraceroute(config *Config) fiber.Handler {
-	return func(c fiber.Ctx) error {
-		if !requireBasicAuth(config, c) {
-			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": formatPublicError(errCodeAuthUnauthorized, "Authentication required")})
-		}
+	return handleToolRequest(config, "/api/tool/traceroute")
+}
 
-		var req models.ToolRunRequest
-		if err := req.UnmarshalJSON(c.Body()); err != nil {
-			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": publicErrorFromKey("invalid_request")})
-		}
+func handleToolTracerouteStream(config *Config) fiber.Handler {
+	return handleToolStream(config, "/api/tool/traceroute/stream", 60*time.Second, func(_ fiber.Ctx, target string) ([]byte, error) {
+		reqObj := models.TargetRequest{Target: target}
+		return reqObj.MarshalJSON()
+	})
+}
 
-		server := findServer(config, req.Server)
-		if server == nil {
-			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": publicErrorFromKey("server_not_found")})
-		}
-
-		result, err := proxyToClientPath(server.Endpoint, "/api/tool/traceroute", models.TargetRequest{Target: req.Target}, config.HMACSecret)
-		if err != nil {
-			if fiberErr, ok := err.(*fiber.Error); ok {
-				return c.Status(fiber.StatusBadGateway).JSON(fiber.Map{"error": fiberErr.Message})
-			}
-			return c.Status(fiber.StatusBadGateway).JSON(fiber.Map{"error": formatPublicError(errCodeUpstreamBadStatus, "Upstream client returned an error")})
-		}
-		return c.JSON(result)
-	}
+func proxyBirdCommand(endpoint, command, hmacSecret string) (models.ApiGenericResponse, error) {
+	return proxyToClientPath(endpoint, "/api/tool/bird", models.BirdCommandRequest{
+		Command: command,
+	}, hmacSecret)
 }
 
 func handleBird(config *Config) fiber.Handler {
@@ -272,40 +213,22 @@ func handleBird(config *Config) fiber.Handler {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": publicErrorFromKey("invalid_request")})
 		}
 
-		var server *ServerConfig
-		for i := range config.Servers {
-			if config.Servers[i].ID == req.Server {
-				server = &config.Servers[i]
-				break
-			}
-		}
+		server := findServer(config, req.Server)
 		if server == nil {
 			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": publicErrorFromKey("server_not_found")})
 		}
 
 		switch req.Type {
 		case "bird":
-			proxyReq := models.BirdCommandRequest{
-				Command: req.Command,
-			}
-			result, err := proxyToClientPath(server.Endpoint, "/api/tool/bird", proxyReq, config.HMACSecret)
+			result, err := proxyBirdCommand(server.Endpoint, req.Command, config.HMACSecret)
 			if err != nil {
-				if fiberErr, ok := err.(*fiber.Error); ok {
-					return c.Status(fiber.StatusBadGateway).JSON(fiber.Map{"error": fiberErr.Message})
-				}
-				return c.Status(fiber.StatusBadGateway).JSON(fiber.Map{"error": formatPublicError(errCodeUpstreamBadStatus, "Upstream client returned an error")})
+				return proxyErrorResponse(c, err)
 			}
 			return c.JSON(result)
 		case "summary":
-			proxyReq := models.BirdCommandRequest{
-				Command: "show protocols",
-			}
-			result, err := proxyToClientPath(server.Endpoint, "/api/tool/bird", proxyReq, config.HMACSecret)
+			result, err := proxyBirdCommand(server.Endpoint, "show protocols", config.HMACSecret)
 			if err != nil {
-				if fiberErr, ok := err.(*fiber.Error); ok {
-					return c.Status(fiber.StatusBadGateway).JSON(fiber.Map{"error": fiberErr.Message})
-				}
-				return c.Status(fiber.StatusBadGateway).JSON(fiber.Map{"error": formatPublicError(errCodeUpstreamBadStatus, "Upstream client returned an error")})
+				return proxyErrorResponse(c, err)
 			}
 			if result.Error != "" {
 				return c.JSON(result)

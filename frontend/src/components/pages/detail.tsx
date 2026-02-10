@@ -68,6 +68,73 @@ interface ProtocolInfo {
   info: string;
 }
 
+const tabsListClass =
+  "flex w-full min-w-max items-stretch justify-start gap-4 md:gap-8 bg-transparent p-0 px-4 md:px-6";
+const tabsTriggerClass =
+  "rounded-none px-0 py-2 text-sm font-medium text-muted-foreground data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none";
+const toolInputClass = "flex-1 font-mono text-sm";
+
+type StreamRequestOptions = {
+  url: string;
+  body: unknown;
+  startError: string;
+  onUnauthorized: () => void;
+  onData: (line: string) => void;
+};
+
+async function consumeSSEResponse(
+  response: Response,
+  onData: (line: string) => void,
+) {
+  const reader = response.body?.getReader();
+  if (!reader) throw new Error("No response stream");
+
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    const chunk = decoder.decode(value, { stream: true });
+    buffer += chunk;
+    const lines = buffer.split("\n\n");
+    buffer = lines.pop() || "";
+
+    lines.forEach((line) => {
+      if (line.startsWith("data: ")) {
+        onData(line.substring(6));
+      }
+    });
+  }
+}
+
+async function runStreamRequest({
+  url,
+  body,
+  startError,
+  onUnauthorized,
+  onData,
+}: StreamRequestOptions) {
+  const response = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+
+  if (response.status === 401) {
+    onUnauthorized();
+    return;
+  }
+
+  if (!response.ok) {
+    const errJson = await response.json().catch(() => ({}));
+    throw new Error(errJson.error || startError);
+  }
+
+  await consumeSSEResponse(response, onData);
+}
+
 export default function DetailPage() {
   const { serverId } = useParams<{ serverId: string }>();
   const { t } = useTranslation();
@@ -111,6 +178,19 @@ function Header({ title }: { title: string }) {
         <LanguageSwitcher />
       </div>
     </div>
+  );
+}
+
+function QueryErrorAlert({ message }: { message: string }) {
+  const { t } = useTranslation();
+  if (!message) return null;
+
+  return (
+    <Alert variant="destructive">
+      <AlertCircle className="h-4 w-4" />
+      <AlertTitle>{t.common.error}</AlertTitle>
+      <AlertDescription>{message}</AlertDescription>
+    </Alert>
   );
 }
 
@@ -264,11 +344,11 @@ function QueryInterface({
               className="rounded-none bg-transparent border-b-2 border-foreground"
               transition={{ type: "spring", stiffness: 350, damping: 30 }}
             >
-              <TabsList className="flex w-full min-w-max items-stretch justify-start gap-4 md:gap-8 bg-transparent p-0 px-4 md:px-6">
+              <TabsList className={tabsListClass}>
                 <TabsHighlightItem value="ping" asChild>
                   <TabsTrigger
                     value="ping"
-                    className="rounded-none px-0 py-2 text-sm font-medium text-muted-foreground data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none"
+                    className={tabsTriggerClass}
                   >
                     Ping
                   </TabsTrigger>
@@ -276,7 +356,7 @@ function QueryInterface({
                 <TabsHighlightItem value="traceroute" asChild>
                   <TabsTrigger
                     value="traceroute"
-                    className="rounded-none px-0 py-2 text-sm font-medium text-muted-foreground data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none"
+                    className={tabsTriggerClass}
                   >
                     Trace
                   </TabsTrigger>
@@ -285,7 +365,7 @@ function QueryInterface({
                   <TabsHighlightItem value="route" asChild>
                     <TabsTrigger
                       value="route"
-                      className="rounded-none px-0 py-2 text-sm font-medium text-muted-foreground data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none"
+                      className={tabsTriggerClass}
                     >
                       {t.detail.route}
                     </TabsTrigger>
@@ -488,13 +568,7 @@ function RouteTab({
           {loading ? <Spinner /> : t.detail.execute}
         </Button>
       </div>
-      {error && (
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>{t.common.error}</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
+      <QueryErrorAlert message={error} />
 
       {preset === "show protocols" &&
         !loading &&
@@ -578,46 +652,15 @@ function TracerouteTab({
     setError("");
 
     try {
-      const response = await fetch(
-        `/api/tool/traceroute/stream?server=${activeServer}&target=${target}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ target }),
+      await runStreamRequest({
+        url: `/api/tool/traceroute/stream?server=${activeServer}&target=${target}`,
+        body: { target },
+        startError: "Failed to start traceroute",
+        onUnauthorized: () => onUnauthorized(handleTraceroute),
+        onData: (line) => {
+          setRawData((prev) => prev + line + "\n");
         },
-      );
-
-      if (response.status === 401) {
-        onUnauthorized(handleTraceroute);
-        return;
-      }
-
-      if (!response.ok) {
-        const errJson = await response.json().catch(() => ({}));
-        throw new Error(errJson.error || "Failed to start traceroute");
-      }
-
-      const reader = response.body?.getReader();
-      if (!reader) throw new Error("No response stream");
-
-      const decoder = new TextDecoder();
-      let buffer = "";
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        const chunk = decoder.decode(value, { stream: true });
-        buffer += chunk;
-        const lines = buffer.split("\n\n");
-        buffer = lines.pop() || "";
-
-        lines.forEach((line) => {
-          if (line.startsWith("data: ")) {
-            setRawData((prev) => prev + line.substring(6) + "\n");
-          }
-        });
-      }
+      });
     } catch (e) {
       setError(String(e));
     } finally {
@@ -633,19 +676,13 @@ function TracerouteTab({
           value={target}
           onChange={(e) => setTarget(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && handleTraceroute()}
-          className="flex-1 font-mono text-sm"
+          className={toolInputClass}
         />
         <Button onClick={handleTraceroute} disabled={loading || !target}>
           {loading ? <Spinner /> : t.detail.run}
         </Button>
       </div>
-      {error && (
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>{t.common.error}</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
+      <QueryErrorAlert message={error} />
       {rawData && <TracerouteResult rawOutput={rawData} />}
     </div>
   );
@@ -675,47 +712,15 @@ function PingTab({
 
     try {
       const countInt = parseInt(count) || 4;
-      const response = await fetch(
-        `/api/tool/ping/stream?server=${activeServer}&target=${target}&count=${countInt}`,
-        {
-          method: "POST",
-
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ target, count: countInt }),
+      await runStreamRequest({
+        url: `/api/tool/ping/stream?server=${activeServer}&target=${target}&count=${countInt}`,
+        body: { target, count: countInt },
+        startError: "Failed to start ping",
+        onUnauthorized: () => onUnauthorized(handlePing),
+        onData: (line) => {
+          setRawData((prev) => prev + line + "\n");
         },
-      );
-
-      if (response.status === 401) {
-        onUnauthorized(handlePing);
-        return;
-      }
-
-      if (!response.ok) {
-        const errJson = await response.json().catch(() => ({}));
-        throw new Error(errJson.error || "Failed to start ping");
-      }
-
-      const reader = response.body?.getReader();
-      if (!reader) throw new Error("No response stream");
-
-      const decoder = new TextDecoder();
-      let buffer = "";
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        const chunk = decoder.decode(value, { stream: true });
-        buffer += chunk;
-        const lines = buffer.split("\n\n");
-        buffer = lines.pop() || "";
-
-        lines.forEach((line) => {
-          if (line.startsWith("data: ")) {
-            setRawData((prev) => prev + line.substring(6) + "\n");
-          }
-        });
-      }
+      });
     } catch (e) {
       setError(String(e));
     } finally {
@@ -731,7 +736,7 @@ function PingTab({
           value={target}
           onChange={(e) => setTarget(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && handlePing()}
-          className="flex-1 font-mono text-sm"
+          className={toolInputClass}
         />
         <Select value={count} onValueChange={setCount}>
           <SelectTrigger className="w-[130px]">
@@ -772,13 +777,7 @@ function PingTab({
           {loading ? <Spinner /> : t.detail.run}
         </Button>
       </div>
-      {error && (
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>{t.common.error}</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
+      <QueryErrorAlert message={error} />
       {rawData && <PingResult rawOutput={rawData} />}
     </div>
   );

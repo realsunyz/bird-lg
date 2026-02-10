@@ -42,13 +42,17 @@ func verifySignature(c fiber.Ctx) error {
 	body := c.Body()
 
 	method := strings.ToUpper(c.Method())
-	requestURI := string(c.RequestCtx().RequestURI()) // includes path+query
+	requestURI := string(c.RequestCtx().RequestURI())
 	message := timestampStr + ":" + method + ":" + requestURI + ":" + string(body)
 	mac := hmac.New(sha256.New, []byte(sharedSecret))
 	mac.Write([]byte(message))
-	expectedSig := base64.StdEncoding.EncodeToString(mac.Sum(nil))
+	expectedSig := mac.Sum(nil)
+	givenSig, decodeErr := base64.StdEncoding.DecodeString(signature)
+	if decodeErr != nil {
+		return fiber.NewError(fiber.StatusUnauthorized, formatPublicError(errCodeAuthSignatureInvalid, "Invalid signature"))
+	}
 
-	if signature != expectedSig {
+	if !hmac.Equal(givenSig, expectedSig) {
 		return fiber.NewError(fiber.StatusUnauthorized, formatPublicError(errCodeAuthSignatureInvalid, "Invalid signature"))
 	}
 

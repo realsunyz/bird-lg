@@ -5,11 +5,46 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
+	"net/url"
+	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/client"
 )
+
+func trimTrailingSlash(s string) string {
+	return strings.TrimRight(strings.TrimSpace(s), "/")
+}
+
+func sanitizeRedirectPath(p string) string {
+	p = strings.TrimSpace(p)
+	if p == "" {
+		return "/"
+	}
+	if !strings.HasPrefix(p, "/") {
+		return "/"
+	}
+	if strings.HasPrefix(p, "//") {
+		return "/"
+	}
+	return p
+}
+
+func encodeRedirectState(redirect string) string {
+	return base64.RawURLEncoding.EncodeToString([]byte(redirect))
+}
+
+func decodeRedirectState(state string) string {
+	if state == "" {
+		return "/"
+	}
+	b, err := base64.RawURLEncoding.DecodeString(state)
+	if err != nil {
+		return "/"
+	}
+	return string(b)
+}
 
 // OAuth callback from Logto
 func handleLogtoCallback(config *Config) fiber.Handler {
@@ -51,7 +86,6 @@ func handleLogtoCallback(config *Config) fiber.Handler {
 		// Get user info
 		userInfo, err := getLogtoUserInfo(config, tokenResp.AccessToken)
 		if err != nil {
-			// Even if userinfo fails, we can still issue token
 			userInfo = &models.LogtoUserInfo{Sub: "unknown"}
 		}
 
@@ -69,7 +103,7 @@ func handleLogtoCallback(config *Config) fiber.Handler {
 		c.Cookie(cookie)
 
 		// Redirect to saved location or home
-		redirect := c.Query("redirect", "/")
+		redirect := sanitizeRedirectPath(decodeRedirectState(c.Query("state")))
 		return c.Redirect().To(redirect)
 	}
 }
@@ -78,7 +112,7 @@ func exchangeLogtoCode(config *Config, code, verifier string, c fiber.Ctx) (*mod
 	cc := client.New()
 	cc.SetTimeout(10 * time.Second)
 
-	tokenURL := config.LogtoEndpoint + "/oidc/token"
+	tokenURL := trimTrailingSlash(config.LogtoEndpoint) + "/oidc/token"
 
 	req := cc.R()
 	req.SetFormData("grant_type", "authorization_code")
@@ -104,7 +138,7 @@ func getLogtoUserInfo(config *Config, accessToken string) (*models.LogtoUserInfo
 	cc := client.New()
 	cc.SetTimeout(10 * time.Second)
 
-	userinfoURL := config.LogtoEndpoint + "/oidc/me"
+	userinfoURL := trimTrailingSlash(config.LogtoEndpoint) + "/oidc/me"
 
 	req := cc.R()
 	req.SetHeader("Authorization", "Bearer "+accessToken)
@@ -127,7 +161,7 @@ func getRedirectURI(c fiber.Ctx) string {
 	if c.Get("X-Forwarded-Proto") == "https" {
 		scheme = "https"
 	}
-	return scheme + "://" + c.Host() + "/api/callback"
+	return scheme + "://" + c.Host() + "/auth/callback"
 }
 
 // Logto OAuth flow
@@ -137,7 +171,7 @@ func handleLogtoLogin(config *Config) fiber.Handler {
 			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": formatPublicError(errCodeSSONotConfigured, "SSO is not configured")})
 		}
 
-		redirect := c.Query("redirect", "/")
+		redirect := sanitizeRedirectPath(c.Query("redirect", "/"))
 		redirectURI := getRedirectURI(c)
 
 		// PKCE: Generate verifier and challenge
@@ -158,14 +192,16 @@ func handleLogtoLogin(config *Config) fiber.Handler {
 			Secure:   config.HTTPS,
 		})
 
-		authURL := config.LogtoEndpoint + "/oidc/auth" +
-			"?client_id=" + config.LogtoAppID +
-			"&redirect_uri=" + redirectURI +
-			"&response_type=code" +
-			"&scope=openid%20profile%20email" +
-			"&code_challenge=" + challenge +
-			"&code_challenge_method=S256" +
-			"&state=" + redirect
+		q := url.Values{}
+		q.Set("client_id", config.LogtoAppID)
+		q.Set("redirect_uri", redirectURI)
+		q.Set("response_type", "code")
+		q.Set("scope", "openid profile email")
+		q.Set("code_challenge", challenge)
+		q.Set("code_challenge_method", "S256")
+		q.Set("state", encodeRedirectState(redirect))
+
+		authURL := trimTrailingSlash(config.LogtoEndpoint) + "/oidc/auth" + "?" + q.Encode()
 
 		return c.Redirect().To(authURL)
 	}

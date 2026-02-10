@@ -1,9 +1,6 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-
-import { ChevronDown, ChevronUp } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -12,6 +9,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { RawOutputPanel } from "@/components/raw-output-panel";
 
 interface TracerouteResultProps {
   rawOutput: string;
@@ -28,8 +26,6 @@ interface TracerouteHop {
 }
 
 export function TracerouteResult({ rawOutput }: TracerouteResultProps) {
-  const [showRaw, setShowRaw] = useState(false);
-
   const hops = useMemo<TracerouteHop[]>(() => {
     const lines = rawOutput.split("\n");
     const parsedHops: TracerouteHop[] = [];
@@ -151,27 +147,7 @@ export function TracerouteResult({ rawOutput }: TracerouteResultProps) {
         </CardContent>
       </Card>
 
-      <div className="border rounded-md">
-        <Button
-          variant="ghost"
-          className="w-full flex justify-between items-center p-4 h-auto"
-          onClick={() => setShowRaw(!showRaw)}
-        >
-          <span className="font-medium">Raw Output</span>
-          {showRaw ? (
-            <ChevronUp className="h-4 w-4" />
-          ) : (
-            <ChevronDown className="h-4 w-4" />
-          )}
-        </Button>
-        {showRaw && (
-          <div className="p-4 bg-muted/30 border-t overflow-x-auto">
-            <pre className="text-xs font-mono whitespace-pre-wrap">
-              {rawOutput}
-            </pre>
-          </div>
-        )}
-      </div>
+      <RawOutputPanel output={rawOutput} />
     </div>
   );
 }

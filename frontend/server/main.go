@@ -32,7 +32,7 @@ func main() {
 	api := app.Group("/api")
 	api.Get("/config", handleConfig(config))
 	api.Post("/verify", handleVerify(config))
-	api.Post("/bird", handleBird(config)) // For bird commands (SSO only)
+	api.Post("/bird", handleBird(config))
 	api.Post("/tool/ping", handleToolPing(config))
 	api.Post("/tool/ping/stream", handleToolPingStream(config))
 	api.Post("/tool/traceroute", handleToolTraceroute(config))
@@ -41,12 +41,11 @@ func main() {
 	// Auth routes
 	api.Get("/auth/login", handleLogtoLogin(config))
 	api.Get("/auth/logout", handleLogtoLogout(config))
-	api.Get("/callback", handleLogtoCallback(config))
+	app.Get("/auth/callback", handleLogtoCallback(config))
 
 	staticDir := config.StaticDir
 	indexFile := filepath.Join(staticDir, "index.html")
 
-	// Static file middleware (best-effort). SPA fallback below handles the rest.
 	app.Use(static.New(staticDir))
 
 	// Root index

@@ -13,7 +13,9 @@ import (
 	"github.com/gofiber/fiber/v3"
 )
 
-func handleToolPing(c fiber.Ctx) error {
+type toolCommandBuilder func(req models.ToolTargetRequest) (bin string, args []string, err error)
+
+func runTool(c fiber.Ctx, timeout time.Duration, build toolCommandBuilder) error {
 	if !checkRateLimit() {
 		return c.JSON(fiber.Map{"error": publicErrorFromKey("rate_limit_exceeded"), "rateLimit": true})
 	}
@@ -23,13 +25,13 @@ func handleToolPing(c fiber.Ctx) error {
 		return c.JSON(models.ApiGenericResponse{Error: publicErrorFromKey("invalid_request")})
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
-	defer cancel()
-
-	bin, args, err := buildPingCommand(req.Target, req.Count)
+	bin, args, err := build(req)
 	if err != nil {
 		return c.JSON(models.ApiGenericResponse{Error: publicErrorFromKey(err.Error())})
 	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
 
 	cmd := exec.CommandContext(ctx, bin, args...)
 	out, runErr := cmd.CombinedOutput()
@@ -43,136 +45,78 @@ func handleToolPing(c fiber.Ctx) error {
 
 	return c.JSON(models.ApiGenericResponse{
 		Result: []models.ApiGenericResultPair{{Server: "local", Data: string(out)}},
+	})
+}
+
+func streamTool(c fiber.Ctx, timeout time.Duration, build toolCommandBuilder) error {
+	if !checkRateLimit() {
+		return c.Status(fiber.StatusTooManyRequests).JSON(fiber.Map{"error": publicErrorFromKey("rate_limit_exceeded")})
+	}
+
+	var req models.ToolTargetRequest
+	if err := c.Bind().JSON(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(models.ApiGenericResponse{Error: publicErrorFromKey("invalid_request")})
+	}
+
+	bin, args, err := build(req)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(models.ApiGenericResponse{Error: publicErrorFromKey(err.Error())})
+	}
+
+	c.Set("Content-Type", "text/event-stream")
+	c.Set("Cache-Control", "no-cache")
+	c.Set("Connection", "keep-alive")
+	c.Set("Transfer-Encoding", "chunked")
+
+	c.RequestCtx().SetBodyStreamWriter(func(w *bufio.Writer) {
+		ctx, cancel := context.WithTimeout(context.Background(), timeout)
+		defer cancel()
+
+		cmd := exec.CommandContext(ctx, bin, args...)
+		stdout, err := cmd.StdoutPipe()
+		if err != nil {
+			return
+		}
+
+		if err := cmd.Start(); err != nil {
+			return
+		}
+
+		scanner := bufio.NewScanner(stdout)
+		for scanner.Scan() {
+			msg := scanner.Text()
+			fmt.Fprintf(w, "data: %s\n\n", msg)
+			w.Flush()
+		}
+
+		_ = cmd.Wait()
+	})
+
+	return nil
+}
+
+func handleToolPing(c fiber.Ctx) error {
+	return runTool(c, 20*time.Second, func(req models.ToolTargetRequest) (string, []string, error) {
+		return buildPingCommand(req.Target, req.Count)
 	})
 }
 
 func handleToolPingStream(c fiber.Ctx) error {
-	if !checkRateLimit() {
-		return c.Status(429).JSON(fiber.Map{"error": publicErrorFromKey("rate_limit_exceeded")})
-	}
-
-	var req models.ToolTargetRequest
-	if err := c.Bind().JSON(&req); err != nil {
-		return c.Status(400).JSON(models.ApiGenericResponse{Error: publicErrorFromKey("invalid_request")})
-	}
-
-	bin, args, err := buildPingCommand(req.Target, req.Count)
-	if err != nil {
-		return c.Status(400).JSON(models.ApiGenericResponse{Error: publicErrorFromKey(err.Error())})
-	}
-
-	// Set SSE headers
-	c.Set("Content-Type", "text/event-stream")
-	c.Set("Cache-Control", "no-cache")
-	c.Set("Connection", "keep-alive")
-	c.Set("Transfer-Encoding", "chunked")
-
-	c.RequestCtx().SetBodyStreamWriter(func(w *bufio.Writer) {
-		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
-		defer cancel()
-
-		cmd := exec.CommandContext(ctx, bin, args...)
-		stdout, err := cmd.StdoutPipe()
-		if err != nil {
-			return
-		}
-
-		if err := cmd.Start(); err != nil {
-			return
-		}
-
-		scanner := bufio.NewScanner(stdout)
-		for scanner.Scan() {
-			msg := scanner.Text()
-			fmt.Fprintf(w, "data: %s\n\n", msg)
-			w.Flush()
-		}
-
-		cmd.Wait()
+	return streamTool(c, 20*time.Second, func(req models.ToolTargetRequest) (string, []string, error) {
+		return buildPingCommand(req.Target, req.Count)
 	})
-
-	return nil
 }
 
 func handleToolTraceroute(c fiber.Ctx) error {
-	if !checkRateLimit() {
-		return c.JSON(fiber.Map{"error": publicErrorFromKey("rate_limit_exceeded"), "rateLimit": true})
-	}
-
-	var req models.ToolTargetRequest
-	if err := c.Bind().JSON(&req); err != nil {
-		return c.JSON(models.ApiGenericResponse{Error: publicErrorFromKey("invalid_request")})
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
-	defer cancel()
-
-	bin, args, err := buildTracerouteCommand(req.Target)
-	if err != nil {
-		return c.JSON(models.ApiGenericResponse{Error: publicErrorFromKey(err.Error())})
-	}
-
-	cmd := exec.CommandContext(ctx, bin, args...)
-	out, runErr := cmd.CombinedOutput()
-
-	if ctx.Err() == context.DeadlineExceeded {
-		return c.JSON(models.ApiGenericResponse{Error: publicErrorFromKey("timeout")})
-	}
-	if runErr != nil {
-		return c.JSON(models.ApiGenericResponse{Error: publicErrorFromKey("exec_failed")})
-	}
-
-	return c.JSON(models.ApiGenericResponse{
-		Result: []models.ApiGenericResultPair{{Server: "local", Data: string(out)}},
+	return runTool(c, 60*time.Second, func(req models.ToolTargetRequest) (string, []string, error) {
+		return buildTracerouteCommand(req.Target)
 	})
 }
 
 func handleToolTracerouteStream(c fiber.Ctx) error {
-	if !checkRateLimit() {
-		return c.Status(429).JSON(fiber.Map{"error": publicErrorFromKey("rate_limit_exceeded")})
-	}
-
-	var req models.ToolTargetRequest
-	if err := c.Bind().JSON(&req); err != nil {
-		return c.Status(400).JSON(models.ApiGenericResponse{Error: publicErrorFromKey("invalid_request")})
-	}
-
-	bin, args, err := buildTracerouteCommand(req.Target)
-	if err != nil {
-		return c.Status(400).JSON(models.ApiGenericResponse{Error: publicErrorFromKey(err.Error())})
-	}
-
-	// Set SSE headers
-	c.Set("Content-Type", "text/event-stream")
-	c.Set("Cache-Control", "no-cache")
-	c.Set("Connection", "keep-alive")
-	c.Set("Transfer-Encoding", "chunked")
-
-	c.RequestCtx().SetBodyStreamWriter(func(w *bufio.Writer) {
-		ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
-		defer cancel()
-
-		cmd := exec.CommandContext(ctx, bin, args...)
-		stdout, err := cmd.StdoutPipe()
-		if err != nil {
-			return
-		}
-
-		if err := cmd.Start(); err != nil {
-			return
-		}
-
-		scanner := bufio.NewScanner(stdout)
-		for scanner.Scan() {
-			msg := scanner.Text()
-			fmt.Fprintf(w, "data: %s\n\n", msg)
-			w.Flush()
-		}
-
-		cmd.Wait()
+	return streamTool(c, 60*time.Second, func(req models.ToolTargetRequest) (string, []string, error) {
+		return buildTracerouteCommand(req.Target)
 	})
-
-	return nil
 }
 
 func handleToolBird(c fiber.Ctx) error {
