@@ -125,6 +125,20 @@
   body {
     @apply bg-background text-foreground font-sans antialiased;
   }
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-title);
+  }
+  code,
+  pre,
+  kbd,
+  samp {
+    font-family: var(--font-mono);
+  }
   .font-title {
     font-family: var(--font-title);
   }

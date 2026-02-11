@@ -85,10 +85,10 @@ function NotFoundPage() {
       <div className="flex-1 flex items-center justify-center p-6">
         <Empty className="max-w-none gap-3 rounded-none border-0 bg-transparent p-0 shadow-none">
           <EmptyHeader>
-            <EmptyTitle className="text-7xl leading-none text-muted-foreground/70">
+            <EmptyTitle className="text-5xl leading-[1.15] text-muted-foreground/70 md:text-6xl">
               404
             </EmptyTitle>
-            <EmptyDescription className="text-base text-foreground">
+            <EmptyDescription className="font-title text-base text-foreground">
               {t.error.page_not_found_title}
             </EmptyDescription>
             <EmptyDescription>
