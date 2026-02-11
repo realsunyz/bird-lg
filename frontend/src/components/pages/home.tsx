@@ -13,10 +13,6 @@ import { useTranslation } from "@/components/i18n-provider";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { LogIn, UserRound, LogOut, Database } from "lucide-react";
 import { DynamicFlag } from "@sankyu/react-circle-flags";
-import {
-  RotatingText,
-  RotatingTextContainer,
-} from "@/components/animate-ui/primitives/texts/rotating";
 import { useConfig } from "@/contexts/config-context";
 
 const navContainerClass =
@@ -78,12 +74,7 @@ export default function HomePage() {
 
       <div className="flex-1 flex flex-col items-center justify-center p-8">
         <h1 className="text-4xl font-normal font-title mb-2 text-foreground flex items-center justify-center">
-          <RotatingTextContainer
-            text={t.home.title}
-            className="flex items-center justify-center"
-          >
-            <RotatingText />
-          </RotatingTextContainer>
+          {t.home.title}
         </h1>
         <p className="text-muted-foreground mb-8 text-lg font-sans">
           {t.home.select_server}

@@ -95,14 +95,32 @@ func main() {
 	staticDir := config.StaticDir
 	indexFile := filepath.Join(staticDir, "index.html")
 
-	app.Use(static.New(staticDir, static.Config{
-		NotFoundHandler: func(c fiber.Ctx) error {
-			if strings.HasPrefix(c.Path(), "/api/") || strings.HasPrefix(c.Path(), "/auth/") {
-				return c.SendStatus(fiber.StatusNotFound)
-			}
-			return c.SendFile(indexFile)
-		},
-	}))
+	// SPA routes
+	app.Get("/", func(c fiber.Ctx) error {
+		return c.SendFile(indexFile)
+	})
+	app.Get("/detail/:serverId", func(c fiber.Ctx) error {
+		return c.SendFile(indexFile)
+	})
+
+	// Static assets
+	app.Use(static.New(staticDir))
+
+	// SPA fallback 404 page
+	app.Get("*", func(c fiber.Ctx) error {
+		if strings.HasPrefix(c.Path(), "/api/") || strings.HasPrefix(c.Path(), "/auth/") {
+			return c.SendStatus(fiber.StatusNotFound)
+		}
+		if filepath.Ext(c.Path()) != "" {
+			return c.SendStatus(fiber.StatusNotFound)
+		}
+		return c.Status(fiber.StatusNotFound).SendFile(indexFile)
+	})
+
+	// Fallback 404 for all other methods/routes
+	app.Use(func(c fiber.Ctx) error {
+		return c.SendStatus(fiber.StatusNotFound)
+	})
 
 	if !fiber.IsChild() {
 		log.Printf("Starting server on %s (prefork: %v)", config.ListenAddr, true)

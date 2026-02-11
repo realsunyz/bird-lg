@@ -1,8 +1,17 @@
 import { useState, useEffect, lazy, Suspense } from "react";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
 import { ThemeProvider } from "@/components/theme-provider";
-import { I18nProvider } from "@/components/i18n-provider";
-import { ConfigProvider } from "@/contexts/config-context";
+import { I18nProvider, useTranslation } from "@/components/i18n-provider";
+import { LanguageSwitcher } from "@/components/language-switcher";
+import { ConfigProvider, useConfig } from "@/contexts/config-context";
+import { Button } from "@/components/ui/button";
+import {
+  Empty,
+  EmptyActions,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyTitle,
+} from "@/components/ui/empty";
 import { type ClientConfig } from "@/lib/types";
 import HomePage from "@/components/pages/home";
 
@@ -47,7 +56,7 @@ function App() {
               <Routes>
                 <Route path="/" element={<HomePage />} />
                 <Route path="/detail/:serverId" element={<DetailPage />} />
-                <Route path="*" element={<Navigate to="/" replace />} />
+                <Route path="*" element={<NotFoundPage />} />
               </Routes>
             </Suspense>
           </BrowserRouter>
@@ -57,6 +66,44 @@ function App() {
   );
 
   return AppContent;
+}
+
+function NotFoundPage() {
+  const config = useConfig();
+  const { t } = useTranslation();
+
+  return (
+    <div className="min-h-screen bg-background flex flex-col font-sans">
+      <div className="border-b bg-card">
+        <div className="flex h-16 items-center px-4 max-w-7xl mx-auto w-full justify-between">
+          <span className="text-lg font-normal font-title tracking-tight">
+            {config.app.title}
+          </span>
+          <LanguageSwitcher />
+        </div>
+      </div>
+      <div className="flex-1 flex items-center justify-center p-6">
+        <Empty className="max-w-none gap-3 rounded-none border-0 bg-transparent p-0 shadow-none">
+          <EmptyHeader>
+            <EmptyTitle className="text-7xl leading-none text-muted-foreground/70">
+              404
+            </EmptyTitle>
+            <EmptyDescription className="text-base text-foreground">
+              {t.error.page_not_found_title}
+            </EmptyDescription>
+            <EmptyDescription>
+              {t.error.page_not_found_description}
+            </EmptyDescription>
+          </EmptyHeader>
+          <EmptyActions>
+            <Button asChild>
+              <Link to="/">{t.common.back_to_home}</Link>
+            </Button>
+          </EmptyActions>
+        </Empty>
+      </div>
+    </div>
+  );
 }
 
 export default App;

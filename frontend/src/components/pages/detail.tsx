@@ -148,8 +148,8 @@ export default function DetailPage() {
       <div className="min-h-screen bg-background flex items-center justify-center font-sans">
         <Card className="max-w-md w-full border-destructive/50">
           <CardHeader>
-            <CardTitle className="text-destructive">{t.common.error}</CardTitle>
-            <CardDescription>{t.detail.server_not_found}</CardDescription>
+            <CardTitle className="text-destructive">{t.error.title}</CardTitle>
+            <CardDescription>{t.error.server_not_found}</CardDescription>
           </CardHeader>
           <CardContent>
             <Button variant="outline" asChild>
@@ -189,7 +189,7 @@ function QueryErrorAlert({ message }: { message: string }) {
   return (
     <Alert variant="destructive">
       <AlertCircle className="h-4 w-4" />
-      <AlertTitle>{t.common.error}</AlertTitle>
+      <AlertTitle>{t.error.title}</AlertTitle>
       <AlertDescription>{message}</AlertDescription>
     </Alert>
   );
@@ -208,13 +208,12 @@ function QueryInterface({
   const [result, setResult] = useState<unknown>(null);
 
   const isSSO = config?.auth?.authType === "sso";
-  const [activeTab, setActiveTab] = useState("");
+  const [activeTab, setActiveTab] = useState("ping");
+  const [enableTabSwitchAnimation, setEnableTabSwitchAnimation] =
+    useState(false);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setActiveTab("ping");
-    }, 0);
-    return () => clearTimeout(timer);
+    setEnableTabSwitchAnimation(true);
   }, []);
 
   const [routePreset, setRoutePreset] = useState("show protocols");
@@ -263,12 +262,12 @@ function QueryInterface({
           return;
         }
         if (res.status === 403) {
-          setError(t.detail.auth_required || "Authentication required");
+          setError(t.error.auth_required || "Authentication required");
           return;
         }
 
         const data = await res.json();
-        if (data.rateLimit) setError(t.detail.rate_limit_exceeded);
+        if (data.rateLimit) setError(t.error.rate_limit_exceeded);
         else if (data.error) setError(data.error);
         else setResult(data);
         return;
@@ -290,12 +289,12 @@ function QueryInterface({
         return;
       }
       if (res.status === 403) {
-        setError(t.detail.auth_required || "Authentication required");
+        setError(t.error.auth_required || "Authentication required");
         return;
       }
 
       const data = await res.json();
-      if (data.rateLimit) setError(t.detail.rate_limit_exceeded);
+      if (data.rateLimit) setError(t.error.rate_limit_exceeded);
       else if (data.error) setError(data.error);
       else setResult(data);
     } catch (e) {
@@ -376,21 +375,45 @@ function QueryInterface({
             </TabsHighlight>
           </CardHeader>
           <CardContent className="pt-6">
-            <TabsContent value="ping" className="mt-0">
+            <TabsContent
+              value="ping"
+              className="mt-0"
+              initial={
+                enableTabSwitchAnimation
+                  ? { opacity: 0, filter: "blur(4px)" }
+                  : false
+              }
+            >
               <PingTab
                 activeServer={server.id}
                 isSSO={!!config?.auth?.isAuthenticated}
                 onUnauthorized={(retry) => requestCaptcha(retry)}
               />
             </TabsContent>
-            <TabsContent value="traceroute" className="mt-0">
+            <TabsContent
+              value="traceroute"
+              className="mt-0"
+              initial={
+                enableTabSwitchAnimation
+                  ? { opacity: 0, filter: "blur(4px)" }
+                  : false
+              }
+            >
               <TracerouteTab
                 activeServer={server.id}
                 onUnauthorized={(retry) => requestCaptcha(retry)}
               />
             </TabsContent>
             {isSSO && (
-              <TabsContent value="route" className="mt-0">
+              <TabsContent
+                value="route"
+                className="mt-0"
+                initial={
+                  enableTabSwitchAnimation
+                    ? { opacity: 0, filter: "blur(4px)" }
+                    : false
+                }
+              >
                 <RouteTab
                   query={query}
                   loading={loading}
@@ -457,13 +480,13 @@ function QueryInterface({
                       setCaptchaError(
                         typeof errJson?.error === "string" && errJson.error
                           ? errJson.error
-                          : t.detail.verification_failed ||
+                          : t.error.verification_failed ||
                               "Verification failed",
                       );
                     }
                   } catch {
                     setCaptchaError(
-                      t.detail.verification_failed || "Verification failed",
+                      t.error.verification_failed || "Verification failed",
                     );
                   }
                 }}
@@ -473,7 +496,7 @@ function QueryInterface({
           {captchaError && (
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
-              <AlertTitle>{t.common.error}</AlertTitle>
+              <AlertTitle>{t.error.title}</AlertTitle>
               <AlertDescription>{captchaError}</AlertDescription>
             </Alert>
           )}
@@ -733,7 +756,7 @@ function PingTab({
     <div className="space-y-4">
       <div className="flex gap-2">
         <Input
-          placeholder="IP address or hostname"
+          placeholder={t.detail.ping_placeholder}
           value={target}
           onChange={(e) => setTarget(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && handlePing()}
