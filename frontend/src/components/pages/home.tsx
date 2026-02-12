@@ -14,6 +14,7 @@ import { LanguageSwitcher } from "@/components/language-switcher";
 import { LogIn, UserRound, LogOut, Database } from "lucide-react";
 import { DynamicFlag } from "@sankyu/react-circle-flags";
 import { useConfig } from "@/contexts/config-context";
+import { getLocalizedText } from "@/lib/localized-text";
 
 const navContainerClass =
   "flex h-16 items-center px-4 max-w-7xl mx-auto w-full justify-between";
@@ -21,7 +22,7 @@ const serverCardIconClass =
   "w-12 h-12 rounded-full border-2 flex items-center justify-center bg-muted/30 group-hover:bg-muted text-foreground transition-colors shrink-0 font-title overflow-hidden";
 
 export default function HomePage() {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const config = useConfig();
 
   return (
@@ -81,46 +82,51 @@ export default function HomePage() {
         </p>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl w-full">
-          {config.servers.map((server) => (
-            <Link
-              key={server.id}
-              to={`/detail/${server.id}`}
-              className="block group"
-            >
-              <Card className="hover:shadow-lg transition-all hover:-translate-y-1 h-full">
-                <CardContent className="p-6">
-                  <div className="flex items-center gap-4">
-                    <div className={serverCardIconClass}>
-                      {server.icon && server.icon.length === 2 ? (
-                        <DynamicFlag
-                          code={server.icon.toLowerCase()}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <span className="text-lg font-medium">
-                          {server.icon ||
-                            server.name
-                              .split(" ")
-                              .map((n) => n[0])
-                              .join("")
-                              .slice(0, 2)
-                              .toUpperCase()}
-                        </span>
-                      )}
+          {config.servers.map((server) => {
+            const displayName = getLocalizedText(server.name, locale);
+            const displayDescr = getLocalizedText(server.descr, locale);
+
+            return (
+              <Link
+                key={server.id}
+                to={`/detail/${server.id}`}
+                className="block group"
+              >
+                <Card className="hover:shadow-lg transition-all hover:-translate-y-1 h-full">
+                  <CardContent className="p-6">
+                    <div className="flex items-center gap-4">
+                      <div className={serverCardIconClass}>
+                        {server.icon && server.icon.length === 2 ? (
+                          <DynamicFlag
+                            code={server.icon.toLowerCase()}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <span className="text-lg font-medium">
+                            {server.icon ||
+                              displayName
+                                .split(" ")
+                                .map((n) => n[0])
+                                .join("")
+                                .slice(0, 2)
+                                .toUpperCase()}
+                          </span>
+                        )}
+                      </div>
+                      <div>
+                        <h2 className="text-lg font-normal font-title leading-tight mb-1">
+                          {displayName}
+                        </h2>
+                        <p className="text-sm text-muted-foreground font-sans line-clamp-1">
+                          {displayDescr}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <h2 className="text-lg font-normal font-title leading-tight mb-1">
-                        {server.name}
-                      </h2>
-                      <p className="text-sm text-muted-foreground font-sans line-clamp-1">
-                        {server.location}
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
-          ))}
+                  </CardContent>
+                </Card>
+              </Link>
+            );
+          })}
         </div>
 
         {config.servers.length === 0 && (

@@ -1,12 +1,14 @@
 import { useState } from "react";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useTranslation } from "@/components/i18n-provider";
 
 interface RawOutputPanelProps {
   output: string;
 }
 
 export function RawOutputPanel({ output }: RawOutputPanelProps) {
+  const { t } = useTranslation();
   const [showRaw, setShowRaw] = useState(false);
 
   return (
@@ -16,7 +18,7 @@ export function RawOutputPanel({ output }: RawOutputPanelProps) {
         className="w-full flex justify-between items-center p-4 h-auto"
         onClick={() => setShowRaw(!showRaw)}
       >
-        <span className="font-medium">Raw Output</span>
+        <span className="font-medium">{t.detail.raw_output}</span>
         {showRaw ? (
           <ChevronUp className="h-4 w-4" />
         ) : (

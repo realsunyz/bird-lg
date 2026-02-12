@@ -4,7 +4,7 @@
 # Server listen address
 listen: ":3000"
 
-# Static files directory (Next.js export output)
+# Static files directory
 static_dir: "./static"
 
 # Cloudflare Turnstile configuration
@@ -30,13 +30,19 @@ app:
 # Each server connects to a bird-lg-client instance
 servers:
   - id: tokyo
-    name: Tokyo
-    location: Tokyo, Japan
+    name:
+      en: Tokyo
+      zh: 东京
+    descr:
+      en: Tokyo, Japan
+      zh: 日本东京
     endpoint: http://localhost:18000
     icon: "🇯🇵"
 
   # - id: frankfurt
-  #   name: Frankfurt
-  #   location: Frankfurt, Germany
+  #   name:
+  #     en: Frankfurt
+  #   descr:
+  #     en: Frankfurt, Germany
   #   endpoint: http://frankfurt.example.com:18000
   #   icon: "🇩🇪"

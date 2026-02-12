@@ -5,6 +5,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Activity, AlertTriangle, CheckCircle2, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { RawOutputPanel } from "@/components/raw-output-panel";
+import { useTranslation } from "@/components/i18n-provider";
 
 interface PingResultProps {
   rawOutput: string;
@@ -31,6 +32,7 @@ interface PingSequence {
 }
 
 export function PingResult({ rawOutput }: PingResultProps) {
+  const { t } = useTranslation();
   const { stats, sequences } = useMemo<{
     stats: PingStats | null;
     sequences: PingSequence[];
@@ -103,7 +105,9 @@ export function PingResult({ rawOutput }: PingResultProps) {
           {/* Packet Loss Card */}
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Packet Loss</CardTitle>
+              <CardTitle className="text-sm font-medium">
+                {t.detail.ping_result.packet_loss}
+              </CardTitle>
               {stats.loss === 0 ? (
                 <CheckCircle2 className="h-4 w-4 text-green-500" />
               ) : (
@@ -120,7 +124,8 @@ export function PingResult({ rawOutput }: PingResultProps) {
                 {stats.loss}%
               </div>
               <p className="text-xs text-muted-foreground">
-                {stats.received} / {stats.transmitted} packets received
+                {stats.received} / {stats.transmitted}{" "}
+                {t.detail.ping_result.packets_received}
               </p>
             </CardContent>
           </Card>
@@ -128,15 +133,18 @@ export function PingResult({ rawOutput }: PingResultProps) {
           {/* Average Latency Card */}
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Avg Latency</CardTitle>
+              <CardTitle className="text-sm font-medium">
+                {t.detail.ping_result.avg_latency}
+              </CardTitle>
               <Clock className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {stats.avg ? `${stats.avg} ms` : "N/A"}
+                {stats.avg ? `${stats.avg} ms` : t.detail.ping_result.na}
               </div>
               <p className="text-xs text-muted-foreground">
-                Min: {stats.min || "-"} ms / Max: {stats.max || "-"} ms
+                {t.detail.ping_result.min}: {stats.min || "-"} ms /{" "}
+                {t.detail.ping_result.max}: {stats.max || "-"} ms
               </p>
             </CardContent>
           </Card>
@@ -144,15 +152,17 @@ export function PingResult({ rawOutput }: PingResultProps) {
           {/* Jitter (mdev) Card */}
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Jitter</CardTitle>
+              <CardTitle className="text-sm font-medium">
+                {t.detail.ping_result.jitter}
+              </CardTitle>
               <Activity className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {stats.mdev ? `${stats.mdev} ms` : "N/A"}
+                {stats.mdev ? `${stats.mdev} ms` : t.detail.ping_result.na}
               </div>
               <p className="text-xs text-muted-foreground">
-                Standard deviation
+                {t.detail.ping_result.std_dev}
               </p>
             </CardContent>
           </Card>
@@ -162,7 +172,9 @@ export function PingResult({ rawOutput }: PingResultProps) {
       {/* Sequence List */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base">Ping Replies</CardTitle>
+          <CardTitle className="text-base">
+            {t.detail.ping_result.replies}
+          </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           <ScrollArea className="h-[300px]">
@@ -199,7 +211,7 @@ export function PingResult({ rawOutput }: PingResultProps) {
               ))}
               {sequences.length === 0 && !hasStats && (
                 <div className="p-8 text-center text-muted-foreground">
-                  Waiting for ping replies...
+                  {t.detail.ping_result.waiting}
                 </div>
               )}
             </div>

@@ -4,6 +4,9 @@ import "strings"
 
 const (
 	errCodeReqBadRequest           = "ERR-REQ-400"
+	errCodeTargetRequired          = "ERR-TARGET-400-EMPTY"
+	errCodeTargetInvalidFormat     = "ERR-TARGET-400-FORMAT"
+	errCodeTargetBogonBlocked      = "ERR-TARGET-400-BOGON"
 	errCodeAuthUnauthorized        = "ERR-AUTH-401"
 	errCodeAuthSSORequired         = "ERR-AUTH-403-SSO_REQUIRED"
 	errCodeServerNotFound          = "ERR-SERVER-404"
@@ -18,33 +21,24 @@ const (
 	errCodeCaptchaVerificationFail = "ERR-CAPTCHA-403"
 )
 
-func formatPublicError(code, explanation string) string {
+func formatPublicError(code, _ string) string {
 	code = strings.TrimSpace(code)
-	explanation = strings.TrimSpace(explanation)
-	if explanation == "" {
-		explanation = "Error"
-	}
-
-	needsExplanationPunct := !strings.HasSuffix(explanation, ".") &&
-		!strings.HasSuffix(explanation, "!") &&
-		!strings.HasSuffix(explanation, "?") &&
-		!strings.HasSuffix(explanation, "。") &&
-		!strings.HasSuffix(explanation, "！") &&
-		!strings.HasSuffix(explanation, "？")
-	if needsExplanationPunct {
-		explanation += "."
-	}
-
 	if code == "" {
-		return explanation
+		return errCodeReqBadRequest
 	}
-	return explanation + " (" + code + ")."
+	return code
 }
 
 func publicErrorFromKey(key string) string {
 	switch strings.TrimSpace(key) {
 	case "invalid_request":
 		return formatPublicError(errCodeReqBadRequest, "Invalid request")
+	case "target_required":
+		return formatPublicError(errCodeTargetRequired, "Target is required")
+	case "target_invalid_format":
+		return formatPublicError(errCodeTargetInvalidFormat, "Target must be a valid IPv4, IPv6, or domain name")
+	case "target_bogon_blocked":
+		return formatPublicError(errCodeTargetBogonBlocked, "Bogon, private, or reserved targets are not allowed")
 	case "unauthorized":
 		return formatPublicError(errCodeAuthUnauthorized, "Authentication required")
 	case "server_not_found":

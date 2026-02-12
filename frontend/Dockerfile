@@ -60,7 +60,6 @@ EXPOSE 3000
 
 # Runtime defaults
 ENV LISTEN_ADDR=":3000"
-ENV STATIC_DIR="./static"
 
 # Run server
 CMD ["./server"]

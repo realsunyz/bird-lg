@@ -4,16 +4,65 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"strings"
 
 	"gopkg.in/yaml.v3"
 )
 
+type LocalizedText struct {
+	EN string `yaml:"en" json:"en"`
+	ZH string `yaml:"zh,omitempty" json:"zh,omitempty"`
+}
+
+func (l LocalizedText) Normalize() LocalizedText {
+	en := strings.TrimSpace(l.EN)
+	zh := strings.TrimSpace(l.ZH)
+	if en == "" {
+		en = zh
+	}
+	if zh == "" {
+		zh = en
+	}
+	return LocalizedText{
+		EN: en,
+		ZH: zh,
+	}
+}
+
+func (l *LocalizedText) UnmarshalYAML(value *yaml.Node) error {
+	switch value.Kind {
+	case yaml.ScalarNode:
+		var raw string
+		if err := value.Decode(&raw); err != nil {
+			return err
+		}
+		*l = LocalizedText{EN: strings.TrimSpace(raw)}
+		return nil
+	case yaml.MappingNode:
+		var raw struct {
+			EN string `yaml:"en"`
+			ZH string `yaml:"zh"`
+		}
+		if err := value.Decode(&raw); err != nil {
+			return err
+		}
+		*l = LocalizedText{
+			EN: strings.TrimSpace(raw.EN),
+			ZH: strings.TrimSpace(raw.ZH),
+		}
+		return nil
+	default:
+		return value.Decode(&l.EN)
+	}
+}
+
 type ServerConfig struct {
-	ID       string `yaml:"id" json:"id"`
-	Name     string `yaml:"name" json:"name"`
-	Location string `yaml:"location" json:"location"`
-	Endpoint string `yaml:"endpoint" json:"endpoint"`
-	Icon     string `yaml:"icon,omitempty" json:"icon,omitempty"`
+	ID       string        `yaml:"id" json:"id"`
+	Name     LocalizedText `yaml:"name" json:"name"`
+	Descr    LocalizedText `yaml:"descr" json:"descr"`
+	Location string        `yaml:"location,omitempty" json:"-"`
+	Endpoint string        `yaml:"endpoint" json:"endpoint"`
+	Icon     string        `yaml:"icon,omitempty" json:"icon,omitempty"`
 }
 
 type AppSettings struct {
@@ -81,9 +130,6 @@ func LoadConfig() *Config {
 	if v := os.Getenv("LISTEN_ADDR"); v != "" {
 		config.Listen = v
 	}
-	if v := os.Getenv("STATIC_DIR"); v != "" {
-		config.StaticDir = v
-	}
 	if v := os.Getenv("HTTPS"); v != "" {
 		config.HTTPS = v == "true"
 	}
@@ -130,6 +176,9 @@ func LoadConfig() *Config {
 	if config.JWTSecret == "" {
 		config.JWTSecret = "devSecret"
 	}
+	if strings.TrimSpace(config.StaticDir) == "" {
+		config.StaticDir = "./static"
+	}
 
 	return config
 }
@@ -151,10 +200,10 @@ func getEnvInt(key string, defaultVal int) int {
 }
 
 type ClientServerConfig struct {
-	ID       string `json:"id"`
-	Name     string `json:"name"`
-	Location string `json:"location"`
-	Icon     string `json:"icon,omitempty"`
+	ID    string        `json:"id"`
+	Name  LocalizedText `json:"name"`
+	Descr LocalizedText `json:"descr"`
+	Icon  string        `json:"icon,omitempty"`
 }
 
 type ClientConfig struct {
@@ -182,11 +231,19 @@ func (c *Config) ToClientConfig() ClientConfig {
 
 	cc.Servers = make([]ClientServerConfig, len(c.Servers))
 	for i, s := range c.Servers {
+		name := s.Name.Normalize()
+		descr := s.Descr.Normalize()
+		if descr.EN == "" {
+			legacy := strings.TrimSpace(s.Location)
+			if legacy != "" {
+				descr = LocalizedText{EN: legacy, ZH: legacy}
+			}
+		}
 		cc.Servers[i] = ClientServerConfig{
-			ID:       s.ID,
-			Name:     s.Name,
-			Location: s.Location,
-			Icon:     s.Icon,
+			ID:    s.ID,
+			Name:  name,
+			Descr: descr,
+			Icon:  s.Icon,
 		}
 	}
 

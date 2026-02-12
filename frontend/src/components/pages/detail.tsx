@@ -59,6 +59,11 @@ import { Turnstile } from "@marsidev/react-turnstile";
 import { useConfig } from "@/contexts/config-context";
 import { type ClientConfig, type ServerConfig } from "@/lib/types";
 import { buildPostJSONHeaders } from "@/lib/csrf";
+import { getLocalizedText } from "@/lib/localized-text";
+import {
+  extractErrorCode,
+  validateTargetInput,
+} from "@/lib/target-validation";
 
 interface ProtocolInfo {
   name: string;
@@ -136,6 +141,51 @@ async function runStreamRequest({
   await consumeSSEResponse(response, onData);
 }
 
+function getToolErrorMessage(
+  value: unknown,
+  t: ReturnType<typeof useTranslation>["t"],
+): string {
+  const message = value instanceof Error ? value.message : String(value);
+  const code = extractErrorCode(message);
+  switch (code) {
+    case "ERR-TARGET-400-EMPTY":
+      return t.error.target_required;
+    case "ERR-TARGET-400-FORMAT":
+      return t.error.target_invalid_format;
+    case "ERR-TARGET-400-BOGON":
+      return t.error.target_bogon_blocked;
+    case "ERR-SERVER-404":
+      return t.error.server_not_found;
+    case "ERR-REQ-400":
+      return t.error.invalid_request;
+    case "ERR-REQ-403-CSRF":
+      return t.error.csrf_failed;
+    case "ERR-REQ-408":
+      return t.error.request_timeout;
+    case "ERR-AUTH-401":
+    case "ERR-AUTH-403-SSO_REQUIRED":
+      return t.error.auth_required;
+    case "ERR-RATE-429":
+      return t.error.rate_limit_exceeded;
+    case "ERR-CAPTCHA-503":
+      return t.error.captcha_unavailable;
+    case "ERR-CAPTCHA-403":
+      return t.error.captcha_verification_failed;
+    case "ERR-UPSTREAM-502-CONNECT":
+    case "ERR-UPSTREAM-502-STATUS":
+      return t.error.upstream_error;
+    case "ERR-SSO-404":
+    case "ERR-SSO-400-MISSING_CODE":
+    case "ERR-SSO-400-MISSING_VERIFIER":
+    case "ERR-SSO-401-TOKEN_EXCHANGE":
+    case "ERR-SSO-500-VERIFIER_GEN":
+      return t.error.sso_error;
+    default:
+      if (code) return t.error.unknown_error;
+      return message;
+  }
+}
+
 export default function DetailPage() {
   const { serverId } = useParams<{ serverId: string }>();
   const { t } = useTranslation();
@@ -202,10 +252,11 @@ function QueryInterface({
   server: ServerConfig;
   config: ClientConfig;
 }) {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState<unknown>(null);
+  const serverName = getLocalizedText(server.name, locale);
 
   const isSSO = config?.auth?.authType === "sso";
   const [activeTab, setActiveTab] = useState("ping");
@@ -223,8 +274,7 @@ function QueryInterface({
   const [pendingAction, setPendingAction] = useState<
     | {
         kind: "query";
-        type: string;
-        args?: string;
+        command: string;
       }
     | {
         kind: "retry";
@@ -240,65 +290,39 @@ function QueryInterface({
     setShowCaptcha(true);
   };
 
-  const query = async (type: string, args?: string) => {
+  const runBirdQuery = async (command: string) => {
     setLoading(true);
     setError("");
     setResult(null);
 
     try {
-      if (type === "ping" || type === "traceroute") {
-        const endpoint =
-          type === "ping" ? "/api/tool/ping" : "/api/tool/traceroute";
-        const res = await fetch(endpoint, {
-          method: "POST",
-          headers: buildPostJSONHeaders(),
-          body: JSON.stringify({ server: server.id, target: args || "" }),
-        });
-
-        if (res.status === 401) {
-          setCaptchaError("");
-          setPendingAction({ kind: "query", type, args });
-          setShowCaptcha(true);
-          return;
-        }
-        if (res.status === 403) {
-          setError(t.error.auth_required || "Authentication required");
-          return;
-        }
-
-        const data = await res.json();
-        if (data.rateLimit) setError(t.error.rate_limit_exceeded);
-        else if (data.error) setError(data.error);
-        else setResult(data);
-        return;
-      }
-
-      const body: Record<string, string> = { type, server: server.id };
-      if (type === "bird") body.command = args || "";
-
       const res = await fetch("/api/bird", {
         method: "POST",
         headers: buildPostJSONHeaders(),
-        body: JSON.stringify(body),
+        body: JSON.stringify({
+          type: "bird",
+          server: server.id,
+          command: command.trim(),
+        }),
       });
 
       if (res.status === 401) {
         setCaptchaError("");
-        setPendingAction({ kind: "query", type, args });
+        setPendingAction({ kind: "query", command });
         setShowCaptcha(true);
         return;
       }
       if (res.status === 403) {
-        setError(t.error.auth_required || "Authentication required");
+        setError(t.error.auth_required);
         return;
       }
 
       const data = await res.json();
       if (data.rateLimit) setError(t.error.rate_limit_exceeded);
-      else if (data.error) setError(data.error);
+      else if (data.error) setError(getToolErrorMessage(data.error, t));
       else setResult(data);
     } catch (e) {
-      setError(String(e));
+      setError(getToolErrorMessage(e, t));
     } finally {
       setLoading(false);
     }
@@ -307,7 +331,7 @@ function QueryInterface({
   const handleProtocolSelect = (name: string) => {
     setRoutePreset("show protocols");
     setRouteInput(name);
-    query("bird", `show protocols all ${name}`);
+    runBirdQuery(`show protocols all ${name}`);
   };
 
   return (
@@ -321,7 +345,7 @@ function QueryInterface({
           </BreadcrumbItem>
           <BreadcrumbSeparator>{">"}</BreadcrumbSeparator>
           <BreadcrumbItem>
-            <span className="text-foreground/80">{server.name}</span>
+            <span className="text-foreground/80">{serverName}</span>
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
@@ -350,7 +374,7 @@ function QueryInterface({
                     value="ping"
                     className={tabsTriggerClass}
                   >
-                    Ping
+                    {t.detail.ping}
                   </TabsTrigger>
                 </TabsHighlightItem>
                 <TabsHighlightItem value="traceroute" asChild>
@@ -358,7 +382,7 @@ function QueryInterface({
                     value="traceroute"
                     className={tabsTriggerClass}
                   >
-                    Trace
+                    {t.detail.traceroute}
                   </TabsTrigger>
                 </TabsHighlightItem>
                 {isSSO && (
@@ -415,7 +439,7 @@ function QueryInterface({
                 }
               >
                 <RouteTab
-                  query={query}
+                  runBirdQuery={runBirdQuery}
                   loading={loading}
                   result={result}
                   error={error}
@@ -448,11 +472,10 @@ function QueryInterface({
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>
-              {t.detail.security_check || "Security Check"}
+              {t.detail.security_check}
             </DialogTitle>
             <DialogDescription>
-              {t.detail.complete_captcha ||
-                "Please complete the CAPTCHA to continue."}
+              {t.detail.complete_captcha}
             </DialogDescription>
           </DialogHeader>
           <div className="flex justify-center py-4">
@@ -471,7 +494,7 @@ function QueryInterface({
                       const pending = pendingAction;
                       setPendingAction(null);
                       if (pending?.kind === "query") {
-                        query(pending.type, pending.args);
+                        runBirdQuery(pending.command);
                       } else if (pending?.kind === "retry") {
                         pending.run();
                       }
@@ -479,15 +502,12 @@ function QueryInterface({
                       const errJson = await res.json().catch(() => ({}));
                       setCaptchaError(
                         typeof errJson?.error === "string" && errJson.error
-                          ? errJson.error
-                          : t.error.verification_failed ||
-                              "Verification failed",
+                          ? getToolErrorMessage(errJson.error, t)
+                          : t.error.verification_failed,
                       );
                     }
-                  } catch {
-                    setCaptchaError(
-                      t.error.verification_failed || "Verification failed",
-                    );
+                  } catch (e) {
+                    setCaptchaError(getToolErrorMessage(e, t));
                   }
                 }}
               />
@@ -507,14 +527,14 @@ function QueryInterface({
 }
 
 interface TabProps {
-  query: (type: string, args?: string) => Promise<void>;
+  runBirdQuery: (command: string) => Promise<void>;
   loading: boolean;
   result: unknown;
   error: string;
 }
 
 function RouteTab({
-  query,
+  runBirdQuery,
   loading,
   result,
   error,
@@ -535,32 +555,28 @@ function RouteTab({
   const handleSubmit = () => {
     if (preset === "show protocols") {
       if (!input.trim()) {
-        query("summary");
+        runBirdQuery("show protocols");
       } else {
-        query("bird", `show protocols all ${input}`.trim());
+        runBirdQuery(`show protocols all ${input}`.trim());
       }
     } else if (preset === "custom") {
-      query("bird", input.trim());
+      runBirdQuery(input.trim());
     } else {
-      query("bird", `${preset} ${input}`.trim());
+      runBirdQuery(`${preset} ${input}`.trim());
     }
   };
 
-  const protocolsData = (result as { result?: { data: unknown }[] })
-    ?.result?.[0]?.data;
-  const protocols: ProtocolInfo[] = Array.isArray(protocolsData)
-    ? (protocolsData as ProtocolInfo[])
-    : [];
+  const routeDataRaw = (result as { result?: { data: unknown }[] })?.result?.[0]
+    ?.data;
+  const routeData = typeof routeDataRaw === "string" ? routeDataRaw : "";
+  const protocols =
+    preset === "show protocols" ? parseProtocolSummary(routeData) : [];
   const filteredProtocols = protocols.filter((p) => {
     const proto = typeof p?.proto === "string" ? p.proto : "";
     return !["static", "device", "direct", "kernel"].includes(
       proto.toLowerCase(),
     );
   });
-
-  const routeDataRaw = (result as { result?: { data: unknown }[] })?.result?.[0]
-    ?.data;
-  const routeData = typeof routeDataRaw === "string" ? routeDataRaw : "";
 
   return (
     <div className="space-y-4">
@@ -670,23 +686,39 @@ function TracerouteTab({
   const [error, setError] = useState("");
 
   const handleTraceroute = async () => {
-    if (!target) return;
+    const validation = validateTargetInput(target);
+    if (!validation.ok) {
+      if (validation.errorKey === "target_required") {
+        setError(t.error.target_required);
+      } else if (validation.errorKey === "target_bogon_blocked") {
+        setError(t.error.target_bogon_blocked);
+      } else {
+        setError(t.error.target_invalid_format);
+      }
+      return;
+    }
+
+    const normalizedTarget = validation.normalized;
     setLoading(true);
     setRawData("");
     setError("");
 
     try {
+      const params = new URLSearchParams({
+        server: activeServer,
+        target: normalizedTarget,
+      });
       await runStreamRequest({
-        url: `/api/tool/traceroute/stream?server=${activeServer}&target=${target}`,
-        body: { target },
-        startError: "Failed to start traceroute",
+        url: `/api/tool/traceroute/stream?${params.toString()}`,
+        body: { target: normalizedTarget },
+        startError: t.detail.traceroute_start_failed,
         onUnauthorized: () => onUnauthorized(handleTraceroute),
         onData: (line) => {
           setRawData((prev) => prev + line + "\n");
         },
       });
     } catch (e) {
-      setError(String(e));
+      setError(getToolErrorMessage(e, t));
     } finally {
       setLoading(false);
     }
@@ -702,7 +734,10 @@ function TracerouteTab({
           onKeyDown={(e) => e.key === "Enter" && handleTraceroute()}
           className={toolInputClass}
         />
-        <Button onClick={handleTraceroute} disabled={loading || !target}>
+        <Button
+          onClick={handleTraceroute}
+          disabled={loading || target.trim().length === 0}
+        >
           {loading ? <Spinner /> : t.detail.run}
         </Button>
       </div>
@@ -729,24 +764,41 @@ function PingTab({
   const [error, setError] = useState("");
 
   const handlePing = async () => {
-    if (!target) return;
+    const validation = validateTargetInput(target);
+    if (!validation.ok) {
+      if (validation.errorKey === "target_required") {
+        setError(t.error.target_required);
+      } else if (validation.errorKey === "target_bogon_blocked") {
+        setError(t.error.target_bogon_blocked);
+      } else {
+        setError(t.error.target_invalid_format);
+      }
+      return;
+    }
+
+    const normalizedTarget = validation.normalized;
     setLoading(true);
     setRawData("");
     setError("");
 
     try {
       const countInt = parseInt(count) || 4;
+      const params = new URLSearchParams({
+        server: activeServer,
+        target: normalizedTarget,
+        count: String(countInt),
+      });
       await runStreamRequest({
-        url: `/api/tool/ping/stream?server=${activeServer}&target=${target}&count=${countInt}`,
-        body: { target, count: countInt },
-        startError: "Failed to start ping",
+        url: `/api/tool/ping/stream?${params.toString()}`,
+        body: { target: normalizedTarget, count: countInt },
+        startError: t.detail.ping_start_failed,
         onUnauthorized: () => onUnauthorized(handlePing),
         onData: (line) => {
           setRawData((prev) => prev + line + "\n");
         },
       });
     } catch (e) {
-      setError(String(e));
+      setError(getToolErrorMessage(e, t));
     } finally {
       setLoading(false);
     }
@@ -764,40 +816,37 @@ function PingTab({
         />
         <Select value={count} onValueChange={setCount}>
           <SelectTrigger className="w-[130px]">
-            <SelectValue placeholder="Count" />
+            <SelectValue placeholder={t.detail.ping_count} />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="1">
-              <span className="hidden sm:inline">1 Packet</span>
-              <span className="sm:hidden">1 Pack</span>
+              {`1 ${t.detail.ping_packets}`}
             </SelectItem>
             <SelectItem value="2">
-              <span className="hidden sm:inline">2 Packets</span>
-              <span className="sm:hidden">2 Packs</span>
+              {`2 ${t.detail.ping_packets}`}
             </SelectItem>
             <SelectItem value="4">
-              <span className="hidden sm:inline">4 Packets</span>
-              <span className="sm:hidden">4 Packs</span>
+              {`4 ${t.detail.ping_packets}`}
             </SelectItem>
             <SelectItem value="8">
-              <span className="hidden sm:inline">8 Packets</span>
-              <span className="sm:hidden">8 Packs</span>
+              {`8 ${t.detail.ping_packets}`}
             </SelectItem>
             {isSSO && (
               <>
                 <SelectItem value="10">
-                  <span className="hidden sm:inline">10 Packets</span>
-                  <span className="sm:hidden">10 Packs</span>
+                  {`10 ${t.detail.ping_packets}`}
                 </SelectItem>
                 <SelectItem value="20">
-                  <span className="hidden sm:inline">20 Packets</span>
-                  <span className="sm:hidden">20 Packs</span>
+                  {`20 ${t.detail.ping_packets}`}
                 </SelectItem>
               </>
             )}
           </SelectContent>
         </Select>
-        <Button onClick={handlePing} disabled={loading || !target}>
+        <Button
+          onClick={handlePing}
+          disabled={loading || target.trim().length === 0}
+        >
           {loading ? <Spinner /> : t.detail.run}
         </Button>
       </div>
@@ -805,6 +854,60 @@ function PingTab({
       {rawData && <PingResult rawOutput={rawData} />}
     </div>
   );
+}
+
+function parseProtocolSummary(output: string): ProtocolInfo[] {
+  const lines = output.split("\n");
+  const result: ProtocolInfo[] = [];
+  let headerSkipped = false;
+
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+    if (!line) continue;
+
+    if (!headerSkipped && line.startsWith("Name")) {
+      headerSkipped = true;
+      continue;
+    }
+
+    const fields = splitFields(line);
+    if (fields.length < 5) continue;
+
+    result.push({
+      name: fields[0],
+      proto: fields[1],
+      table: fields[2],
+      state: fields[3],
+      since: fields[4],
+      info: fields.length > 5 ? fields.slice(5).join(" ") : "",
+    });
+  }
+
+  return result;
+}
+
+function splitFields(value: string): string[] {
+  const fields: string[] = [];
+  let start = -1;
+
+  for (let index = 0; index < value.length; index++) {
+    const ch = value[index];
+    const isSpace = ch === " " || ch === "\t";
+    if (!isSpace && start === -1) {
+      start = index;
+      continue;
+    }
+    if (isSpace && start !== -1) {
+      fields.push(value.slice(start, index));
+      start = -1;
+    }
+  }
+
+  if (start !== -1) {
+    fields.push(value.slice(start));
+  }
+
+  return fields;
 }
 
 function getStateColor(state: string): string {

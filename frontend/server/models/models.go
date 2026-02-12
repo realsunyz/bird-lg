@@ -6,15 +6,6 @@ type QueryRequest struct {
 	Command string `json:"command,omitempty"`
 }
 
-type ProtocolSummaryRow struct {
-	Name  string `json:"name"`
-	Proto string `json:"proto"`
-	Table string `json:"table"`
-	State string `json:"state"`
-	Since string `json:"since"`
-	Info  string `json:"info"`
-}
-
 type ToolRunRequest struct {
 	Server string `json:"server"`
 	Target string `json:"target"`

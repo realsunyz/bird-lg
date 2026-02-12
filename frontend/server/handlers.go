@@ -58,6 +58,12 @@ func handleToolRequest(config *Config, upstreamPath string) fiber.Handler {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": publicErrorFromKey("invalid_request")})
 		}
 
+		normalizedTarget, targetErrorKey := validateToolTarget(req.Target)
+		if targetErrorKey != "" {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": publicErrorFromKey(targetErrorKey)})
+		}
+		req.Target = normalizedTarget
+
 		server := findServer(config, req.Server)
 		if server == nil {
 			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": publicErrorFromKey("server_not_found")})
@@ -73,11 +79,16 @@ func handleToolRequest(config *Config, upstreamPath string) fiber.Handler {
 
 func handleToolStream(config *Config, upstreamPath string, timeout time.Duration, buildBody streamBodyBuilder) fiber.Handler {
 	return func(c fiber.Ctx) error {
-		serverID := c.Query("server")
+		serverID := strings.TrimSpace(c.Query("server"))
 		target := c.Query("target")
 
 		if serverID == "" || target == "" {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": publicErrorFromKey("invalid_request")})
+		}
+
+		normalizedTarget, targetErrorKey := validateToolTarget(target)
+		if targetErrorKey != "" {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": publicErrorFromKey(targetErrorKey)})
 		}
 
 		server := findServer(config, serverID)
@@ -85,7 +96,7 @@ func handleToolStream(config *Config, upstreamPath string, timeout time.Duration
 			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": publicErrorFromKey("server_not_found")})
 		}
 
-		reqPayload, err := buildBody(c, target)
+		reqPayload, err := buildBody(c, normalizedTarget)
 		if err != nil {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": publicErrorFromKey("invalid_request")})
 		}
@@ -209,29 +220,6 @@ func handleBird(config *Config) fiber.Handler {
 				return proxyErrorResponse(c, err)
 			}
 			return c.JSON(result)
-		case "summary":
-			result, err := proxyBirdCommand(server.Endpoint, "show protocols", config.HMACSecret)
-			if err != nil {
-				return proxyErrorResponse(c, err)
-			}
-			if result.Error != "" {
-				return c.JSON(result)
-			}
-
-			output := ""
-			if len(result.Result) > 0 {
-				output = result.Result[0].Data
-			}
-
-			summary := parseProtocolSummary(output)
-			return c.JSON(fiber.Map{
-				"result": []fiber.Map{
-					{
-						"server": "local",
-						"data":   summary,
-					},
-				},
-			})
 		default:
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": formatPublicError(errCodeReqBadRequest, "Invalid query type for bird endpoint")})
 		}
@@ -287,39 +275,4 @@ func proxyToClientPath(endpoint, path string, request any, hmacSecret string) (m
 	}
 
 	return result, nil
-}
-
-func parseProtocolSummary(output string) []models.ProtocolSummaryRow {
-	var result []models.ProtocolSummaryRow
-	lines := strings.Split(output, "\n")
-
-	headerSkipped := false
-	for _, line := range lines {
-		line = strings.TrimSpace(line)
-		if line == "" {
-			continue
-		}
-
-		if !headerSkipped && strings.HasPrefix(line, "Name") {
-			headerSkipped = true
-			continue
-		}
-
-		fields := strings.Fields(line)
-		if len(fields) >= 5 {
-			row := models.ProtocolSummaryRow{
-				Name:  fields[0],
-				Proto: fields[1],
-				Table: fields[2],
-				State: fields[3],
-				Since: fields[4],
-			}
-			if len(fields) > 5 {
-				row.Info = strings.Join(fields[5:], " ")
-			}
-			result = append(result, row)
-		}
-	}
-
-	return result
 }

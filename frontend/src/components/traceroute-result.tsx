@@ -10,6 +10,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { RawOutputPanel } from "@/components/raw-output-panel";
+import { useTranslation } from "@/components/i18n-provider";
 
 interface TracerouteResultProps {
   rawOutput: string;
@@ -26,6 +27,7 @@ interface TracerouteHop {
 }
 
 export function TracerouteResult({ rawOutput }: TracerouteResultProps) {
+  const { t } = useTranslation();
   const hops = useMemo<TracerouteHop[]>(() => {
     const lines = rawOutput.split("\n");
     const parsedHops: TracerouteHop[] = [];
@@ -86,9 +88,9 @@ export function TracerouteResult({ rawOutput }: TracerouteResultProps) {
             <TableHeader>
               <TableRow>
                 <TableHead className="w-[50px]">#</TableHead>
-                <TableHead>Host</TableHead>
+                <TableHead>{t.detail.traceroute_result.host}</TableHead>
                 <TableHead>IP</TableHead>
-                <TableHead>RTT</TableHead>
+                <TableHead>{t.detail.traceroute_result.rtt}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -138,7 +140,7 @@ export function TracerouteResult({ rawOutput }: TracerouteResultProps) {
                     colSpan={4}
                     className="text-center text-muted-foreground p-8"
                   >
-                    Starting traceroute...
+                    {t.detail.traceroute_result.starting}
                   </TableCell>
                 </TableRow>
               )}

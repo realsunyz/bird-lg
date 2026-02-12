@@ -1,7 +1,12 @@
+export interface LocalizedText {
+  en: string;
+  zh?: string;
+}
+
 export interface ServerConfig {
   id: string;
-  name: string;
-  location: string;
+  name: LocalizedText;
+  descr: LocalizedText;
   icon?: string;
 }
 

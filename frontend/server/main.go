@@ -23,9 +23,11 @@ import (
 
 func main() {
 	config := LoadConfig()
+	staticDir := config.StaticDir
+	indexFile := filepath.Join(staticDir, "index.html")
 
 	if !fiber.IsChild() {
-		log.Printf("Loaded config: %d servers, static_dir=%s", len(config.Servers), config.StaticDir)
+		log.Printf("Loaded config: %d servers, static_dir=%s", len(config.Servers), staticDir)
 	}
 
 	app := fiber.New(fiber.Config{
@@ -43,7 +45,7 @@ func main() {
 		HSTSMaxAge:         31536000,
 		HSTSPreloadEnabled: false,
 	}))
-	app.Use(favicon.New(serverFaviconConfig(config.StaticDir)))
+	app.Use(favicon.New(serverFaviconConfig(staticDir)))
 	app.Use(compress.New(compress.Config{
 		Level: compress.LevelBestSpeed,
 		Next: func(c fiber.Ctx) bool {
@@ -91,9 +93,6 @@ func main() {
 	api.Get("/auth/login", withTimeout(handleLogtoLogin(config), 10*time.Second))
 	api.Get("/auth/logout", withTimeout(handleLogtoLogout(config), 5*time.Second))
 	app.Get("/auth/callback", withTimeout(handleLogtoCallback(config), 20*time.Second))
-
-	staticDir := config.StaticDir
-	indexFile := filepath.Join(staticDir, "index.html")
 
 	// SPA routes
 	app.Get("/", func(c fiber.Ctx) error {
