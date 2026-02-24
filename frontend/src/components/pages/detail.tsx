@@ -626,8 +626,8 @@ function RouteTab({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredProtocols.map((p, i) => (
-                  <TableRow key={i}>
+                {filteredProtocols.map((p) => (
+                  <TableRow key={p.name}>
                     <TableCell className="font-medium text-sm">
                       <button
                         onClick={() => onProtocolSelect(p.name)}

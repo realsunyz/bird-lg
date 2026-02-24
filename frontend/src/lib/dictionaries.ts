@@ -6,6 +6,7 @@ export const dictionaries = {
       loading: "Loading...",
       back_to_home: "Back to Home",
       back: "Back",
+      retry: "Retry",
     },
     home: {
       title: "Looking Glass",
@@ -78,6 +79,7 @@ export const dictionaries = {
       captcha_unavailable:
         "CAPTCHA service is currently unavailable. Please try again later or contact the NOC.",
       captcha_verification_failed: "Verification failed.",
+      failed_load_config: "Failed to load configuration.",
     },
   },
   zh: {
@@ -85,6 +87,7 @@ export const dictionaries = {
       loading: "加载中...",
       back_to_home: "返回首页",
       back: "返回",
+      retry: "重试",
     },
     home: {
       title: "路由之镜",
@@ -149,10 +152,11 @@ export const dictionaries = {
       rate_limit_exceeded: "您已达到速率限制，请稍后再试。",
       target_required: "目标不能为空。",
       target_invalid_format: "目标必须是有效的 IPv4、IPv6 或域名。",
-      target_bogon_blocked: "不允许查询保留、私有或 bogon 地址。",
+      target_bogon_blocked: "不允许查询保留、私有或 Bogon 地址。",
       captcha_unavailable:
         "CAPTCHA 服务当前不可用，请稍后再试或联系网络运维中心。",
       captcha_verification_failed: "验证失败。",
+      failed_load_config: "加载配置失败。",
     },
   },
 };

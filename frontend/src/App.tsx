@@ -1,4 +1,4 @@
-import { useState, useEffect, lazy, Suspense } from "react";
+import { useState, useEffect, useCallback, lazy, Suspense } from "react";
 import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
 import { ThemeProvider } from "@/components/theme-provider";
 import { I18nProvider, useTranslation } from "@/components/i18n-provider";
@@ -18,54 +18,103 @@ import HomePage from "@/components/pages/home";
 const DetailPage = lazy(() => import("@/components/pages/detail"));
 
 function App() {
+  return (
+    <ThemeProvider>
+      <I18nProvider>
+        <AppBootstrap />
+      </I18nProvider>
+    </ThemeProvider>
+  );
+}
+
+function isClientConfig(value: unknown): value is ClientConfig {
+  if (!value || typeof value !== "object") return false;
+  const cfg = value as Partial<ClientConfig>;
+  if (!cfg.app || typeof cfg.app.title !== "string") return false;
+  if (!Array.isArray(cfg.servers)) return false;
+  return true;
+}
+
+function AppBootstrap() {
+  const { t } = useTranslation();
   const [config, setConfig] = useState<ClientConfig | null>(null);
   const [loading, setLoading] = useState(true);
+  const [hasLoadError, setHasLoadError] = useState(false);
+
+  const loadConfig = useCallback(async (signal?: AbortSignal) => {
+    setLoading(true);
+    setHasLoadError(false);
+    try {
+      const res = await fetch("/api/config", { signal });
+      if (!res.ok) {
+        throw new Error(`Unexpected status: ${res.status}`);
+      }
+      const data: unknown = await res.json();
+      if (!isClientConfig(data)) {
+        throw new Error("Invalid config payload");
+      }
+      setConfig(data);
+    } catch (error) {
+      if (signal?.aborted) return;
+      console.error("Failed to load /api/config:", error);
+      setConfig(null);
+      setHasLoadError(true);
+    } finally {
+      if (!signal?.aborted) {
+        setLoading(false);
+      }
+    }
+  }, []);
 
   useEffect(() => {
-    fetch("/api/config")
-      .then((res) => res.json())
-      .then((data: ClientConfig) => {
-        setConfig(data);
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, []);
+    const controller = new AbortController();
+    void loadConfig(controller.signal);
+    return () => controller.abort();
+  }, [loadConfig]);
 
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="animate-pulse text-muted-foreground">Loading...</div>
+        <div className="animate-pulse text-muted-foreground">{t.common.loading}</div>
       </div>
     );
   }
 
-  const AppContent = (
-    <ConfigProvider value={config || ({} as ClientConfig)}>
-      <ThemeProvider>
-        <I18nProvider>
-          <BrowserRouter>
-            <Suspense
-              fallback={
-                <div className="min-h-screen bg-background flex items-center justify-center">
-                  <div className="animate-pulse text-muted-foreground">
-                    Loading...
-                  </div>
-                </div>
-              }
-            >
-              <Routes>
-                <Route path="/" element={<HomePage />} />
-                <Route path="/detail/:serverId" element={<DetailPage />} />
-                <Route path="*" element={<NotFoundPage />} />
-              </Routes>
-            </Suspense>
-          </BrowserRouter>
-        </I18nProvider>
-      </ThemeProvider>
+  if (hasLoadError || !config) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center px-4">
+        <Empty className="max-w-md">
+          <EmptyHeader>
+            <EmptyTitle>{t.error.title}</EmptyTitle>
+            <EmptyDescription>{t.error.failed_load_config}</EmptyDescription>
+          </EmptyHeader>
+          <EmptyActions>
+            <Button onClick={() => void loadConfig()}>{t.common.retry}</Button>
+          </EmptyActions>
+        </Empty>
+      </div>
+    );
+  }
+
+  return (
+    <ConfigProvider value={config}>
+      <BrowserRouter>
+        <Suspense
+          fallback={
+            <div className="min-h-screen bg-background flex items-center justify-center">
+              <div className="animate-pulse text-muted-foreground">{t.common.loading}</div>
+            </div>
+          }
+        >
+          <Routes>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/detail/:serverId" element={<DetailPage />} />
+            <Route path="*" element={<NotFoundPage />} />
+          </Routes>
+        </Suspense>
+      </BrowserRouter>
     </ConfigProvider>
   );
-
-  return AppContent;
 }
 
 function NotFoundPage() {

@@ -327,11 +327,17 @@ function Highlight<T extends React.ElementType = "div">({
         ? controlledItems
           ? render(children)
           : render(
-              React.Children.map(children, (child, index) => (
-                <HighlightItem key={index} className={props?.itemsClassName}>
-                  {child}
-                </HighlightItem>
-              )),
+              React.Children.toArray(children).map((child) => {
+                if (!React.isValidElement(child)) return child;
+                return (
+                  <HighlightItem
+                    key={child.key}
+                    className={props?.itemsClassName}
+                  >
+                    {child}
+                  </HighlightItem>
+                );
+              }),
             )
         : children}
     </HighlightContext.Provider>
@@ -366,7 +372,7 @@ type ExtendedChildProps = React.ComponentProps<"div"> & {
 type HighlightItemProps<T extends React.ElementType = "div"> =
   React.ComponentProps<T> & {
     as?: T;
-    children: React.ReactElement;
+    children: React.ReactNode;
     id?: string;
     value?: string;
     className?: string;
@@ -416,9 +422,11 @@ function HighlightItem<T extends React.ElementType>({
   } = useHighlight();
 
   const Component = as ?? "div";
-  const element = children as React.ReactElement<ExtendedChildProps>;
+  const element = React.isValidElement(children)
+    ? (children as React.ReactElement<ExtendedChildProps>)
+    : null;
   const childValue =
-    id ?? value ?? element.props?.["data-value"] ?? element.props?.id ?? itemId;
+    id ?? value ?? element?.props?.["data-value"] ?? element?.props?.id ?? itemId;
   const isActive = activeValue === childValue;
   const isDisabled = disabled === undefined ? contextDisabled : disabled;
   const itemTransition = transition ?? contextTransition;
@@ -479,7 +487,7 @@ function HighlightItem<T extends React.ElementType>({
     contextForceUpdateBounds,
   ]);
 
-  if (!React.isValidElement(children)) return children;
+  if (!element) return children;
 
   const dataAttributes = {
     "data-active": isActive ? "true" : "false",

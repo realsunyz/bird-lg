@@ -94,8 +94,8 @@ export function TracerouteResult({ rawOutput }: TracerouteResultProps) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {hops.map((hop, i) => (
-                <TableRow key={i} className="font-mono text-sm">
+              {hops.map((hop) => (
+                <TableRow key={`${hop.hop}-${hop.ip || hop.host}`} className="font-mono text-sm">
                   <TableCell className="font-medium">{hop.hop}</TableCell>
                   <TableCell>
                     <div className="flex flex-col">
@@ -118,7 +118,7 @@ export function TracerouteResult({ rawOutput }: TracerouteResultProps) {
                       )}
                       {hop.rtts.map((rtt, idx) => (
                         <span
-                          key={idx}
+                          key={`${hop.hop}-${idx}-${rtt}`}
                           className={
                             rtt < 50
                               ? "text-green-600"

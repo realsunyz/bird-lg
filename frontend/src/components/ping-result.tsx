@@ -179,9 +179,9 @@ export function PingResult({ rawOutput }: PingResultProps) {
         <CardContent className="p-0">
           <ScrollArea className="h-[300px]">
             <div className="divide-y">
-              {sequences.map((seq, i) => (
+              {sequences.map((seq) => (
                 <div
-                  key={i}
+                  key={`${seq.seq}-${seq.ip}`}
                   className="flex items-center justify-between p-4 py-3 hover:bg-muted/50 transition-colors"
                 >
                   <div className="flex items-center gap-3">

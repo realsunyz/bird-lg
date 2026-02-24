@@ -1,6 +1,13 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useMemo,
+  useCallback,
+} from "react";
 import { dictionaries, type Locale, type Dictionary } from "@/lib/dictionaries";
 
 type I18nContextType = {
@@ -11,13 +18,17 @@ type I18nContextType = {
 
 const I18nContext = createContext<I18nContextType | null>(null);
 
+function isLocale(value: string | null): value is Locale {
+  return value === "en" || value === "zh";
+}
+
 export function I18nProvider({ children }: { children: React.ReactNode }) {
   const [locale, setLocaleState] = useState<Locale>("en");
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    const stored = localStorage.getItem("bird-lg-locale") as Locale;
-    if (stored && (stored === "en" || stored === "zh")) {
+    const stored = localStorage.getItem("bird-lg-locale");
+    if (isLocale(stored)) {
       setLocaleState(stored);
     } else {
       const browserLang = navigator.language.toLowerCase();
@@ -28,28 +39,27 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
     setMounted(true);
   }, []);
 
-  const setLocale = (l: Locale) => {
+  const setLocale = useCallback((l: Locale) => {
     setLocaleState(l);
-    localStorage.setItem("bird-lg-locale", l);
-  };
+    if (typeof window !== "undefined") {
+      localStorage.setItem("bird-lg-locale", l);
+    }
+  }, []);
 
-  const t = dictionaries[locale];
+  const t = useMemo(() => dictionaries[locale], [locale]);
+  const value = useMemo(() => ({ locale, setLocale, t }), [locale, setLocale, t]);
+  const bootValue = useMemo(
+    () => ({ locale: "en" as const, setLocale, t: dictionaries.en }),
+    [setLocale],
+  );
 
   if (!mounted) {
     return (
-      <I18nContext.Provider
-        value={{ locale: "en", setLocale, t: dictionaries.en }}
-      >
-        {children}
-      </I18nContext.Provider>
+      <I18nContext.Provider value={bootValue}>{children}</I18nContext.Provider>
     );
   }
 
-  return (
-    <I18nContext.Provider value={{ locale, setLocale, t }}>
-      {children}
-    </I18nContext.Provider>
-  );
+  return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>;
 }
 
 export function useTranslation() {
