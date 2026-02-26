@@ -116,18 +116,19 @@ function isValidIPv4(value: string): boolean {
 function ipv4ToUint32(value: string): number {
   const parts = value.split(".").map((part) => Number(part));
   return (
-    ((parts[0] << 24) >>> 0) +
-    ((parts[1] << 16) >>> 0) +
-    ((parts[2] << 8) >>> 0) +
-    (parts[3] >>> 0)
-  ) >>> 0;
+    (((parts[0] << 24) >>> 0) +
+      ((parts[1] << 16) >>> 0) +
+      ((parts[2] << 8) >>> 0) +
+      (parts[3] >>> 0)) >>>
+    0
+  );
 }
 
 function isIPv4Bogon(value: string): boolean {
   const ip = ipv4ToUint32(value);
   for (const [prefixIP, prefixLen] of ipv4BogonPrefixes) {
     const shift = 32 - prefixLen;
-    if ((ip >>> shift) === (prefixIP >>> shift)) {
+    if (ip >>> shift === prefixIP >>> shift) {
       return true;
     }
   }

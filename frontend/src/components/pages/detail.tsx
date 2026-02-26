@@ -1,15 +1,9 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { AlertCircle } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Spinner } from "@/components/ui/spinner";
 import {
@@ -60,10 +54,7 @@ import { useConfig } from "@/contexts/config-context";
 import { type ClientConfig, type ServerConfig } from "@/lib/types";
 import { buildPostJSONHeaders } from "@/lib/csrf";
 import { getLocalizedText } from "@/lib/localized-text";
-import {
-  extractErrorCode,
-  validateTargetInput,
-} from "@/lib/target-validation";
+import { extractErrorCode, validateTargetInput } from "@/lib/target-validation";
 
 interface ProtocolInfo {
   name: string;
@@ -88,10 +79,7 @@ type StreamRequestOptions = {
   onData: (line: string) => void;
 };
 
-async function consumeSSEResponse(
-  response: Response,
-  onData: (line: string) => void,
-) {
+async function consumeSSEResponse(response: Response, onData: (line: string) => void) {
   const reader = response.body?.getReader();
   if (!reader) throw new Error("No response stream");
 
@@ -141,10 +129,7 @@ async function runStreamRequest({
   await consumeSSEResponse(response, onData);
 }
 
-function getToolErrorMessage(
-  value: unknown,
-  t: ReturnType<typeof useTranslation>["t"],
-): string {
+function getToolErrorMessage(value: unknown, t: ReturnType<typeof useTranslation>["t"]): string {
   const message = value instanceof Error ? value.message : String(value);
   const code = extractErrorCode(message);
   switch (code) {
@@ -223,9 +208,7 @@ function Header({ title }: { title: string }) {
   return (
     <div className="border-b bg-card">
       <div className="flex h-16 items-center px-4 max-w-7xl mx-auto w-full justify-between">
-        <span className="text-lg font-normal font-title tracking-tight">
-          {title}
-        </span>
+        <span className="text-lg font-normal font-title tracking-tight">{title}</span>
         <LanguageSwitcher />
       </div>
     </div>
@@ -245,13 +228,7 @@ function QueryErrorAlert({ message }: { message: string }) {
   );
 }
 
-function QueryInterface({
-  server,
-  config,
-}: {
-  server: ServerConfig;
-  config: ClientConfig;
-}) {
+function QueryInterface({ server, config }: { server: ServerConfig; config: ClientConfig }) {
   const { t, locale } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -260,12 +237,7 @@ function QueryInterface({
 
   const isSSO = config?.auth?.authType === "sso";
   const [activeTab, setActiveTab] = useState("ping");
-  const [enableTabSwitchAnimation, setEnableTabSwitchAnimation] =
-    useState(false);
-
-  useEffect(() => {
-    setEnableTabSwitchAnimation(true);
-  }, []);
+  const [enableTabSwitchAnimation, setEnableTabSwitchAnimation] = useState(false);
 
   const [routePreset, setRoutePreset] = useState("show protocols");
   const [routeInput, setRouteInput] = useState("");
@@ -353,6 +325,7 @@ function QueryInterface({
       <Tabs
         value={activeTab}
         onValueChange={(v) => {
+          setEnableTabSwitchAnimation(true);
           setActiveTab(v);
           setResult(null);
           setError("");
@@ -370,27 +343,18 @@ function QueryInterface({
             >
               <TabsList className={tabsListClass}>
                 <TabsHighlightItem value="ping" asChild>
-                  <TabsTrigger
-                    value="ping"
-                    className={tabsTriggerClass}
-                  >
+                  <TabsTrigger value="ping" className={tabsTriggerClass}>
                     {t.detail.ping}
                   </TabsTrigger>
                 </TabsHighlightItem>
                 <TabsHighlightItem value="traceroute" asChild>
-                  <TabsTrigger
-                    value="traceroute"
-                    className={tabsTriggerClass}
-                  >
+                  <TabsTrigger value="traceroute" className={tabsTriggerClass}>
                     {t.detail.traceroute}
                   </TabsTrigger>
                 </TabsHighlightItem>
                 {isSSO && (
                   <TabsHighlightItem value="route" asChild>
-                    <TabsTrigger
-                      value="route"
-                      className={tabsTriggerClass}
-                    >
+                    <TabsTrigger value="route" className={tabsTriggerClass}>
                       {t.detail.route}
                     </TabsTrigger>
                   </TabsHighlightItem>
@@ -402,11 +366,7 @@ function QueryInterface({
             <TabsContent
               value="ping"
               className="mt-0"
-              initial={
-                enableTabSwitchAnimation
-                  ? { opacity: 0, filter: "blur(4px)" }
-                  : false
-              }
+              initial={enableTabSwitchAnimation ? { opacity: 0, filter: "blur(4px)" } : false}
             >
               <PingTab
                 activeServer={server.id}
@@ -417,11 +377,7 @@ function QueryInterface({
             <TabsContent
               value="traceroute"
               className="mt-0"
-              initial={
-                enableTabSwitchAnimation
-                  ? { opacity: 0, filter: "blur(4px)" }
-                  : false
-              }
+              initial={enableTabSwitchAnimation ? { opacity: 0, filter: "blur(4px)" } : false}
             >
               <TracerouteTab
                 activeServer={server.id}
@@ -432,11 +388,7 @@ function QueryInterface({
               <TabsContent
                 value="route"
                 className="mt-0"
-                initial={
-                  enableTabSwitchAnimation
-                    ? { opacity: 0, filter: "blur(4px)" }
-                    : false
-                }
+                initial={enableTabSwitchAnimation ? { opacity: 0, filter: "blur(4px)" } : false}
               >
                 <RouteTab
                   runBirdQuery={runBirdQuery}
@@ -471,12 +423,8 @@ function QueryInterface({
       >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>
-              {t.detail.security_check}
-            </DialogTitle>
-            <DialogDescription>
-              {t.detail.complete_captcha}
-            </DialogDescription>
+            <DialogTitle>{t.detail.security_check}</DialogTitle>
+            <DialogDescription>{t.detail.complete_captcha}</DialogDescription>
           </DialogHeader>
           <div className="flex justify-center py-4">
             {config?.turnstile?.siteKey && (
@@ -566,16 +514,12 @@ function RouteTab({
     }
   };
 
-  const routeDataRaw = (result as { result?: { data: unknown }[] })?.result?.[0]
-    ?.data;
+  const routeDataRaw = (result as { result?: { data: unknown }[] })?.result?.[0]?.data;
   const routeData = typeof routeDataRaw === "string" ? routeDataRaw : "";
-  const protocols =
-    preset === "show protocols" ? parseProtocolSummary(routeData) : [];
+  const protocols = preset === "show protocols" ? parseProtocolSummary(routeData) : [];
   const filteredProtocols = protocols.filter((p) => {
     const proto = typeof p?.proto === "string" ? p.proto : "";
-    return !["static", "device", "direct", "kernel"].includes(
-      proto.toLowerCase(),
-    );
+    return !["static", "device", "direct", "kernel"].includes(proto.toLowerCase());
   });
 
   return (
@@ -610,64 +554,51 @@ function RouteTab({
       </div>
       <QueryErrorAlert message={error} />
 
-      {preset === "show protocols" &&
-        !loading &&
-        !error &&
-        filteredProtocols.length > 0 && (
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>{t.detail.table.name}</TableHead>
-                  <TableHead>{t.detail.table.proto}</TableHead>
-                  <TableHead>{t.detail.table.state}</TableHead>
-                  <TableHead>{t.detail.table.since}</TableHead>
-                  <TableHead>{t.detail.table.info}</TableHead>
+      {preset === "show protocols" && !loading && !error && filteredProtocols.length > 0 && (
+        <div className="rounded-md border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>{t.detail.table.name}</TableHead>
+                <TableHead>{t.detail.table.proto}</TableHead>
+                <TableHead>{t.detail.table.state}</TableHead>
+                <TableHead>{t.detail.table.since}</TableHead>
+                <TableHead>{t.detail.table.info}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredProtocols.map((p) => (
+                <TableRow key={p.name}>
+                  <TableCell className="font-medium text-sm">
+                    <button
+                      onClick={() => onProtocolSelect(p.name)}
+                      className="hover:underline cursor-pointer text-primary focus:outline-none"
+                    >
+                      {p.name}
+                    </button>
+                  </TableCell>
+                  <TableCell className="text-sm">{p.proto}</TableCell>
+                  <TableCell>
+                    <span className={cn("text-sm font-semibold", getStateColor(p.state))}>
+                      {p.state}
+                    </span>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground text-sm whitespace-nowrap">
+                    {p.since}
+                  </TableCell>
+                  <TableCell className="text-sm text-muted-foreground">{p.info}</TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredProtocols.map((p) => (
-                  <TableRow key={p.name}>
-                    <TableCell className="font-medium text-sm">
-                      <button
-                        onClick={() => onProtocolSelect(p.name)}
-                        className="hover:underline cursor-pointer text-primary focus:outline-none"
-                      >
-                        {p.name}
-                      </button>
-                    </TableCell>
-                    <TableCell className="text-sm">{p.proto}</TableCell>
-                    <TableCell>
-                      <span
-                        className={cn(
-                          "text-sm font-semibold",
-                          getStateColor(p.state),
-                        )}
-                      >
-                        {p.state}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground text-sm whitespace-nowrap">
-                      {p.since}
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {p.info}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        )}
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
 
-      {routeData &&
-        (preset !== "show protocols" || filteredProtocols.length === 0) && (
-          <div className="rounded-md bg-muted p-4 overflow-x-auto">
-            <pre className="text-sm font-mono whitespace-pre-wrap">
-              {routeData}
-            </pre>
-          </div>
-        )}
+      {routeData && (preset !== "show protocols" || filteredProtocols.length === 0) && (
+        <div className="rounded-md bg-muted p-4 overflow-x-auto">
+          <pre className="text-sm font-mono whitespace-pre-wrap">{routeData}</pre>
+        </div>
+      )}
     </div>
   );
 }
@@ -734,10 +665,7 @@ function TracerouteTab({
           onKeyDown={(e) => e.key === "Enter" && handleTraceroute()}
           className={toolInputClass}
         />
-        <Button
-          onClick={handleTraceroute}
-          disabled={loading || target.trim().length === 0}
-        >
+        <Button onClick={handleTraceroute} disabled={loading || target.trim().length === 0}>
           {loading ? <Spinner /> : t.detail.run}
         </Button>
       </div>
@@ -819,34 +747,19 @@ function PingTab({
             <SelectValue placeholder={t.detail.ping_count} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="1">
-              {`1 ${t.detail.ping_packets}`}
-            </SelectItem>
-            <SelectItem value="2">
-              {`2 ${t.detail.ping_packets}`}
-            </SelectItem>
-            <SelectItem value="4">
-              {`4 ${t.detail.ping_packets}`}
-            </SelectItem>
-            <SelectItem value="8">
-              {`8 ${t.detail.ping_packets}`}
-            </SelectItem>
+            <SelectItem value="1">{`1 ${t.detail.ping_packets}`}</SelectItem>
+            <SelectItem value="2">{`2 ${t.detail.ping_packets}`}</SelectItem>
+            <SelectItem value="4">{`4 ${t.detail.ping_packets}`}</SelectItem>
+            <SelectItem value="8">{`8 ${t.detail.ping_packets}`}</SelectItem>
             {isSSO && (
               <>
-                <SelectItem value="10">
-                  {`10 ${t.detail.ping_packets}`}
-                </SelectItem>
-                <SelectItem value="20">
-                  {`20 ${t.detail.ping_packets}`}
-                </SelectItem>
+                <SelectItem value="10">{`10 ${t.detail.ping_packets}`}</SelectItem>
+                <SelectItem value="20">{`20 ${t.detail.ping_packets}`}</SelectItem>
               </>
             )}
           </SelectContent>
         </Select>
-        <Button
-          onClick={handlePing}
-          disabled={loading || target.trim().length === 0}
-        >
+        <Button onClick={handlePing} disabled={loading || target.trim().length === 0}>
           {loading ? <Spinner /> : t.detail.run}
         </Button>
       </div>
@@ -913,8 +826,7 @@ function splitFields(value: string): string[] {
 function getStateColor(state: string): string {
   const lower = state.toLowerCase();
   if (lower.includes("established") || lower === "up") return "text-green-600";
-  if (lower.includes("start") || lower.includes("connect"))
-    return "text-yellow-600";
+  if (lower.includes("start") || lower.includes("connect")) return "text-yellow-600";
   if (lower.includes("down") || lower.includes("idle")) return "text-red-500";
   return "text-muted-foreground";
 }

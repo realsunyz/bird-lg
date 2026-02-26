@@ -23,8 +23,7 @@ type TabsContextType = {
   setValue: TabsProps["onValueChange"];
 };
 
-const [TabsProvider, useTabs] =
-  getStrictContext<TabsContextType>("TabsContext");
+const [TabsProvider, useTabs] = getStrictContext<TabsContextType>("TabsContext");
 
 type TabsProps = React.ComponentProps<typeof TabsPrimitive.Root>;
 
@@ -108,8 +107,7 @@ function TabsTrigger({ className, ...props }: TabsTriggerProps) {
   );
 }
 
-type TabsContentProps = React.ComponentProps<typeof TabsPrimitive.Content> &
-  HTMLMotionProps<"div">;
+type TabsContentProps = React.ComponentProps<typeof TabsPrimitive.Content> & HTMLMotionProps<"div">;
 
 function TabsContent({
   value,
@@ -169,12 +167,7 @@ function TabsContents(props: TabsContentsProps) {
     const { transition = defaultTransition, ...autoProps } = props;
 
     return (
-      <AutoHeight
-        data-slot="tabs-contents"
-        deps={[value]}
-        transition={transition}
-        {...autoProps}
-      />
+      <AutoHeight data-slot="tabs-contents" deps={[value]} transition={transition} {...autoProps} />
     );
   }
 

@@ -21,7 +21,7 @@ interface TracerouteHop {
   host: string;
   ip: string;
   asn?: string;
-  rtts: number[];
+  rtts: { value: number; id: string }[];
   status: "success" | "timeout" | "partial";
   raw: string;
 }
@@ -59,9 +59,9 @@ export function TracerouteResult({ rawOutput }: TracerouteResultProps) {
       const ip = ipMatch ? ipMatch[1] : "";
 
       const rttMatches = rest.matchAll(/([\d\.]+)\s+ms/g);
-      const rtts: number[] = [];
+      const rtts: { value: number; id: string }[] = [];
       for (const m of rttMatches) {
-        rtts.push(parseFloat(m[1]));
+        rtts.push({ value: parseFloat(m[1]), id: crypto.randomUUID() });
       }
 
       parsedHops.push({
@@ -101,10 +101,7 @@ export function TracerouteResult({ rawOutput }: TracerouteResultProps) {
                     <div className="flex flex-col">
                       <span>{hop.host}</span>
                       {hop.asn && (
-                        <Badge
-                          variant="secondary"
-                          className="w-fit text-[10px] h-5 px-1 mt-1"
-                        >
+                        <Badge variant="secondary" className="w-fit text-[10px] h-5 px-1 mt-1">
                           {hop.asn}
                         </Badge>
                       )}
@@ -116,18 +113,18 @@ export function TracerouteResult({ rawOutput }: TracerouteResultProps) {
                       {hop.status === "timeout" && (
                         <span className="text-muted-foreground">* * *</span>
                       )}
-                      {hop.rtts.map((rtt, idx) => (
+                      {hop.rtts.map((rtt) => (
                         <span
-                          key={`${hop.hop}-${idx}-${rtt}`}
+                          key={rtt.id}
                           className={
-                            rtt < 50
+                            rtt.value < 50
                               ? "text-green-600"
-                              : rtt < 150
+                              : rtt.value < 150
                                 ? "text-yellow-600"
                                 : "text-destructive"
                           }
                         >
-                          {rtt.toFixed(2)}ms
+                          {rtt.value.toFixed(2)}ms
                         </span>
                       ))}
                     </div>
@@ -136,10 +133,7 @@ export function TracerouteResult({ rawOutput }: TracerouteResultProps) {
               ))}
               {hops.length === 0 && (
                 <TableRow>
-                  <TableCell
-                    colSpan={4}
-                    className="text-center text-muted-foreground p-8"
-                  >
+                  <TableCell colSpan={4} className="text-center text-muted-foreground p-8">
                     {t.detail.traceroute_result.starting}
                   </TableCell>
                 </TableRow>

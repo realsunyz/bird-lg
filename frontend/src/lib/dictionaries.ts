@@ -58,8 +58,7 @@ export const dictionaries = {
     error: {
       title: "Error",
       page_not_found_title: "Page not found",
-      page_not_found_description:
-        "The page you are looking for does not exist.",
+      page_not_found_description: "The page you are looking for does not exist.",
       server_not_found: "Server not found.",
       verification_failed: "Verification failed.",
       auth_required: "Authentication required.",
@@ -69,13 +68,10 @@ export const dictionaries = {
       upstream_error: "Upstream service is unavailable.",
       sso_error: "SSO service is currently unavailable.",
       unknown_error: "An unexpected error occurred.",
-      rate_limit_exceeded:
-        "You have exceeded the rate limit. Please try again in a moment.",
+      rate_limit_exceeded: "You have exceeded the rate limit. Please try again in a moment.",
       target_required: "Target is required.",
-      target_invalid_format:
-        "Target must be a valid IPv4, IPv6, or domain name.",
-      target_bogon_blocked:
-        "Bogon, private, or reserved targets are not allowed.",
+      target_invalid_format: "Target must be a valid IPv4, IPv6, or domain name.",
+      target_bogon_blocked: "Bogon, private, or reserved targets are not allowed.",
       captcha_unavailable:
         "CAPTCHA service is currently unavailable. Please try again later or contact the NOC.",
       captcha_verification_failed: "Verification failed.",
@@ -153,8 +149,7 @@ export const dictionaries = {
       target_required: "目标不能为空。",
       target_invalid_format: "目标必须是有效的 IPv4、IPv6 或域名。",
       target_bogon_blocked: "不允许查询保留、私有或 Bogon 地址。",
-      captcha_unavailable:
-        "CAPTCHA 服务当前不可用，请稍后再试或联系网络运维中心。",
+      captcha_unavailable: "CAPTCHA 服务当前不可用，请稍后再试或联系网络运维中心。",
       captcha_verification_failed: "验证失败。",
       failed_load_config: "加载配置失败。",
     },

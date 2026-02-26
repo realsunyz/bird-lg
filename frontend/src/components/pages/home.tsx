@@ -16,8 +16,7 @@ import { DynamicFlag } from "@sankyu/react-circle-flags";
 import { useConfig } from "@/contexts/config-context";
 import { getLocalizedText } from "@/lib/localized-text";
 
-const navContainerClass =
-  "flex h-16 items-center px-4 max-w-7xl mx-auto w-full justify-between";
+const navContainerClass = "flex h-16 items-center px-4 max-w-7xl mx-auto w-full justify-between";
 const serverCardIconClass =
   "w-12 h-12 rounded-full border-2 flex items-center justify-center bg-muted/30 group-hover:bg-muted text-foreground transition-colors shrink-0 font-title overflow-hidden";
 
@@ -29,15 +28,12 @@ export default function HomePage() {
     <div className="min-h-screen bg-background flex flex-col font-sans">
       <div className="border-b bg-card">
         <div className={navContainerClass}>
-          <span className="text-lg font-normal font-title tracking-tight">
-            {config.app.title}
-          </span>
+          <span className="text-lg font-normal font-title tracking-tight">{config.app.title}</span>
           <div className="flex items-center">
             <LanguageSwitcher />
             {config.logto?.endpoint &&
               config.logto?.appId &&
-              (config.auth?.isAuthenticated &&
-              config.auth?.authType === "sso" ? (
+              (config.auth?.isAuthenticated && config.auth?.authType === "sso" ? (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" size="icon" aria-label="User menu">
@@ -77,9 +73,7 @@ export default function HomePage() {
         <h1 className="text-4xl font-normal font-title mb-2 text-foreground flex items-center justify-center">
           {t.home.title}
         </h1>
-        <p className="text-muted-foreground mb-8 text-lg font-sans">
-          {t.home.select_server}
-        </p>
+        <p className="text-muted-foreground mb-8 text-lg font-sans">{t.home.select_server}</p>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl w-full">
           {config.servers.map((server) => {
@@ -87,11 +81,7 @@ export default function HomePage() {
             const displayDescr = getLocalizedText(server.descr, locale);
 
             return (
-              <Link
-                key={server.id}
-                to={`/detail/${server.id}`}
-                className="block group"
-              >
+              <Link key={server.id} to={`/detail/${server.id}`} className="block group">
                 <Card className="hover:shadow-lg transition-all hover:-translate-y-1 h-full">
                   <CardContent className="p-6">
                     <div className="flex items-center gap-4">

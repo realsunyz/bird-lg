@@ -3,7 +3,7 @@
 import React, {
   createContext,
   useContext,
-  useState,
+  useReducer,
   useEffect,
   useMemo,
   useCallback,
@@ -22,41 +22,63 @@ function isLocale(value: string | null): value is Locale {
   return value === "en" || value === "zh";
 }
 
+type I18nState = {
+  locale: Locale;
+  mounted: boolean;
+};
+
+type Action = { type: "INIT"; payload: Locale } | { type: "SET_LOCALE"; payload: Locale };
+
+function i18nReducer(state: I18nState, action: Action): I18nState {
+  switch (action.type) {
+    case "INIT":
+      return { ...state, locale: action.payload, mounted: true };
+    case "SET_LOCALE":
+      return { ...state, locale: action.payload };
+    default:
+      return state;
+  }
+}
+
 export function I18nProvider({ children }: { children: React.ReactNode }) {
-  const [locale, setLocaleState] = useState<Locale>("en");
-  const [mounted, setMounted] = useState(false);
+  const [state, dispatch] = useReducer(i18nReducer, {
+    locale: "en",
+    mounted: false,
+  });
 
   useEffect(() => {
     const stored = localStorage.getItem("bird-lg-locale");
+    let initialLocale: Locale = "en";
     if (isLocale(stored)) {
-      setLocaleState(stored);
+      initialLocale = stored;
     } else {
       const browserLang = navigator.language.toLowerCase();
       if (browserLang.startsWith("zh")) {
-        setLocaleState("zh");
+        initialLocale = "zh";
       }
     }
-    setMounted(true);
+    dispatch({ type: "INIT", payload: initialLocale });
   }, []);
 
   const setLocale = useCallback((l: Locale) => {
-    setLocaleState(l);
+    dispatch({ type: "SET_LOCALE", payload: l });
     if (typeof window !== "undefined") {
       localStorage.setItem("bird-lg-locale", l);
     }
   }, []);
 
-  const t = useMemo(() => dictionaries[locale], [locale]);
-  const value = useMemo(() => ({ locale, setLocale, t }), [locale, setLocale, t]);
+  const t = useMemo(() => dictionaries[state.locale], [state.locale]);
+  const value = useMemo(
+    () => ({ locale: state.locale, setLocale, t }),
+    [state.locale, setLocale, t],
+  );
   const bootValue = useMemo(
     () => ({ locale: "en" as const, setLocale, t: dictionaries.en }),
     [setLocale],
   );
 
-  if (!mounted) {
-    return (
-      <I18nContext.Provider value={bootValue}>{children}</I18nContext.Provider>
-    );
+  if (!state.mounted) {
+    return <I18nContext.Provider value={bootValue}>{children}</I18nContext.Provider>;
   }
 
   return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>;

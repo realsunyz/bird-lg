@@ -1,11 +1,4 @@
-import {
-  useEffect,
-  useState,
-  createContext,
-  useContext,
-  useCallback,
-  useMemo,
-} from "react";
+import { useEffect, useState, createContext, useContext, useCallback, useMemo } from "react";
 
 type Theme = "dark" | "light" | "system";
 
@@ -20,9 +13,7 @@ interface ThemeProviderState {
   setTheme: (theme: Theme) => void;
 }
 
-const ThemeProviderContext = createContext<ThemeProviderState | undefined>(
-  undefined,
-);
+const ThemeProviderContext = createContext<ThemeProviderState | undefined>(undefined);
 
 function isTheme(value: string | null): value is Theme {
   return value === "light" || value === "dark" || value === "system";
@@ -46,8 +37,7 @@ export function ThemeProvider({
     root.classList.remove("light", "dark");
 
     if (nextTheme === "system") {
-      const systemTheme = window.matchMedia("(prefers-color-scheme: dark)")
-        .matches
+      const systemTheme = window.matchMedia("(prefers-color-scheme: dark)").matches
         ? "dark"
         : "light";
       root.classList.add(systemTheme);
@@ -87,11 +77,7 @@ export function ThemeProvider({
     [theme, setThemeValue],
   );
 
-  return (
-    <ThemeProviderContext.Provider value={value}>
-      {children}
-    </ThemeProviderContext.Provider>
-  );
+  return <ThemeProviderContext.Provider value={value}>{children}</ThemeProviderContext.Provider>;
 }
 
 export function useTheme() {

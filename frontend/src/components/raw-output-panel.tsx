@@ -19,11 +19,7 @@ export function RawOutputPanel({ output }: RawOutputPanelProps) {
         onClick={() => setShowRaw(!showRaw)}
       >
         <span className="font-medium">{t.detail.raw_output}</span>
-        {showRaw ? (
-          <ChevronUp className="h-4 w-4" />
-        ) : (
-          <ChevronDown className="h-4 w-4" />
-        )}
+        {showRaw ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
       </Button>
       {showRaw && (
         <div className="p-4 bg-muted/30 border-t overflow-x-auto">

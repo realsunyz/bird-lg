@@ -1,6 +1,6 @@
-import * as React from "react"
+import * as React from "react";
 
-import { cn } from "@/lib/utils"
+import { cn } from "@/lib/utils";
 
 function Empty({ className, ...props }: React.ComponentProps<"div">) {
   return (
@@ -12,7 +12,7 @@ function Empty({ className, ...props }: React.ComponentProps<"div">) {
       )}
       {...props}
     />
-  )
+  );
 }
 
 function EmptyHeader({ className, ...props }: React.ComponentProps<"div">) {
@@ -22,7 +22,7 @@ function EmptyHeader({ className, ...props }: React.ComponentProps<"div">) {
       className={cn("flex flex-col items-center gap-2", className)}
       {...props}
     />
-  )
+  );
 }
 
 function EmptyTitle({ className, ...props }: React.ComponentProps<"h2">) {
@@ -32,20 +32,17 @@ function EmptyTitle({ className, ...props }: React.ComponentProps<"h2">) {
       className={cn("text-2xl font-semibold tracking-tight", className)}
       {...props}
     />
-  )
+  );
 }
 
-function EmptyDescription({
-  className,
-  ...props
-}: React.ComponentProps<"p">) {
+function EmptyDescription({ className, ...props }: React.ComponentProps<"p">) {
   return (
     <p
       data-slot="empty-description"
       className={cn("text-sm text-muted-foreground", className)}
       {...props}
     />
-  )
+  );
 }
 
 function EmptyContent({ className, ...props }: React.ComponentProps<"div">) {
@@ -55,7 +52,7 @@ function EmptyContent({ className, ...props }: React.ComponentProps<"div">) {
       className={cn("flex items-center justify-center", className)}
       {...props}
     />
-  )
+  );
 }
 
 function EmptyActions({ className, ...props }: React.ComponentProps<"div">) {
@@ -65,14 +62,7 @@ function EmptyActions({ className, ...props }: React.ComponentProps<"div">) {
       className={cn("flex items-center justify-center gap-2", className)}
       {...props}
     />
-  )
+  );
 }
 
-export {
-  Empty,
-  EmptyActions,
-  EmptyContent,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyTitle,
-}
+export { Empty, EmptyActions, EmptyContent, EmptyDescription, EmptyHeader, EmptyTitle };

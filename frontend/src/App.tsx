@@ -125,9 +125,7 @@ function NotFoundPage() {
     <div className="min-h-screen bg-background flex flex-col font-sans">
       <div className="border-b bg-card">
         <div className="flex h-16 items-center px-4 max-w-7xl mx-auto w-full justify-between">
-          <span className="text-lg font-normal font-title tracking-tight">
-            {config.app.title}
-          </span>
+          <span className="text-lg font-normal font-title tracking-tight">{config.app.title}</span>
           <LanguageSwitcher />
         </div>
       </div>
@@ -140,9 +138,7 @@ function NotFoundPage() {
             <EmptyDescription className="font-title text-base text-foreground">
               {t.error.page_not_found_title}
             </EmptyDescription>
-            <EmptyDescription>
-              {t.error.page_not_found_description}
-            </EmptyDescription>
+            <EmptyDescription>{t.error.page_not_found_description}</EmptyDescription>
           </EmptyHeader>
           <EmptyActions>
             <Button asChild>

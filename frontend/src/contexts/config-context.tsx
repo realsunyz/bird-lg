@@ -17,7 +17,5 @@ interface ConfigProviderProps {
 }
 
 export function ConfigProvider({ value, children }: ConfigProviderProps) {
-  return (
-    <ConfigContext.Provider value={value}>{children}</ConfigContext.Provider>
-  );
+  return <ConfigContext.Provider value={value}>{children}</ConfigContext.Provider>;
 }

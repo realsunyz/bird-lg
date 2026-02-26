@@ -1,4 +1,4 @@
-import * as React from 'react';
+import * as React from "react";
 
 interface CommonControlledStateProps<T> {
   value?: T;
@@ -15,23 +15,18 @@ export function useControlledState<T, Rest extends unknown[] = []>(
   const wasControlledRef = React.useRef(isControlled);
 
   React.useEffect(() => {
-    if (
-      import.meta.env.DEV &&
-      wasControlledRef.current !== isControlled
-    ) {
+    if (import.meta.env.DEV && wasControlledRef.current !== isControlled) {
       console.error(
-        'useControlledState changed from ' +
-          `${wasControlledRef.current ? 'controlled' : 'uncontrolled'} to ` +
-          `${isControlled ? 'controlled' : 'uncontrolled'}. ` +
-          'Do not switch control mode during component lifecycle.',
+        "useControlledState changed from " +
+          `${wasControlledRef.current ? "controlled" : "uncontrolled"} to ` +
+          `${isControlled ? "controlled" : "uncontrolled"}. ` +
+          "Do not switch control mode during component lifecycle.",
       );
     }
     wasControlledRef.current = isControlled;
   }, [isControlled]);
 
-  const [uncontrolledState, setUncontrolledState] = React.useState<T | undefined>(
-    defaultValue,
-  );
+  const [uncontrolledState, setUncontrolledState] = React.useState<T | undefined>(defaultValue);
 
   const setState = React.useCallback(
     (next: T, ...args: Rest) => {

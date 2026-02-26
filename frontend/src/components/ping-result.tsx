@@ -43,10 +43,8 @@ export function PingResult({ rawOutput }: PingResultProps) {
 
     const seqRegex =
       /(\d+) bytes from ([a-fA-F0-9:.]+).*?: icmp_seq=(\d+) ttl=(\d+) time=([\d\.]+) ms/;
-    const statsHeaderRegex =
-      /(\d+) packets transmitted, (\d+) received, ([\d\.]+)% packet loss/;
-    const rttRegex =
-      /rtt min\/avg\/max\/mdev = ([\d\.]+)\/([\d\.]+)\/([\d\.]+)\/([\d\.]+) ms/;
+    const statsHeaderRegex = /(\d+) packets transmitted, (\d+) received, ([\d\.]+)% packet loss/;
+    const rttRegex = /rtt min\/avg\/max\/mdev = ([\d\.]+)\/([\d\.]+)\/([\d\.]+)\/([\d\.]+) ms/;
 
     lines.forEach((line) => {
       const seqMatch = line.match(seqRegex);
@@ -62,10 +60,7 @@ export function PingResult({ rawOutput }: PingResultProps) {
         return;
       }
 
-      if (
-        line.includes("Request timeout") ||
-        line.includes("Destination Host Unreachable")
-      ) {
+      if (line.includes("Request timeout") || line.includes("Destination Host Unreachable")) {
       }
 
       const statsMatch = line.match(statsHeaderRegex);
@@ -124,8 +119,7 @@ export function PingResult({ rawOutput }: PingResultProps) {
                 {stats.loss}%
               </div>
               <p className="text-xs text-muted-foreground">
-                {stats.received} / {stats.transmitted}{" "}
-                {t.detail.ping_result.packets_received}
+                {stats.received} / {stats.transmitted} {t.detail.ping_result.packets_received}
               </p>
             </CardContent>
           </Card>
@@ -143,8 +137,8 @@ export function PingResult({ rawOutput }: PingResultProps) {
                 {stats.avg ? `${stats.avg} ms` : t.detail.ping_result.na}
               </div>
               <p className="text-xs text-muted-foreground">
-                {t.detail.ping_result.min}: {stats.min || "-"} ms /{" "}
-                {t.detail.ping_result.max}: {stats.max || "-"} ms
+                {t.detail.ping_result.min}: {stats.min || "-"} ms / {t.detail.ping_result.max}:{" "}
+                {stats.max || "-"} ms
               </p>
             </CardContent>
           </Card>
@@ -152,18 +146,14 @@ export function PingResult({ rawOutput }: PingResultProps) {
           {/* Jitter (mdev) Card */}
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                {t.detail.ping_result.jitter}
-              </CardTitle>
+              <CardTitle className="text-sm font-medium">{t.detail.ping_result.jitter}</CardTitle>
               <Activity className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
                 {stats.mdev ? `${stats.mdev} ms` : t.detail.ping_result.na}
               </div>
-              <p className="text-xs text-muted-foreground">
-                {t.detail.ping_result.std_dev}
-              </p>
+              <p className="text-xs text-muted-foreground">{t.detail.ping_result.std_dev}</p>
             </CardContent>
           </Card>
         </div>
@@ -172,9 +162,7 @@ export function PingResult({ rawOutput }: PingResultProps) {
       {/* Sequence List */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base">
-            {t.detail.ping_result.replies}
-          </CardTitle>
+          <CardTitle className="text-base">{t.detail.ping_result.replies}</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           <ScrollArea className="h-[300px]">
@@ -191,16 +179,10 @@ export function PingResult({ rawOutput }: PingResultProps) {
                     <span className="font-mono text-sm">{seq.ip}</span>
                   </div>
                   <div className="flex items-center gap-4">
-                    <span className="text-sm text-muted-foreground">
-                      ttl={seq.ttl}
-                    </span>
+                    <span className="text-sm text-muted-foreground">ttl={seq.ttl}</span>
                     <Badge
                       variant={
-                        seq.time < 50
-                          ? "secondary"
-                          : seq.time < 150
-                            ? "outline"
-                            : "destructive"
+                        seq.time < 50 ? "secondary" : seq.time < 150 ? "outline" : "destructive"
                       }
                       className="font-mono"
                     >
