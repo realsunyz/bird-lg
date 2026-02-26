@@ -53,12 +53,12 @@ export function TracerouteResult({ rawOutput }: TracerouteResultProps) {
         return;
       }
 
-      const ipMatch = rest.match(/\(([\d\.:]+)\)/);
+      const ipMatch = rest.match(/\(([\d.:]+)\)/);
       const asnMatch = rest.match(/\[(AS\d+)\]/i);
       const host = ipMatch ? rest.split("(")[0].trim() : rest.split(/\s+/)[0];
       const ip = ipMatch ? ipMatch[1] : "";
 
-      const rttMatches = rest.matchAll(/([\d\.]+)\s+ms/g);
+      const rttMatches = rest.matchAll(/([\d.]+)\s+ms/g);
       const rtts: { value: number; id: string }[] = [];
       for (const m of rttMatches) {
         rtts.push({ value: parseFloat(m[1]), id: crypto.randomUUID() });

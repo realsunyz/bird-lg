@@ -42,9 +42,9 @@ export function PingResult({ rawOutput }: PingResultProps) {
     let stats: PingStats | null = null;
 
     const seqRegex =
-      /(\d+) bytes from ([a-fA-F0-9:.]+).*?: icmp_seq=(\d+) ttl=(\d+) time=([\d\.]+) ms/;
-    const statsHeaderRegex = /(\d+) packets transmitted, (\d+) received, ([\d\.]+)% packet loss/;
-    const rttRegex = /rtt min\/avg\/max\/mdev = ([\d\.]+)\/([\d\.]+)\/([\d\.]+)\/([\d\.]+) ms/;
+      /(\d+) bytes from ([a-fA-F0-9:.]+).*?: icmp_seq=(\d+) ttl=(\d+) time=([\d.]+) ms/;
+    const statsHeaderRegex = /(\d+) packets transmitted, (\d+) received, ([\d.]+)% packet loss/;
+    const rttRegex = /rtt min\/avg\/max\/mdev = ([\d.]+)\/([\d.]+)\/([\d.]+)\/([\d.]+) ms/;
 
     lines.forEach((line) => {
       const seqMatch = line.match(seqRegex);
@@ -69,7 +69,7 @@ export function PingResult({ rawOutput }: PingResultProps) {
           transmitted: parseInt(statsMatch[1]),
           received: parseInt(statsMatch[2]),
           loss: parseFloat(statsMatch[3]),
-          ...(stats || {}),
+          ...stats,
         } as PingStats;
       }
 
