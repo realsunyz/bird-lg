@@ -1,10 +1,14 @@
 package config
 
 import (
-	"log"
+	"crypto/rand"
+	"encoding/base64"
+	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
+	"bird-lg/server/internal/logx"
 	"gopkg.in/yaml.v3"
 )
 
@@ -111,7 +115,7 @@ func LoadConfig() *Config {
 	configPath := getEnv("CONFIG_FILE", "config.yaml")
 	if data, err := os.ReadFile(configPath); err == nil {
 		if err := yaml.Unmarshal(data, cfg); err != nil {
-			log.Printf("Warning: failed to parse config file %s: %v", configPath, err)
+			logx.Warnf("Failed to parse config file %s: %v", configPath, err)
 		}
 	}
 
@@ -158,8 +162,26 @@ func LoadConfig() *Config {
 		cfg.LogtoAppID = v
 	}
 
-	if cfg.JWTSecret == "" {
-		cfg.JWTSecret = "devSecret"
+	if strings.TrimSpace(cfg.JWTSecret) == "" {
+		logx.Warnf("JWT_SECRET not configured; generating a random secret and persisting it to %s", configPath)
+		generated, err := generateRandomSecret()
+		if err != nil {
+			logx.Warnf("Failed to generate random JWT secret (%v); falling back to insecure development secret", err)
+			generated = "devSecret"
+		}
+		cfg.JWT.Secret = generated
+		cfg.JWTSecret = generated
+		if err := persistConfig(configPath, cfg); err != nil {
+			logx.Warnf("Failed to persist generated JWT secret to %s: %v", configPath, err)
+		} else {
+			logx.Warnf("Generated JWT secret persisted to %s", configPath)
+		}
+	}
+	if strings.TrimSpace(cfg.TurnstileSecretKey) == "" {
+		logx.Warnf("TURNSTILE_SECRET_KEY not configured; tool JWT middleware is bypassed")
+	}
+	if strings.TrimSpace(cfg.HMACSecret) == "" {
+		logx.Warnf("HMAC_SECRET not configured; requests to router nodes will be unsigned")
 	}
 	if strings.TrimSpace(cfg.StaticDir) == "" {
 		cfg.StaticDir = "./static"
@@ -182,6 +204,29 @@ func getEnv(key, defaultVal string) string {
 		return v
 	}
 	return defaultVal
+}
+
+func generateRandomSecret() (string, error) {
+	buf := make([]byte, 32)
+	if _, err := rand.Read(buf); err != nil {
+		return "", fmt.Errorf("crypto/rand read failed: %w", err)
+	}
+	return base64.StdEncoding.EncodeToString(buf), nil
+}
+
+func persistConfig(configPath string, cfg *Config) error {
+	dir := filepath.Dir(configPath)
+	if dir != "." && dir != "" {
+		if err := os.MkdirAll(dir, 0o755); err != nil {
+			return err
+		}
+	}
+
+	data, err := yaml.Marshal(cfg)
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(configPath, data, 0o600)
 }
 
 type ClientServerConfig struct {

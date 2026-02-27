@@ -99,10 +99,10 @@ func HandleLogtoCallback(cfg *config.Config) fiber.Handler {
 
 func exchangeLogtoCode(cfg *config.Config, code, verifier string, c fiber.Ctx) (*model.LogtoTokenResponse, error) {
 	cc := apiclient.NewHTTPClient()
-	cc.SetTimeout(10 * time.Second)
 
 	tokenURL := trimTrailingSlash(cfg.LogtoEndpoint) + "/oidc/token"
 	req := cc.R()
+	req.SetTimeout(10 * time.Second)
 	req.SetFormData("grant_type", "authorization_code")
 	req.SetFormData("code", code)
 	req.SetFormData("code_verifier", verifier)
@@ -123,10 +123,10 @@ func exchangeLogtoCode(cfg *config.Config, code, verifier string, c fiber.Ctx) (
 
 func getLogtoUserInfo(cfg *config.Config, accessToken string) (*model.LogtoUserInfo, error) {
 	cc := apiclient.NewHTTPClient()
-	cc.SetTimeout(10 * time.Second)
 
 	userinfoURL := trimTrailingSlash(cfg.LogtoEndpoint) + "/oidc/me"
 	req := cc.R()
+	req.SetTimeout(10 * time.Second)
 	req.SetHeader("Authorization", "Bearer "+accessToken)
 	resp, err := req.Get(userinfoURL)
 	if err != nil {

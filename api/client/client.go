@@ -7,6 +7,8 @@ import (
 	"encoding/base64"
 	"fmt"
 	"strconv"
+	"strings"
+	"sync"
 	"time"
 
 	errx "bird-lg/server/internal/errors"
@@ -15,6 +17,13 @@ import (
 	fastjson "github.com/goccy/go-json"
 	"github.com/gofiber/fiber/v3"
 	fiberclient "github.com/gofiber/fiber/v3/client"
+)
+
+var (
+	normalClientOnce sync.Once
+	normalClient     *fiberclient.Client
+	streamClientOnce sync.Once
+	streamClient     *fiberclient.Client
 )
 
 func JSONMarshal(v any) ([]byte, error) {
@@ -26,9 +35,28 @@ func JSONUnmarshal(data []byte, v any) error {
 }
 
 func NewHTTPClient() *fiberclient.Client {
+	normalClientOnce.Do(func() {
+		normalClient = newConfiguredClient(false)
+	})
+	return normalClient
+}
+
+func streamHTTPClient() *fiberclient.Client {
+	streamClientOnce.Do(func() {
+		streamClient = newConfiguredClient(true)
+	})
+	return streamClient
+}
+
+func newConfiguredClient(enableStream bool) *fiberclient.Client {
 	cc := fiberclient.New()
 	cc.SetJSONMarshal(JSONMarshal)
 	cc.SetJSONUnmarshal(JSONUnmarshal)
+	if enableStream {
+		if fc := cc.FasthttpClient(); fc != nil {
+			fc.StreamResponseBody = true
+		}
+	}
 	return cc
 }
 
@@ -42,15 +70,21 @@ func marshalClientJSON(cc *fiberclient.Client, payload any) ([]byte, error) {
 	return cc.JSONMarshal()(payload)
 }
 
-func StreamFromUpstream(w *bufio.Writer, endpoint, upstreamPath string, reqPayload any, hmacSecret string, timeout time.Duration) {
-	cc := NewHTTPClient()
-	if fc := cc.FasthttpClient(); fc != nil {
-		fc.StreamResponseBody = true
+func writeSSEData(w *bufio.Writer, payload string) {
+	normalized := strings.ReplaceAll(payload, "\r\n", "\n")
+	for _, line := range strings.Split(normalized, "\n") {
+		fmt.Fprintf(w, "data: %s\n", line)
 	}
+	fmt.Fprint(w, "\n")
+	w.Flush()
+}
+
+func StreamFromUpstream(w *bufio.Writer, endpoint, upstreamPath string, reqPayload any, hmacSecret string, timeout time.Duration) {
+	cc := streamHTTPClient()
 
 	reqBody, err := marshalClientJSON(cc, reqPayload)
 	if err != nil {
-		fmt.Fprintf(w, "error: %s\n", errx.FormatPublicError(errx.ErrCodeReqBadRequest, "Invalid request"))
+		writeSSEData(w, errx.FormatPublicError(errx.ErrCodeReqBadRequest, "Invalid request"))
 		return
 	}
 
@@ -73,13 +107,23 @@ func StreamFromUpstream(w *bufio.Writer, endpoint, upstreamPath string, reqPaylo
 	}
 
 	if err := cc.DoTimeout(rawReq, resp.RawResponse, timeout); err != nil {
-		fmt.Fprintf(w, "error: %s\n", errx.FormatPublicError(errx.ErrCodeUpstreamConnectFailed, "Failed to connect to upstream client"))
+		writeSSEData(w, errx.FormatPublicError(errx.ErrCodeUpstreamConnectFailed, "Failed to connect to upstream client"))
+		return
+	}
+
+	if resp.RawResponse.StatusCode() != fiber.StatusOK {
+		writeSSEData(w, errx.FormatPublicError(errx.ErrCodeUpstreamBadStatus, "Upstream client returned an error"))
 		return
 	}
 
 	stream := resp.RawResponse.BodyStream()
 	if stream == nil {
-		fmt.Fprint(w, string(resp.Body()))
+		body := strings.TrimSpace(string(resp.Body()))
+		if body == "" {
+			writeSSEData(w, errx.FormatPublicError(errx.ErrCodeUpstreamBadStatus, "Upstream client returned an empty stream response"))
+			return
+		}
+		writeSSEData(w, body)
 		return
 	}
 
@@ -96,7 +140,6 @@ func StreamFromUpstream(w *bufio.Writer, endpoint, upstreamPath string, reqPaylo
 
 func ProxyToClientPath(endpoint, path string, request any, hmacSecret string) (model.APIGenericResponse, error) {
 	cc := NewHTTPClient()
-	cc.SetTimeout(30 * time.Second)
 
 	body, err := marshalClientJSON(cc, request)
 	if err != nil {
@@ -104,6 +147,7 @@ func ProxyToClientPath(endpoint, path string, request any, hmacSecret string) (m
 	}
 
 	req := cc.R()
+	req.SetTimeout(30 * time.Second)
 	req.SetHeader("Content-Type", "application/json")
 	req.SetRawBody(body)
 

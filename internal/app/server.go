@@ -1,19 +1,21 @@
 package app
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"bird-lg/server/api"
 	apiclient "bird-lg/server/api/client"
 	"bird-lg/server/internal/config"
+	"bird-lg/server/internal/logx"
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/middleware/compress"
 	"github.com/gofiber/fiber/v3/middleware/etag"
 	"github.com/gofiber/fiber/v3/middleware/favicon"
 	"github.com/gofiber/fiber/v3/middleware/helmet"
-	"github.com/gofiber/fiber/v3/middleware/logger"
 	recovermw "github.com/gofiber/fiber/v3/middleware/recover"
 	"github.com/gofiber/fiber/v3/middleware/static"
 )
@@ -25,14 +27,20 @@ func NewServer(cfg *config.Config) *fiber.App {
 	app := fiber.New(fiber.Config{
 		CaseSensitive: true,
 		StrictRouting: false,
-		ServerHeader:  "bird-lg",
+		ServerHeader:  "sunyznet",
 		JSONEncoder:   apiclient.JSONMarshal,
 		JSONDecoder:   apiclient.JSONUnmarshal,
 	})
 
 	app.Use(recovermw.New())
-	app.Use(logger.New())
-	app.Use(helmet.New(helmet.Config{HSTSMaxAge: 31536000, HSTSPreloadEnabled: false}))
+	app.Use(requestLogMiddleware())
+	app.Use(helmet.New(helmet.Config{
+		XFrameOptions:      "DENY",
+		ReferrerPolicy:     "strict-origin-when-cross-origin",
+		ContentTypeNosniff: "nosniff",
+		HSTSMaxAge:         31536000,
+		HSTSPreloadEnabled: false,
+	}))
 	app.Use(favicon.New(serverFaviconConfig(staticDir)))
 	app.Use(compress.New(compress.Config{
 		Level: compress.LevelBestSpeed,
@@ -84,4 +92,34 @@ func serverFaviconConfig(staticDir string) favicon.Config {
 		return favicon.Config{File: faviconPath}
 	}
 	return favicon.Config{}
+}
+
+func requestLogMiddleware() fiber.Handler {
+	return func(c fiber.Ctx) error {
+		start := time.Now()
+		err := c.Next()
+
+		status := c.Response().StatusCode()
+		if err != nil {
+			if ferr, ok := err.(*fiber.Error); ok {
+				status = ferr.Code
+			} else if status < fiber.StatusBadRequest {
+				status = fiber.StatusInternalServerError
+			}
+		}
+
+		if status >= fiber.StatusBadRequest {
+			msg := fmt.Sprintf(
+				"%s %s status=%d dur_ms=%d ip=%s",
+				c.Method(),
+				c.OriginalURL(),
+				status,
+				time.Since(start).Milliseconds(),
+				c.IP(),
+			)
+			logx.Warnf("%s", msg)
+		}
+
+		return err
+	}
 }

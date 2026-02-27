@@ -43,9 +43,9 @@ func HandleVerify(cfg *config.Config) fiber.Handler {
 
 func verifyTurnstile(secretKey, token, remoteIP string) (bool, string) {
 	cc := apiclient.NewHTTPClient()
-	cc.SetTimeout(5 * time.Second)
 
 	req := cc.R()
+	req.SetTimeout(5 * time.Second)
 	req.SetFormData("secret", secretKey)
 	req.SetFormData("response", token)
 	if remoteIP != "" {
