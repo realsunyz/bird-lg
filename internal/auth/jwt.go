@@ -1,4 +1,4 @@
-package main
+package auth
 
 import (
 	"errors"
@@ -9,23 +9,21 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-// Auth types
 const (
 	AuthTypeTurnstile = "captcha"
 	AuthTypeLogto     = "sso"
 )
 
-// Expiry durations
 const (
-	ExpiryTurnstile = 5 * time.Minute    // 5 minutes
-	ExpiryLogto     = 7 * 24 * time.Hour // 7 days
+	ExpiryTurnstile = 5 * time.Minute
+	ExpiryLogto     = 7 * 24 * time.Hour
 )
 
-type JWTPayload struct {
+type Payload struct {
 	Exp      int64  `json:"exp"`
 	Iat      int64  `json:"iat"`
 	AuthType string `json:"auth_type,omitempty"`
-	Sub      string `json:"sub,omitempty"` // User ID for Logto users
+	Sub      string `json:"sub,omitempty"`
 }
 
 func GenerateJWT(secret string) string {
@@ -43,19 +41,13 @@ func GenerateJWTWithType(secret, authType, sub string) string {
 	}
 
 	now := time.Now()
-	payload := JWTPayload{
-		Iat:      now.Unix(),
-		Exp:      now.Add(expiry).Unix(),
-		AuthType: authType,
-		Sub:      sub,
-	}
 	claims := jwt.MapClaims{
-		"iat":       payload.Iat,
-		"exp":       payload.Exp,
-		"auth_type": payload.AuthType,
+		"iat":       now.Unix(),
+		"exp":       now.Add(expiry).Unix(),
+		"auth_type": authType,
 	}
-	if payload.Sub != "" {
-		claims["sub"] = payload.Sub
+	if sub != "" {
+		claims["sub"] = sub
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
@@ -70,7 +62,7 @@ func GenerateJWTWithSub(secret, authType, sub string) string {
 	return GenerateJWTWithType(secret, authType, sub)
 }
 
-func GetValidJWTPayload(token, secret string) *JWTPayload {
+func GetValidJWTPayload(token, secret string) *Payload {
 	claims, err := parseJWTClaims(token, secret)
 	if err != nil {
 		return nil
@@ -85,12 +77,7 @@ func GetValidJWTPayload(token, secret string) *JWTPayload {
 		return nil
 	}
 
-	return &JWTPayload{
-		Exp:      exp,
-		Iat:      iat,
-		AuthType: claimString(claims, "auth_type"),
-		Sub:      claimString(claims, "sub"),
-	}
+	return &Payload{Exp: exp, Iat: iat, AuthType: ClaimString(claims, "auth_type"), Sub: ClaimString(claims, "sub")}
 }
 
 func parseJWTClaims(token, secret string) (jwt.MapClaims, error) {
@@ -111,7 +98,7 @@ func parseJWTClaims(token, secret string) (jwt.MapClaims, error) {
 	return claims, nil
 }
 
-func claimString(claims jwt.MapClaims, key string) string {
+func ClaimString(claims jwt.MapClaims, key string) string {
 	raw, ok := claims[key]
 	if !ok {
 		return ""

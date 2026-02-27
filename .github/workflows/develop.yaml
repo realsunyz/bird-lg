@@ -34,7 +34,14 @@ jobs:
         with:
           filters: |
             frontend:
-              - 'frontend/**'
+              - 'web/**'
+              - 'main.go'
+              - 'api/**'
+              - 'internal/**'
+              - 'go.mod'
+              - 'go.sum'
+              - 'Dockerfile'
+              - 'config.example.yaml'
             client:
               - 'client/**'
 
@@ -117,7 +124,7 @@ jobs:
         if: github.event_name == 'workflow_dispatch' || needs.changes.outputs.frontend == 'true'
         uses: docker/build-push-action@v6
         with:
-          context: "{{defaultContext}}:frontend"
+          context: "{{defaultContext}}"
           platforms: ${{ matrix.platform }}
           push: true
           cache-from: type=gha,scope=frontend-${{ matrix.goarch }}

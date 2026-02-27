@@ -5,7 +5,7 @@
 listen: ":3000"
 
 # Static files directory
-static_dir: "./static"
+static_dir: "./web/dist"
 
 # Cloudflare Turnstile configuration
 # Leave empty to disable CAPTCHA verification

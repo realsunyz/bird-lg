@@ -1,4 +1,4 @@
-package models
+package model
 
 type QueryRequest struct {
 	Type    string `json:"type"`
@@ -9,12 +9,6 @@ type QueryRequest struct {
 type ToolRunRequest struct {
 	Server string `json:"server"`
 	Target string `json:"target"`
-}
-
-type BogonResult struct {
-	IsBogon   bool              `json:"isBogon"`
-	ReasonKey string            `json:"reasonKey,omitempty"`
-	Params    map[string]string `json:"params,omitempty"`
 }
 
 type LogtoTokenResponse struct {
@@ -45,13 +39,13 @@ type BirdCommandRequest struct {
 	Command string `json:"command"`
 }
 
-type ApiGenericResultPair struct {
+type APIGenericResultPair struct {
 	Server string `json:"server"`
 	Data   string `json:"data"`
 }
 
-type ApiGenericResponse struct {
+type APIGenericResponse struct {
 	Error     string                 `json:"error,omitempty"`
-	Result    []ApiGenericResultPair `json:"result,omitempty"`
+	Result    []APIGenericResultPair `json:"result,omitempty"`
 	RateLimit bool                   `json:"rateLimit,omitempty"`
 }

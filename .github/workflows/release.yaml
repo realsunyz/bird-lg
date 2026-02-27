@@ -83,7 +83,7 @@ jobs:
         id: frontend
         uses: docker/build-push-action@v6
         with:
-          context: "{{defaultContext}}:frontend"
+          context: "{{defaultContext}}"
           platforms: ${{ matrix.platform }}
           push: true
           cache-from: type=gha,scope=frontend-${{ matrix.goarch }}

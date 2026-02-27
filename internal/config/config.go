@@ -1,9 +1,8 @@
-package main
+package config
 
 import (
 	"log"
 	"os"
-	"strconv"
 	"strings"
 
 	"gopkg.in/yaml.v3"
@@ -23,10 +22,7 @@ func (l LocalizedText) Normalize() LocalizedText {
 	if zh == "" {
 		zh = en
 	}
-	return LocalizedText{
-		EN: en,
-		ZH: zh,
-	}
+	return LocalizedText{EN: en, ZH: zh}
 }
 
 func (l *LocalizedText) UnmarshalYAML(value *yaml.Node) error {
@@ -46,10 +42,7 @@ func (l *LocalizedText) UnmarshalYAML(value *yaml.Node) error {
 		if err := value.Decode(&raw); err != nil {
 			return err
 		}
-		*l = LocalizedText{
-			EN: strings.TrimSpace(raw.EN),
-			ZH: strings.TrimSpace(raw.ZH),
-		}
+		*l = LocalizedText{EN: strings.TrimSpace(raw.EN), ZH: strings.TrimSpace(raw.ZH)}
 		return nil
 	default:
 		return value.Decode(&l.EN)
@@ -92,7 +85,6 @@ type Config struct {
 	Servers []ServerConfig `yaml:"servers"`
 	App     AppSettings    `json:"app" yaml:"app"`
 
-	// Computed fields
 	ListenAddr         string `yaml:"-"`
 	TurnstileSiteKey   string `yaml:"-"`
 	TurnstileSecretKey string `yaml:"-"`
@@ -110,91 +102,84 @@ func (c *Config) CookieName() string {
 }
 
 func LoadConfig() *Config {
-	config := &Config{
+	cfg := &Config{
 		Listen:    ":3000",
 		StaticDir: "./static",
-		App: AppSettings{
-			Title: "Looking Glass",
-		},
+		App:       AppSettings{Title: "Looking Glass"},
 	}
 
-	// Try loading from config file
 	configPath := getEnv("CONFIG_FILE", "config.yaml")
 	if data, err := os.ReadFile(configPath); err == nil {
-		if err := yaml.Unmarshal(data, config); err != nil {
+		if err := yaml.Unmarshal(data, cfg); err != nil {
 			log.Printf("Warning: failed to parse config file %s: %v", configPath, err)
 		}
 	}
 
-	// Override with environment variables
 	if v := os.Getenv("LISTEN_ADDR"); v != "" {
-		config.Listen = v
+		cfg.Listen = v
 	}
 	if v := os.Getenv("HTTPS"); v != "" {
-		config.HTTPS = v == "true"
+		cfg.HTTPS = v == "true"
 	}
 	if v := os.Getenv("TURNSTILE_SITE_KEY"); v != "" {
-		config.Turnstile.SiteKey = v
+		cfg.Turnstile.SiteKey = v
 	}
 	if v := os.Getenv("TURNSTILE_SECRET_KEY"); v != "" {
-		config.Turnstile.SecretKey = v
+		cfg.Turnstile.SecretKey = v
 	}
 	if v := os.Getenv("JWT_SECRET"); v != "" {
-		config.JWT.Secret = v
+		cfg.JWT.Secret = v
 	}
 	if v := os.Getenv("HMAC_SECRET"); v != "" {
-		config.HMAC.Secret = v
+		cfg.HMAC.Secret = v
 	}
 	if v := os.Getenv("APP_TITLE"); v != "" {
-		config.App.Title = v
+		cfg.App.Title = v
 	}
 	if v := os.Getenv("SERVERS"); v != "" {
 		var servers []ServerConfig
 		if err := yaml.Unmarshal([]byte(v), &servers); err == nil {
-			config.Servers = servers
+			cfg.Servers = servers
 		}
 	}
 
-	// Set computed fields
-	config.ListenAddr = config.Listen
-	config.TurnstileSiteKey = config.Turnstile.SiteKey
-	config.TurnstileSecretKey = config.Turnstile.SecretKey
-	config.JWTSecret = config.JWT.Secret
-	config.HMACSecret = config.HMAC.Secret
-	config.LogtoEndpoint = config.Logto.Endpoint
-	config.LogtoAppID = config.Logto.AppID
+	cfg.ListenAddr = cfg.Listen
+	cfg.TurnstileSiteKey = cfg.Turnstile.SiteKey
+	cfg.TurnstileSecretKey = cfg.Turnstile.SecretKey
+	cfg.JWTSecret = cfg.JWT.Secret
+	cfg.HMACSecret = cfg.HMAC.Secret
+	cfg.LogtoEndpoint = cfg.Logto.Endpoint
+	cfg.LogtoAppID = cfg.Logto.AppID
 
-	// Override Logto with env vars
 	if v := os.Getenv("LOGTO_ENDPOINT"); v != "" {
-		config.LogtoEndpoint = v
+		cfg.LogtoEndpoint = v
 	}
 	if v := os.Getenv("LOGTO_APP_ID"); v != "" {
-		config.LogtoAppID = v
+		cfg.LogtoAppID = v
 	}
 
-	// Default JWT secret for development
-	if config.JWTSecret == "" {
-		config.JWTSecret = "devSecret"
+	if cfg.JWTSecret == "" {
+		cfg.JWTSecret = "devSecret"
 	}
-	if strings.TrimSpace(config.StaticDir) == "" {
-		config.StaticDir = "./static"
+	if strings.TrimSpace(cfg.StaticDir) == "" {
+		cfg.StaticDir = "./static"
 	}
 
-	return config
+	return cfg
+}
+
+func (c *Config) FindServer(id string) *ServerConfig {
+	for i := range c.Servers {
+		if c.Servers[i].ID == id {
+			return &c.Servers[i]
+		}
+	}
+	return nil
 }
 
 func getEnv(key, defaultVal string) string {
 	if v := os.Getenv(key); v != "" {
 		return v
-	}
-	return defaultVal
-}
-
-func getEnvInt(key string, defaultVal int) int {
-	if v := os.Getenv(key); v != "" {
-		if i, err := strconv.Atoi(v); err == nil {
-			return i
-		}
 	}
 	return defaultVal
 }
@@ -239,12 +224,7 @@ func (c *Config) ToClientConfig() ClientConfig {
 				descr = LocalizedText{EN: legacy, ZH: legacy}
 			}
 		}
-		cc.Servers[i] = ClientServerConfig{
-			ID:    s.ID,
-			Name:  name,
-			Descr: descr,
-			Icon:  s.Icon,
-		}
+		cc.Servers[i] = ClientServerConfig{ID: s.ID, Name: name, Descr: descr, Icon: s.Icon}
 	}
 
 	cc.App = c.App

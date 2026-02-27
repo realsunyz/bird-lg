@@ -40,7 +40,7 @@ pnpm-debug.log*
 .env
 .env.local
 .env.*.local
-frontend/server/config.yaml
+config.yaml
 
 # Keys (security)
 *.pem

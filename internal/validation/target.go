@@ -1,4 +1,4 @@
-package main
+package validation
 
 import (
 	"net/netip"
@@ -33,27 +33,23 @@ var bogonPrefixes = mustParseBogonPrefixes([]string{
 	"ff00::/8",
 })
 
-func validateToolTarget(raw string) (string, string) {
+func ValidateToolTarget(raw string) (string, string) {
 	target := strings.TrimSpace(raw)
 	if target == "" {
 		return "", "target_required"
 	}
-
 	if strings.ContainsAny(target, " \t\r\n") {
 		return "", "target_invalid_format"
 	}
-
 	if ip, err := netip.ParseAddr(target); err == nil {
 		if isBogonIP(ip) {
 			return "", "target_bogon_blocked"
 		}
 		return ip.String(), ""
 	}
-
 	if !isValidDomain(target) {
 		return "", "target_invalid_format"
 	}
-
 	return strings.ToLower(target), ""
 }
 
@@ -96,25 +92,21 @@ func isValidDomain(domain string) bool {
 		if len(label) == 0 || len(label) > 63 {
 			return false
 		}
-
 		first := label[0]
 		last := label[len(label)-1]
 		if !isDomainAlphaNum(first) || !isDomainAlphaNum(last) {
 			return false
 		}
-
 		for j := 0; j < len(label); j++ {
 			ch := label[j]
 			if !(isDomainAlphaNum(ch) || ch == '-') {
 				return false
 			}
-
 			if i == len(labels)-1 && isDomainLetter(ch) {
 				tldHasLetter = true
 			}
 		}
 	}
-
 	return tldHasLetter
 }
 
