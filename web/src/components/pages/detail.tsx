@@ -697,7 +697,7 @@ function TracerouteTab({
         </Button>
       </div>
       <QueryErrorAlert message={error} />
-      {rawData && <TracerouteResult rawOutput={rawData} />}
+      {rawData && !error && <TracerouteResult rawOutput={rawData} />}
     </div>
   );
 }
@@ -809,7 +809,7 @@ function PingTab({
         </Button>
       </div>
       <QueryErrorAlert message={error} />
-      {rawData && <PingResult rawOutput={rawData} />}
+      {rawData && !error && <PingResult rawOutput={rawData} />}
     </div>
   );
 }
