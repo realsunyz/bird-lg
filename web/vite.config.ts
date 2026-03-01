@@ -22,6 +22,8 @@ export default defineConfig({
           if (id.includes("lucide-react")) return "icons";
           if (id.includes("react-circle-flags")) return "flags";
           if (id.includes("react-turnstile")) return "turnstile";
+          if (id.includes("shiki") || id.includes("@shikijs")) return "shiki";
+          if (id.includes("motion") || id.includes("framer-motion")) return "motion";
           return "vendor";
         },
       },
