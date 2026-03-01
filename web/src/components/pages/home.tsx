@@ -25,7 +25,7 @@ export default function HomePage() {
   const config = useConfig();
 
   return (
-    <div className="min-h-screen bg-background flex flex-col font-sans">
+    <div className="min-h-dvh bg-background flex flex-col font-sans">
       <div className="border-b bg-card">
         <div className={navContainerClass}>
           <span className="text-lg font-normal font-title tracking-tight">{config.app.title}</span>

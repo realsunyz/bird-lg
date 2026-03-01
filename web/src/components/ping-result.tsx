@@ -134,11 +134,11 @@ export function PingResult({ rawOutput }: PingResultProps) {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {stats.avg ? `${stats.avg} ms` : t.detail.ping_result.na}
+                {stats.avg !== undefined ? `${stats.avg.toFixed(2)} ms` : t.detail.ping_result.na}
               </div>
               <p className="text-xs text-muted-foreground">
-                {t.detail.ping_result.min}: {stats.min || "-"} ms / {t.detail.ping_result.max}:{" "}
-                {stats.max || "-"} ms
+                {t.detail.ping_result.min}: {stats.min !== undefined ? stats.min.toFixed(2) : "-"} ms / {t.detail.ping_result.max}:{" "}
+                {stats.max !== undefined ? stats.max.toFixed(2) : "-"} ms
               </p>
             </CardContent>
           </Card>
@@ -151,7 +151,7 @@ export function PingResult({ rawOutput }: PingResultProps) {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {stats.mdev ? `${stats.mdev} ms` : t.detail.ping_result.na}
+                {stats.mdev !== undefined ? `${stats.mdev.toFixed(2)} ms` : t.detail.ping_result.na}
               </div>
               <p className="text-xs text-muted-foreground">{t.detail.ping_result.std_dev}</p>
             </CardContent>
@@ -186,7 +186,7 @@ export function PingResult({ rawOutput }: PingResultProps) {
                       }
                       className="font-mono"
                     >
-                      {seq.time} ms
+                      {seq.time.toFixed(2)} ms
                     </Badge>
                   </div>
                 </div>

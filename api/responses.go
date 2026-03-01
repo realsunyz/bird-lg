@@ -4,6 +4,7 @@ import (
 	"time"
 
 	errx "bird-lg/server/internal/errors"
+
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/middleware/timeout"
 )
@@ -24,6 +25,6 @@ func ProxyErrorResponse(c fiber.Ctx, err error) error {
 		return c.Status(fiber.StatusBadGateway).JSON(fiber.Map{"error": fiberErr.Message})
 	}
 	return c.Status(fiber.StatusBadGateway).JSON(fiber.Map{
-		"error": errx.FormatPublicError(errx.ErrCodeUpstreamBadStatus, "Upstream client returned an error"),
+		"error": errx.FormatPublicError(errx.ErrCodeServerBadStatus, "Upstream client returned an error"),
 	})
 }

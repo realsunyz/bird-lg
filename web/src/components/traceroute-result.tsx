@@ -61,7 +61,10 @@ export function TracerouteResult({ rawOutput }: TracerouteResultProps) {
       const rttMatches = rest.matchAll(/([\d.]+)\s+ms/g);
       const rtts: { value: number; id: string }[] = [];
       for (const m of rttMatches) {
-        rtts.push({ value: parseFloat(m[1]), id: crypto.randomUUID() });
+        rtts.push({ 
+          value: parseFloat(m[1]), 
+          id: typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2) 
+        });
       }
 
       parsedHops.push({

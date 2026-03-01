@@ -108,7 +108,7 @@ func requestLogMiddleware() fiber.Handler {
 			}
 		}
 
-		if status >= fiber.StatusBadRequest {
+		if status >= fiber.StatusBadRequest && status != fiber.StatusNotFound {
 			msg := fmt.Sprintf(
 				"%s %s status=%d dur_ms=%d ip=%s",
 				c.Method(),

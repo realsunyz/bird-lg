@@ -107,12 +107,12 @@ func StreamFromUpstream(w *bufio.Writer, endpoint, upstreamPath string, reqPaylo
 	}
 
 	if err := cc.DoTimeout(rawReq, resp.RawResponse, timeout); err != nil {
-		writeSSEData(w, errx.FormatPublicError(errx.ErrCodeUpstreamConnectFailed, "Failed to connect to upstream client"))
+		writeSSEData(w, errx.FormatPublicError(errx.ErrCodeServerConnectFailed, "Failed to connect to upstream client"))
 		return
 	}
 
 	if resp.RawResponse.StatusCode() != fiber.StatusOK {
-		writeSSEData(w, errx.FormatPublicError(errx.ErrCodeUpstreamBadStatus, "Upstream client returned an error"))
+		writeSSEData(w, errx.FormatPublicError(errx.ErrCodeServerBadStatus, "Upstream client returned an error"))
 		return
 	}
 
@@ -120,7 +120,7 @@ func StreamFromUpstream(w *bufio.Writer, endpoint, upstreamPath string, reqPaylo
 	if stream == nil {
 		body := strings.TrimSpace(string(resp.Body()))
 		if body == "" {
-			writeSSEData(w, errx.FormatPublicError(errx.ErrCodeUpstreamBadStatus, "Upstream client returned an empty stream response"))
+			writeSSEData(w, errx.FormatPublicError(errx.ErrCodeServerBadStatus, "Upstream client returned an empty stream response"))
 			return
 		}
 		writeSSEData(w, body)
@@ -160,7 +160,7 @@ func ProxyToClientPath(endpoint, path string, request any, hmacSecret string) (m
 
 	resp, err := req.Post(endpoint + path)
 	if err != nil {
-		return model.APIGenericResponse{}, fiber.NewError(fiber.StatusBadGateway, errx.FormatPublicError(errx.ErrCodeUpstreamConnectFailed, "Failed to connect to upstream client"))
+		return model.APIGenericResponse{}, fiber.NewError(fiber.StatusBadGateway, errx.FormatPublicError(errx.ErrCodeServerConnectFailed, "Failed to connect to upstream client"))
 	}
 
 	var result model.APIGenericResponse
@@ -172,7 +172,7 @@ func ProxyToClientPath(endpoint, path string, request any, hmacSecret string) (m
 		return result, nil
 	}
 	if resp.StatusCode() != fiber.StatusOK {
-		return model.APIGenericResponse{}, fiber.NewError(fiber.StatusBadGateway, errx.FormatPublicError(errx.ErrCodeUpstreamBadStatus, "Upstream client returned an error"))
+		return model.APIGenericResponse{}, fiber.NewError(fiber.StatusBadGateway, errx.FormatPublicError(errx.ErrCodeServerBadStatus, "Upstream client returned an error"))
 	}
 	return result, nil
 }

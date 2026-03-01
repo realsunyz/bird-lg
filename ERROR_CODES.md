@@ -20,8 +20,8 @@
 | `ERR-TOOL-500-EXEC`            | 工具执行失败                     | Command execution failed.                                                 |
 | `ERR-TOOL-504`                 | 工具执行超时                     | Command timed out.                                                        |
 | `ERR-BIRD-502`                 | 查询 BIRD 失败                   | Failed to query BIRD.                                                     |
-| `ERR-UPSTREAM-502-CONNECT`     | 无法连接到下游/客户端服务        | Failed to connect to upstream client.                                     |
-| `ERR-UPSTREAM-502-STATUS`      | 下游/客户端返回非预期状态码      | Upstream client returned an error.                                        |
+| `ERR-SERVER-502-CONNECT`     | 无法连接到下游/客户端服务        | Failed to connect to upstream client.                                     |
+| `ERR-SERVER-502-STATUS`      | 下游/客户端返回非预期状态码      | Upstream client returned an error.                                        |
 | `ERR-SSO-404`                  | 未配置 SSO（Logto）              | SSO is not configured.                                                    |
 | `ERR-SSO-400-MISSING_CODE`     | 缺少 OAuth `code`                | Missing OAuth code.                                                       |
 | `ERR-SSO-400-MISSING_VERIFIER` | 缺少 PKCE `code_verifier`        | Missing PKCE code verifier.                                               |

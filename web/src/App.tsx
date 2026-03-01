@@ -74,7 +74,7 @@ function AppBootstrap() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="min-h-dvh bg-background flex items-center justify-center">
         <div className="animate-pulse text-muted-foreground">{t.common.loading}</div>
       </div>
     );
@@ -82,7 +82,7 @@ function AppBootstrap() {
 
   if (hasLoadError || !config) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center px-4">
+      <div className="min-h-dvh bg-background flex items-center justify-center px-4">
         <Empty className="max-w-md">
           <EmptyHeader>
             <EmptyTitle>{t.error.title}</EmptyTitle>
@@ -101,7 +101,7 @@ function AppBootstrap() {
       <BrowserRouter>
         <Suspense
           fallback={
-            <div className="min-h-screen bg-background flex items-center justify-center">
+            <div className="min-h-dvh bg-background flex items-center justify-center">
               <div className="animate-pulse text-muted-foreground">{t.common.loading}</div>
             </div>
           }
@@ -122,7 +122,7 @@ function NotFoundPage() {
   const { t } = useTranslation();
 
   return (
-    <div className="min-h-screen bg-background flex flex-col font-sans">
+    <div className="min-h-dvh bg-background flex flex-col font-sans">
       <div className="border-b bg-card">
         <div className="flex h-16 items-center px-4 max-w-7xl mx-auto w-full justify-between">
           <span className="text-lg font-normal font-title tracking-tight">{config.app.title}</span>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { AlertCircle } from "lucide-react";
 
@@ -69,7 +69,7 @@ const tabsListClass =
   "flex w-full min-w-max items-stretch justify-start gap-4 md:gap-8 bg-transparent p-0 px-4 md:px-6";
 const tabsTriggerClass =
   "rounded-none px-0 py-2 text-sm font-medium text-muted-foreground data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none";
-const toolInputClass = "flex-1 font-mono text-sm";
+const toolInputClass = "flex-1 font-mono text-base md:text-sm";
 
 type StreamRequestOptions = {
   url: string;
@@ -156,9 +156,9 @@ function getToolErrorMessage(value: unknown, t: ReturnType<typeof useTranslation
       return t.error.captcha_unavailable;
     case "ERR-CAPTCHA-403":
       return t.error.captcha_verification_failed;
-    case "ERR-UPSTREAM-502-CONNECT":
-    case "ERR-UPSTREAM-502-STATUS":
-      return t.error.upstream_error;
+    case "ERR-SERVER-502-CONNECT":
+    case "ERR-SERVER-502-STATUS":
+      return t.error.server_error;
     case "ERR-SSO-404":
     case "ERR-SSO-400-MISSING_CODE":
     case "ERR-SSO-400-MISSING_VERIFIER":
@@ -176,11 +176,15 @@ export default function DetailPage() {
   const { t } = useTranslation();
   const config = useConfig();
 
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   const server = config.servers.find((s) => s.id === serverId);
 
   if (!server) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center font-sans">
+      <div className="min-h-dvh bg-background flex items-center justify-center font-sans">
         <Card className="max-w-md w-full border-destructive/50">
           <CardHeader>
             <CardTitle className="text-destructive">{t.error.title}</CardTitle>
@@ -197,7 +201,7 @@ export default function DetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background flex flex-col font-sans">
+    <div className="min-h-dvh bg-background flex flex-col font-sans">
       <Header title={config.app.title} />
       <QueryInterface server={server} config={config} />
     </div>
@@ -546,7 +550,7 @@ function RouteTab({
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
-          className="w-full sm:flex-1 font-mono text-sm"
+          className="w-full sm:flex-1 font-mono text-base md:text-sm"
         />
         <Button onClick={handleSubmit} disabled={loading}>
           {loading ? <Spinner /> : t.detail.execute}
@@ -645,6 +649,10 @@ function TracerouteTab({
         startError: t.detail.traceroute_start_failed,
         onUnauthorized: () => onUnauthorized(handleTraceroute),
         onData: (line) => {
+          if (line.startsWith("ERR-")) {
+            setError(getToolErrorMessage(line, t));
+            return;
+          }
           setRawData((prev) => prev + line + "\n");
         },
       });
@@ -722,6 +730,10 @@ function PingTab({
         startError: t.detail.ping_start_failed,
         onUnauthorized: () => onUnauthorized(handlePing),
         onData: (line) => {
+          if (line.startsWith("ERR-")) {
+            setError(getToolErrorMessage(line, t));
+            return;
+          }
           setRawData((prev) => prev + line + "\n");
         },
       });
@@ -747,14 +759,32 @@ function PingTab({
             <SelectValue placeholder={t.detail.ping_count} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="1">{`1 ${t.detail.ping_packets}`}</SelectItem>
-            <SelectItem value="2">{`2 ${t.detail.ping_packets}`}</SelectItem>
-            <SelectItem value="4">{`4 ${t.detail.ping_packets}`}</SelectItem>
-            <SelectItem value="8">{`8 ${t.detail.ping_packets}`}</SelectItem>
+            <SelectItem value="1">
+              1 <span className="hidden sm:inline">{t.detail.ping_packets}</span>
+              <span className="sm:hidden">{t.detail.ping_packs}</span>
+            </SelectItem>
+            <SelectItem value="2">
+              2 <span className="hidden sm:inline">{t.detail.ping_packets}</span>
+              <span className="sm:hidden">{t.detail.ping_packs}</span>
+            </SelectItem>
+            <SelectItem value="4">
+              4 <span className="hidden sm:inline">{t.detail.ping_packets}</span>
+              <span className="sm:hidden">{t.detail.ping_packs}</span>
+            </SelectItem>
+            <SelectItem value="8">
+              8 <span className="hidden sm:inline">{t.detail.ping_packets}</span>
+              <span className="sm:hidden">{t.detail.ping_packs}</span>
+            </SelectItem>
             {isSSO && (
               <>
-                <SelectItem value="10">{`10 ${t.detail.ping_packets}`}</SelectItem>
-                <SelectItem value="20">{`20 ${t.detail.ping_packets}`}</SelectItem>
+                <SelectItem value="10">
+                  10 <span className="hidden sm:inline">{t.detail.ping_packets}</span>
+                  <span className="sm:hidden">{t.detail.ping_packs}</span>
+                </SelectItem>
+                <SelectItem value="20">
+                  20 <span className="hidden sm:inline">{t.detail.ping_packets}</span>
+                  <span className="sm:hidden">{t.detail.ping_packs}</span>
+                </SelectItem>
               </>
             )}
           </SelectContent>
