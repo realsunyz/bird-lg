@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/table";
 import { RawOutputPanel } from "@/components/raw-output-panel";
 import { useTranslation } from "@/components/i18n-provider";
+import { Slot } from "@/components/animate-ui/primitives/animate/slot";
 
 interface TracerouteResultProps {
   rawOutput: string;
@@ -84,67 +85,73 @@ export function TracerouteResult({ rawOutput }: TracerouteResultProps) {
   if (!rawOutput) return null;
 
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-[50px]">#</TableHead>
-                <TableHead>{t.detail.traceroute_result.host}</TableHead>
-                <TableHead>IP</TableHead>
-                <TableHead>{t.detail.traceroute_result.rtt}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {hops.map((hop) => (
-                <TableRow key={`${hop.hop}-${hop.ip || hop.host}`} className="font-mono text-sm">
-                  <TableCell className="font-medium">{hop.hop}</TableCell>
-                  <TableCell>
-                    <div className="flex flex-col">
-                      <span>{hop.host}</span>
-                      {hop.asn && (
-                        <Badge variant="secondary" className="w-fit text-[10px] h-5 px-1 mt-1">
-                          {hop.asn}
-                        </Badge>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell>{hop.ip}</TableCell>
-                  <TableCell>
-                    <div className="flex gap-2">
-                      {hop.status === "timeout" && (
-                        <span className="text-muted-foreground">* * *</span>
-                      )}
-                      {hop.rtts.map((rtt) => (
-                        <span
-                          key={rtt.id}
-                          className={
-                            rtt.value < 50
-                              ? "text-green-600"
-                              : rtt.value < 150
-                                ? "text-yellow-600"
-                                : "text-destructive"
-                          }
-                        >
-                          {rtt.value.toFixed(2)}ms
-                        </span>
-                      ))}
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-              {hops.length === 0 && (
+    <div className="space-y-6 mt-6">
+      <Slot
+        initial={{ opacity: 0, y: 10, filter: "blur(4px)" }}
+        animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+        transition={{ duration: 0.3 }}
+      >
+        <Card>
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center text-muted-foreground p-8">
-                    {t.detail.traceroute_result.starting}
-                  </TableCell>
+                  <TableHead className="w-[50px] pl-4 sm:pl-6">#</TableHead>
+                  <TableHead>{t.detail.traceroute_result.host}</TableHead>
+                  <TableHead>IP</TableHead>
+                  <TableHead className="pr-4 sm:pr-6">{t.detail.traceroute_result.rtt}</TableHead>
                 </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+              </TableHeader>
+              <TableBody>
+                {hops.map((hop) => (
+                  <TableRow key={`${hop.hop}-${hop.ip || hop.host}`} className="font-mono text-sm">
+                    <TableCell className="font-medium pl-4 sm:pl-6">{hop.hop}</TableCell>
+                    <TableCell>
+                      <div className="flex flex-col">
+                        <span>{hop.host}</span>
+                        {hop.asn && (
+                          <Badge variant="secondary" className="w-fit text-[10px] h-5 px-1 mt-1">
+                            {hop.asn}
+                          </Badge>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>{hop.ip}</TableCell>
+                    <TableCell className="pr-4 sm:pr-6">
+                      <div className="flex gap-2">
+                        {hop.status === "timeout" && (
+                          <span className="text-muted-foreground">* * *</span>
+                        )}
+                        {hop.rtts.map((rtt) => (
+                          <span
+                            key={rtt.id}
+                            className={
+                              rtt.value < 50
+                                ? "text-green-600"
+                                : rtt.value < 150
+                                  ? "text-yellow-600"
+                                  : "text-destructive"
+                            }
+                          >
+                            {rtt.value.toFixed(2)}ms
+                          </span>
+                        ))}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+                {hops.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={4} className="text-center text-muted-foreground p-8">
+                      {t.detail.traceroute_result.starting}
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      </Slot>
 
       <RawOutputPanel output={rawOutput} />
     </div>

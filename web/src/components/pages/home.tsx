@@ -13,6 +13,7 @@ import { useTranslation } from "@/components/i18n-provider";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { LogIn, UserRound, LogOut, Database } from "lucide-react";
 import { DynamicFlag } from "@sankyu/react-circle-flags";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { useConfig } from "@/contexts/config-context";
 import { getLocalizedText } from "@/lib/localized-text";
 
@@ -25,11 +26,12 @@ export default function HomePage() {
   const config = useConfig();
 
   return (
-    <div className="min-h-dvh bg-background flex flex-col font-sans">
+    <div className="flex-1 bg-background flex flex-col font-sans">
       <div className="border-b bg-card">
         <div className={navContainerClass}>
           <span className="text-lg font-normal font-title tracking-tight">{config.app.title}</span>
-          <div className="flex items-center">
+          <div className="flex items-center gap-1">
+            <ThemeToggle />
             <LanguageSwitcher />
             {config.logto?.endpoint &&
               config.logto?.appId &&
@@ -69,7 +71,7 @@ export default function HomePage() {
         </div>
       </div>
 
-      <div className="flex-1 flex flex-col items-center justify-center p-8">
+      <div className="flex-1 flex flex-col items-center justify-center py-16 px-8 md:py-8">
         <h1 className="text-4xl font-normal font-title mb-2 text-foreground flex items-center justify-center">
           {t.home.title}
         </h1>
@@ -124,9 +126,6 @@ export default function HomePage() {
         )}
       </div>
 
-      <footer className="border-t py-6 text-center text-sm text-muted-foreground font-sans bg-muted/20">
-        <p>{t.home.powered_by}</p>
-      </footer>
     </div>
   );
 }

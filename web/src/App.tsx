@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, lazy, Suspense } from "react";
 import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { ThemeProvider } from "@/components/theme-provider";
 import { I18nProvider, useTranslation } from "@/components/i18n-provider";
 import { LanguageSwitcher } from "@/components/language-switcher";
@@ -99,19 +100,26 @@ function AppBootstrap() {
   return (
     <ConfigProvider value={config}>
       <BrowserRouter>
-        <Suspense
-          fallback={
-            <div className="min-h-dvh bg-background flex items-center justify-center">
-              <div className="animate-pulse text-muted-foreground">{t.common.loading}</div>
-            </div>
-          }
-        >
-          <Routes>
-            <Route path="/" element={<HomePage />} />
-            <Route path="/detail/:serverId" element={<DetailPage />} />
-            <Route path="*" element={<NotFoundPage />} />
-          </Routes>
-        </Suspense>
+        <div className="min-h-dvh flex flex-col">
+          <main className="flex-1 flex flex-col">
+            <Suspense
+              fallback={
+                <div className="flex-1 bg-background flex items-center justify-center">
+                  <div className="animate-pulse text-muted-foreground">{t.common.loading}</div>
+                </div>
+              }
+            >
+              <Routes>
+                <Route path="/" element={<HomePage />} />
+                <Route path="/detail/:serverId" element={<DetailPage />} />
+                <Route path="*" element={<NotFoundPage />} />
+              </Routes>
+            </Suspense>
+          </main>
+          <footer className="border-t py-6 text-center text-sm text-muted-foreground font-sans bg-card mt-auto shrink-0 w-full">
+            <p>{t.home.powered_by}</p>
+          </footer>
+        </div>
       </BrowserRouter>
     </ConfigProvider>
   );
@@ -122,11 +130,14 @@ function NotFoundPage() {
   const { t } = useTranslation();
 
   return (
-    <div className="min-h-dvh bg-background flex flex-col font-sans">
+    <div className="flex-1 bg-background flex flex-col font-sans">
       <div className="border-b bg-card">
         <div className="flex h-16 items-center px-4 max-w-7xl mx-auto w-full justify-between">
           <span className="text-lg font-normal font-title tracking-tight">{config.app.title}</span>
-          <LanguageSwitcher />
+          <div className="flex items-center gap-1">
+            <ThemeToggle />
+            <LanguageSwitcher />
+          </div>
         </div>
       </div>
       <div className="flex-1 flex items-center justify-center p-6">

@@ -6,6 +6,7 @@ import { Activity, AlertTriangle, CheckCircle2, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { RawOutputPanel } from "@/components/raw-output-panel";
 import { useTranslation } from "@/components/i18n-provider";
+import { Slot } from "@/components/animate-ui/primitives/animate/slot";
 
 interface PingResultProps {
   rawOutput: string;
@@ -93,113 +94,125 @@ export function PingResult({ rawOutput }: PingResultProps) {
   if (!rawOutput) return null;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 mt-6">
       {/* Summary Cards */}
       {hasStats && stats && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* Packet Loss Card */}
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                {t.detail.ping_result.packet_loss}
-              </CardTitle>
-              {stats.loss === 0 ? (
-                <CheckCircle2 className="h-4 w-4 text-green-500" />
-              ) : (
-                <AlertTriangle className="h-4 w-4 text-destructive" />
-              )}
-            </CardHeader>
-            <CardContent>
-              <div
-                className={cn(
-                  "text-2xl font-bold",
-                  stats.loss > 0 ? "text-destructive" : "text-green-500",
+        <Slot
+          initial={{ opacity: 0, y: 10, filter: "blur(4px)" }}
+          animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+          transition={{ duration: 0.3, delay: 0.1 }}
+        >
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Packet Loss Card */}
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  {t.detail.ping_result.packet_loss}
+                </CardTitle>
+                {stats.loss === 0 ? (
+                  <CheckCircle2 className="h-4 w-4 text-green-500" />
+                ) : (
+                  <AlertTriangle className="h-4 w-4 text-destructive" />
                 )}
-              >
-                {stats.loss}%
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {stats.received} / {stats.transmitted} {t.detail.ping_result.packets_received}
-              </p>
-            </CardContent>
-          </Card>
+              </CardHeader>
+              <CardContent>
+                <div
+                  className={cn(
+                    "text-2xl font-bold",
+                    stats.loss > 0 ? "text-destructive" : "text-green-500",
+                  )}
+                >
+                  {stats.loss}%
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {stats.received} / {stats.transmitted} {t.detail.ping_result.packets_received}
+                </p>
+              </CardContent>
+            </Card>
 
-          {/* Average Latency Card */}
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                {t.detail.ping_result.avg_latency}
-              </CardTitle>
-              <Clock className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {stats.avg !== undefined ? `${stats.avg.toFixed(2)} ms` : t.detail.ping_result.na}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {t.detail.ping_result.min}: {stats.min !== undefined ? stats.min.toFixed(2) : "-"} ms / {t.detail.ping_result.max}:{" "}
-                {stats.max !== undefined ? stats.max.toFixed(2) : "-"} ms
-              </p>
-            </CardContent>
-          </Card>
+            {/* Average Latency Card */}
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  {t.detail.ping_result.avg_latency}
+                </CardTitle>
+                <Clock className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {stats.avg !== undefined ? `${stats.avg.toFixed(2)} ms` : t.detail.ping_result.na}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {t.detail.ping_result.min}: {stats.min !== undefined ? stats.min.toFixed(2) : "-"} ms / {t.detail.ping_result.max}:{" "}
+                  {stats.max !== undefined ? stats.max.toFixed(2) : "-"} ms
+                </p>
+              </CardContent>
+            </Card>
 
-          {/* Jitter (mdev) Card */}
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">{t.detail.ping_result.jitter}</CardTitle>
-              <Activity className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {stats.mdev !== undefined ? `${stats.mdev.toFixed(2)} ms` : t.detail.ping_result.na}
-              </div>
-              <p className="text-xs text-muted-foreground">{t.detail.ping_result.std_dev}</p>
-            </CardContent>
-          </Card>
-        </div>
+            {/* Jitter (mdev) Card */}
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">{t.detail.ping_result.jitter}</CardTitle>
+                <Activity className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {stats.mdev !== undefined ? `${stats.mdev.toFixed(2)} ms` : t.detail.ping_result.na}
+                </div>
+                <p className="text-xs text-muted-foreground">{t.detail.ping_result.std_dev}</p>
+              </CardContent>
+            </Card>
+          </div>
+        </Slot>
       )}
 
       {/* Sequence List */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">{t.detail.ping_result.replies}</CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
-          <ScrollArea className="h-[300px]">
-            <div className="divide-y">
-              {sequences.map((seq) => (
-                <div
-                  key={`${seq.seq}-${seq.ip}`}
-                  className="flex items-center justify-between p-4 py-3 hover:bg-muted/50 transition-colors"
-                >
-                  <div className="flex items-center gap-3">
-                    <Badge variant="outline" className="font-mono">
-                      {seq.seq}
-                    </Badge>
-                    <span className="font-mono text-sm">{seq.ip}</span>
+      <Slot
+        initial={{ opacity: 0, y: 10, filter: "blur(4px)" }}
+        animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+        transition={{ duration: 0.3 }}
+      >
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">{t.detail.ping_result.replies}</CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            <ScrollArea className="h-[300px]">
+              <div className="divide-y">
+                {sequences.map((seq) => (
+                  <div
+                    key={`${seq.seq}-${seq.ip}`}
+                    className="flex items-center justify-between p-4 py-3 hover:bg-muted/50 transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <Badge variant="outline" className="font-mono">
+                        {seq.seq}
+                      </Badge>
+                      <span className="font-mono text-sm">{seq.ip}</span>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <span className="text-sm text-muted-foreground">ttl={seq.ttl}</span>
+                      <Badge
+                        variant={
+                          seq.time < 50 ? "secondary" : seq.time < 150 ? "outline" : "destructive"
+                        }
+                        className="font-mono"
+                      >
+                        {seq.time.toFixed(2)} ms
+                      </Badge>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-4">
-                    <span className="text-sm text-muted-foreground">ttl={seq.ttl}</span>
-                    <Badge
-                      variant={
-                        seq.time < 50 ? "secondary" : seq.time < 150 ? "outline" : "destructive"
-                      }
-                      className="font-mono"
-                    >
-                      {seq.time.toFixed(2)} ms
-                    </Badge>
+                ))}
+                {sequences.length === 0 && !hasStats && (
+                  <div className="p-8 text-center text-muted-foreground">
+                    {t.detail.ping_result.waiting}
                   </div>
-                </div>
-              ))}
-              {sequences.length === 0 && !hasStats && (
-                <div className="p-8 text-center text-muted-foreground">
-                  {t.detail.ping_result.waiting}
-                </div>
-              )}
-            </div>
-          </ScrollArea>
-        </CardContent>
-      </Card>
+                )}
+              </div>
+            </ScrollArea>
+          </CardContent>
+        </Card>
+      </Slot>
 
       <RawOutputPanel output={rawOutput} />
     </div>

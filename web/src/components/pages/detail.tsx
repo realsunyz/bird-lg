@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
+import { ThemeToggle } from "@/components/theme-toggle";
+import { useTheme } from "@/components/theme-provider";
 import { AlertCircle } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -129,44 +131,44 @@ async function runStreamRequest({
   await consumeSSEResponse(response, onData);
 }
 
-function getToolErrorMessage(value: unknown, t: ReturnType<typeof useTranslation>["t"]): string {
+function getToolErrorMessage(value: unknown): string {
   const message = value instanceof Error ? value.message : String(value);
   const code = extractErrorCode(message);
   switch (code) {
     case "ERR-TARGET-400-EMPTY":
-      return t.error.target_required;
+      return "target_required";
     case "ERR-TARGET-400-FORMAT":
-      return t.error.target_invalid_format;
+      return "target_invalid_format";
     case "ERR-TARGET-400-BOGON":
-      return t.error.target_bogon_blocked;
+      return "target_bogon_blocked";
     case "ERR-SERVER-404":
-      return t.error.server_not_found;
+      return "server_not_found";
     case "ERR-REQ-400":
-      return t.error.invalid_request;
+      return "invalid_request";
     case "ERR-REQ-403-CSRF":
-      return t.error.csrf_failed;
+      return "csrf_failed";
     case "ERR-REQ-408":
-      return t.error.request_timeout;
+      return "request_timeout";
     case "ERR-AUTH-401":
     case "ERR-AUTH-403-SSO_REQUIRED":
-      return t.error.auth_required;
+      return "auth_required";
     case "ERR-RATE-429":
-      return t.error.rate_limit_exceeded;
+      return "rate_limit_exceeded";
     case "ERR-CAPTCHA-503":
-      return t.error.captcha_unavailable;
+      return "captcha_unavailable";
     case "ERR-CAPTCHA-403":
-      return t.error.captcha_verification_failed;
+      return "captcha_verification_failed";
     case "ERR-SERVER-502-CONNECT":
     case "ERR-SERVER-502-STATUS":
-      return t.error.server_error;
+      return "server_error";
     case "ERR-SSO-404":
     case "ERR-SSO-400-MISSING_CODE":
     case "ERR-SSO-400-MISSING_VERIFIER":
     case "ERR-SSO-401-TOKEN_EXCHANGE":
     case "ERR-SSO-500-VERIFIER_GEN":
-      return t.error.sso_error;
+      return "sso_error";
     default:
-      if (code) return t.error.unknown_error;
+      if (code) return "unknown_error";
       return message;
   }
 }
@@ -184,7 +186,7 @@ export default function DetailPage() {
 
   if (!server) {
     return (
-      <div className="min-h-dvh bg-background flex items-center justify-center font-sans">
+      <div className="flex-1 bg-background flex items-center justify-center font-sans">
         <Card className="max-w-md w-full border-destructive/50">
           <CardHeader>
             <CardTitle className="text-destructive">{t.error.title}</CardTitle>
@@ -201,7 +203,7 @@ export default function DetailPage() {
   }
 
   return (
-    <div className="min-h-dvh bg-background flex flex-col font-sans">
+    <div className="flex-1 bg-background flex flex-col font-sans">
       <Header title={config.app.title} />
       <QueryInterface server={server} config={config} />
     </div>
@@ -213,7 +215,10 @@ function Header({ title }: { title: string }) {
     <div className="border-b bg-card">
       <div className="flex h-16 items-center px-4 max-w-7xl mx-auto w-full justify-between">
         <span className="text-lg font-normal font-title tracking-tight">{title}</span>
-        <LanguageSwitcher />
+        <div className="flex items-center gap-1">
+          <ThemeToggle />
+          <LanguageSwitcher />
+        </div>
       </div>
     </div>
   );
@@ -223,17 +228,21 @@ function QueryErrorAlert({ message }: { message: string }) {
   const { t } = useTranslation();
   if (!message) return null;
 
+  const translatedMessage =
+    message in t.error ? t.error[message as keyof typeof t.error] : message;
+
   return (
     <Alert variant="destructive">
       <AlertCircle className="h-4 w-4" />
       <AlertTitle>{t.error.title}</AlertTitle>
-      <AlertDescription>{message}</AlertDescription>
+      <AlertDescription>{translatedMessage}</AlertDescription>
     </Alert>
   );
 }
 
 function QueryInterface({ server, config }: { server: ServerConfig; config: ClientConfig }) {
   const { t, locale } = useTranslation();
+  const { theme } = useTheme();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState<unknown>(null);
@@ -289,16 +298,16 @@ function QueryInterface({ server, config }: { server: ServerConfig; config: Clie
         return;
       }
       if (res.status === 403) {
-        setError(t.error.auth_required);
+        setError("auth_required");
         return;
       }
 
       const data = await res.json();
-      if (data.rateLimit) setError(t.error.rate_limit_exceeded);
-      else if (data.error) setError(getToolErrorMessage(data.error, t));
+      if (data.rateLimit) setError("rate_limit_exceeded");
+      else if (data.error) setError(getToolErrorMessage(data.error));
       else setResult(data);
     } catch (e) {
-      setError(getToolErrorMessage(e, t));
+      setError(getToolErrorMessage(e));
     } finally {
       setLoading(false);
     }
@@ -316,7 +325,7 @@ function QueryInterface({ server, config }: { server: ServerConfig; config: Clie
         <BreadcrumbList className="font-sans">
           <BreadcrumbItem>
             <BreadcrumbLink asChild>
-              <Link to="/">PoPs</Link>
+              <Link to="/">{t.detail.pops}</Link>
             </BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator>{">"}</BreadcrumbSeparator>
@@ -374,7 +383,7 @@ function QueryInterface({ server, config }: { server: ServerConfig; config: Clie
             >
               <PingTab
                 activeServer={server.id}
-                isSSO={!!config?.auth?.isAuthenticated}
+                isSSO={config?.auth?.authType === "sso"}
                 onUnauthorized={(retry) => requestCaptcha(retry)}
               />
             </TabsContent>
@@ -425,7 +434,12 @@ function QueryInterface({ server, config }: { server: ServerConfig; config: Clie
           }
         }}
       >
-        <DialogContent className="sm:max-w-md">
+        <DialogContent 
+          className="sm:max-w-md"
+          showCloseButton={false}
+          onInteractOutside={(e) => e.preventDefault()}
+          onEscapeKeyDown={(e) => e.preventDefault()}
+        >
           <DialogHeader>
             <DialogTitle>{t.detail.security_check}</DialogTitle>
             <DialogDescription>{t.detail.complete_captcha}</DialogDescription>
@@ -434,6 +448,7 @@ function QueryInterface({ server, config }: { server: ServerConfig; config: Clie
             {config?.turnstile?.siteKey && (
               <Turnstile
                 siteKey={config.turnstile.siteKey}
+                options={{ theme: theme === "system" ? "auto" : theme }}
                 onSuccess={async (token) => {
                   try {
                     const res = await fetch("/api/verify", {
@@ -454,12 +469,12 @@ function QueryInterface({ server, config }: { server: ServerConfig; config: Clie
                       const errJson = await res.json().catch(() => ({}));
                       setCaptchaError(
                         typeof errJson?.error === "string" && errJson.error
-                          ? getToolErrorMessage(errJson.error, t)
-                          : t.error.verification_failed,
+                          ? getToolErrorMessage(errJson.error)
+                          : "verification_failed",
                       );
                     }
                   } catch (e) {
-                    setCaptchaError(getToolErrorMessage(e, t));
+                    setCaptchaError(getToolErrorMessage(e));
                   }
                 }}
               />
@@ -469,7 +484,11 @@ function QueryInterface({ server, config }: { server: ServerConfig; config: Clie
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
               <AlertTitle>{t.error.title}</AlertTitle>
-              <AlertDescription>{captchaError}</AlertDescription>
+              <AlertDescription>
+                {captchaError in t.error
+                  ? t.error[captchaError as keyof typeof t.error]
+                  : captchaError}
+              </AlertDescription>
             </Alert>
           )}
         </DialogContent>
@@ -624,11 +643,11 @@ function TracerouteTab({
     const validation = validateTargetInput(target);
     if (!validation.ok) {
       if (validation.errorKey === "target_required") {
-        setError(t.error.target_required);
+        setError("target_required");
       } else if (validation.errorKey === "target_bogon_blocked") {
-        setError(t.error.target_bogon_blocked);
+        setError("target_bogon_blocked");
       } else {
-        setError(t.error.target_invalid_format);
+        setError("target_invalid_format");
       }
       return;
     }
@@ -650,14 +669,14 @@ function TracerouteTab({
         onUnauthorized: () => onUnauthorized(handleTraceroute),
         onData: (line) => {
           if (line.startsWith("ERR-")) {
-            setError(getToolErrorMessage(line, t));
+            setError(getToolErrorMessage(line));
             return;
           }
           setRawData((prev) => prev + line + "\n");
         },
       });
     } catch (e) {
-      setError(getToolErrorMessage(e, t));
+      setError(getToolErrorMessage(e));
     } finally {
       setLoading(false);
     }
@@ -674,7 +693,7 @@ function TracerouteTab({
           className={toolInputClass}
         />
         <Button onClick={handleTraceroute} disabled={loading || target.trim().length === 0}>
-          {loading ? <Spinner /> : t.detail.run}
+          {loading ? <Spinner /> : t.detail.execute}
         </Button>
       </div>
       <QueryErrorAlert message={error} />
@@ -703,11 +722,11 @@ function PingTab({
     const validation = validateTargetInput(target);
     if (!validation.ok) {
       if (validation.errorKey === "target_required") {
-        setError(t.error.target_required);
+        setError("target_required");
       } else if (validation.errorKey === "target_bogon_blocked") {
-        setError(t.error.target_bogon_blocked);
+        setError("target_bogon_blocked");
       } else {
-        setError(t.error.target_invalid_format);
+        setError("target_invalid_format");
       }
       return;
     }
@@ -731,14 +750,14 @@ function PingTab({
         onUnauthorized: () => onUnauthorized(handlePing),
         onData: (line) => {
           if (line.startsWith("ERR-")) {
-            setError(getToolErrorMessage(line, t));
+            setError(getToolErrorMessage(line));
             return;
           }
           setRawData((prev) => prev + line + "\n");
         },
       });
     } catch (e) {
-      setError(getToolErrorMessage(e, t));
+      setError(getToolErrorMessage(e));
     } finally {
       setLoading(false);
     }
@@ -754,43 +773,39 @@ function PingTab({
           onKeyDown={(e) => e.key === "Enter" && handlePing()}
           className={toolInputClass}
         />
-        <Select value={count} onValueChange={setCount}>
-          <SelectTrigger className="w-[130px]">
-            <SelectValue placeholder={t.detail.ping_count} />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="1">
-              1 <span className="hidden sm:inline">{t.detail.ping_packets}</span>
-              <span className="sm:hidden">{t.detail.ping_packs}</span>
-            </SelectItem>
-            <SelectItem value="2">
-              2 <span className="hidden sm:inline">{t.detail.ping_packets}</span>
-              <span className="sm:hidden">{t.detail.ping_packs}</span>
-            </SelectItem>
-            <SelectItem value="4">
-              4 <span className="hidden sm:inline">{t.detail.ping_packets}</span>
-              <span className="sm:hidden">{t.detail.ping_packs}</span>
-            </SelectItem>
-            <SelectItem value="8">
-              8 <span className="hidden sm:inline">{t.detail.ping_packets}</span>
-              <span className="sm:hidden">{t.detail.ping_packs}</span>
-            </SelectItem>
-            {isSSO && (
-              <>
-                <SelectItem value="10">
-                  10 <span className="hidden sm:inline">{t.detail.ping_packets}</span>
-                  <span className="sm:hidden">{t.detail.ping_packs}</span>
-                </SelectItem>
-                <SelectItem value="20">
-                  20 <span className="hidden sm:inline">{t.detail.ping_packets}</span>
-                  <span className="sm:hidden">{t.detail.ping_packs}</span>
-                </SelectItem>
-              </>
-            )}
-          </SelectContent>
-        </Select>
+        <div className="hidden sm:block">
+          <Select value={count} onValueChange={setCount}>
+            <SelectTrigger className="w-[130px]">
+              <SelectValue placeholder={t.detail.ping_count} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="1">
+                1 {t.detail.ping_packets}
+              </SelectItem>
+              <SelectItem value="2">
+                2 {t.detail.ping_packets}
+              </SelectItem>
+              <SelectItem value="4">
+                4 {t.detail.ping_packets}
+              </SelectItem>
+              <SelectItem value="8">
+                8 {t.detail.ping_packets}
+              </SelectItem>
+              {isSSO && (
+                <>
+                  <SelectItem value="10">
+                    10 {t.detail.ping_packets}
+                  </SelectItem>
+                  <SelectItem value="20">
+                    20 {t.detail.ping_packets}
+                  </SelectItem>
+                </>
+              )}
+            </SelectContent>
+          </Select>
+        </div>
         <Button onClick={handlePing} disabled={loading || target.trim().length === 0}>
-          {loading ? <Spinner /> : t.detail.run}
+          {loading ? <Spinner /> : t.detail.execute}
         </Button>
       </div>
       <QueryErrorAlert message={error} />
