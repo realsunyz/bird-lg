@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, lazy, Suspense } from "react";
 import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
+import { LazyMotion, domAnimation } from "motion/react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { ThemeProvider } from "@/components/theme-provider";
 import { I18nProvider, useTranslation } from "@/components/i18n-provider";
@@ -22,7 +23,9 @@ function App() {
   return (
     <ThemeProvider>
       <I18nProvider>
-        <AppBootstrap />
+        <LazyMotion features={domAnimation}>
+          <AppBootstrap />
+        </LazyMotion>
       </I18nProvider>
     </ThemeProvider>
   );

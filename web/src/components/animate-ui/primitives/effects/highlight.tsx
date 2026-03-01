@@ -1,7 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { AnimatePresence, motion, type Transition } from "motion/react";
+import { AnimatePresence, type Transition } from "motion/react";
+import * as motion from "motion/react-m";
 
 import { cn } from "@/lib/utils";
 

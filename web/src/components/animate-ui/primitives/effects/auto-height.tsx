@@ -2,12 +2,12 @@
 
 import * as React from "react";
 import {
-  motion,
   type HTMLMotionProps,
   type LegacyAnimationControls,
   type TargetAndTransition,
   type Transition,
 } from "motion/react";
+import * as motion from "motion/react-m";
 
 import { useAutoHeight } from "@/hooks/use-auto-height";
 import { Slot, type WithAsChild } from "@/components/animate-ui/primitives/animate/slot";

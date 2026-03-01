@@ -1,7 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { motion, isMotionComponent, type HTMLMotionProps } from "motion/react";
+import { isMotionComponent, type HTMLMotionProps } from "motion/react";
+import * as motion from "motion/react-m";
 import { cn } from "@/lib/utils";
 
 type AnyProps = Record<string, unknown>;
