@@ -5,14 +5,21 @@ export const dictionaries = {
     common: {
       loading: "Loading",
       back_to_home: "Back to Home",
-      back: "Back",
       retry: "Retry",
+      toggle_language: "Toggle language",
     },
     home: {
       title: "Looking Glass",
       select_server: "Select a server to continue",
       no_servers: "No servers configured",
       powered_by: "Powered by BIRD Looking Glass",
+      account_menu: {
+        user_menu: "User menu",
+        my_account: "My Account",
+        profile: "Profile",
+        login: "Login",
+        logout: "Logout",
+      },
     },
     detail: {
       pops: "PoPs",
@@ -81,14 +88,21 @@ export const dictionaries = {
     common: {
       loading: "加载中",
       back_to_home: "返回首页",
-      back: "返回",
       retry: "重试",
+      toggle_language: "切换语言",
     },
     home: {
       title: "路由之镜",
       select_server: "选择一个服务器以继续",
       no_servers: "未配置服务器",
       powered_by: "由 BIRD Looking Glass 驱动",
+      account_menu: {
+        user_menu: "用户菜单",
+        my_account: "我的账户",
+        profile: "个人资料",
+        login: "登录",
+        logout: "退出登录",
+      },
     },
     detail: {
       pops: "接入点",

@@ -22,7 +22,7 @@ interface TracerouteHop {
   host: string;
   ip: string;
   asn?: string;
-  rtts: { value: number; id: string }[];
+  rtts: number[];
   status: "success" | "timeout" | "partial";
   raw: string;
 }
@@ -60,12 +60,9 @@ export function TracerouteResult({ rawOutput }: TracerouteResultProps) {
       const ip = ipMatch ? ipMatch[1] : "";
 
       const rttMatches = rest.matchAll(/([\d.]+)\s+ms/g);
-      const rtts: { value: number; id: string }[] = [];
+      const rtts: number[] = [];
       for (const m of rttMatches) {
-        rtts.push({ 
-          value: parseFloat(m[1]), 
-          id: typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2) 
-        });
+        rtts.push(parseFloat(m[1]));
       }
 
       parsedHops.push({
@@ -122,18 +119,18 @@ export function TracerouteResult({ rawOutput }: TracerouteResultProps) {
                         {hop.status === "timeout" && (
                           <span className="text-muted-foreground">* * *</span>
                         )}
-                        {hop.rtts.map((rtt) => (
+                        {hop.rtts.map((rtt, index) => (
                           <span
-                            key={rtt.id}
+                            key={`${hop.hop}-${hop.ip || hop.host}-${index}`}
                             className={
-                              rtt.value < 50
+                              rtt < 50
                                 ? "text-green-600"
-                                : rtt.value < 150
+                                : rtt < 150
                                   ? "text-yellow-600"
                                   : "text-destructive"
                             }
                           >
-                            {rtt.value.toFixed(2)}ms
+                            {rtt.toFixed(2)}ms
                           </span>
                         ))}
                       </div>

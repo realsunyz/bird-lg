@@ -8,9 +8,6 @@ importers:
 
   .:
     dependencies:
-      '@logto/react':
-        specifier: ^4.0.13
-        version: 4.0.13(react@19.2.4)
       '@marsidev/react-turnstile':
         specifier: ^1.4.2
         version: 1.4.2(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
@@ -26,9 +23,6 @@ importers:
       '@radix-ui/react-slot':
         specifier: ^1.2.4
         version: 1.2.4(@types/react@19.2.14)(react@19.2.4)
-      '@radix-ui/react-tabs':
-        specifier: ^1.1.13
-        version: 1.1.13(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       '@sankyu/react-circle-flags':
         specifier: ^1.6.4
         version: 1.6.4(react@19.2.4)
@@ -556,20 +550,6 @@ packages:
 
   '@jridgewell/trace-mapping@0.3.31':
     resolution: {integrity: sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw==}
-
-  '@logto/browser@3.0.12':
-    resolution: {integrity: sha512-Ec45IExLYS64bF22wS7dZuWgOMmC2w3FZmWWnVCv2fX2vKQVs0wiI+FE/PlNhEvi8up4AW0zHO4NTGwF7ipFsQ==}
-
-  '@logto/client@3.1.7':
-    resolution: {integrity: sha512-t/5wXMhiXtmbmP6Cmcl4uMsYetq21vSZuYZztPHXv6QX0dx7lSKBvYi/65ERoS+fmNmtV2/i4Ojf1U41o0TLPQ==}
-
-  '@logto/js@6.1.1':
-    resolution: {integrity: sha512-G0lRS7VyOXdB06WYajEh9Kq2E3m11JshiKIKLj6LRPI1qZ06JYQ+Jsej3K60/4OIZMSzUas4FVnY+ORrhDdktA==}
-
-  '@logto/react@4.0.13':
-    resolution: {integrity: sha512-CU4rjJmueY0CQoJZq7BDZt/9sQYpxKDwVBrGHR55ljl4zPFF2URJPixqCtEEfWq5/pFk7MEnIOePOYbj7BWKfQ==}
-    peerDependencies:
-      react: '>=16.8.0'
 
   '@marsidev/react-turnstile@1.4.2':
     resolution: {integrity: sha512-xs1qOuyeMOz6t9BXXCXWiukC0/0+48vR08B7uwNdG05wCMnbcNgxiFmdFKDOFbM76qFYFRYlGeRfhfq1U/iZmA==}
@@ -1750,10 +1730,6 @@ packages:
   '@shikijs/vscode-textmate@10.0.2':
     resolution: {integrity: sha512-83yeghZ2xxin3Nj8z1NMd/NCuca+gsYXswywDy5bHvwlWL8tpTQmzGeUuHd9FC3E/SBEMvzJRwWEOz5gGes9Qg==}
 
-  '@silverhand/essentials@2.9.3':
-    resolution: {integrity: sha512-OM9pyGc/yYJMVQw+fFOZZaTHXDWc45sprj+ky+QjC9inhf5w51L1WBmzAwFuYkHAwO1M19fxVf2sTH9KKP48yg==}
-    engines: {node: '>=18.12.0', pnpm: ^10.0.0}
-
   '@sindresorhus/merge-streams@4.0.0':
     resolution: {integrity: sha512-tlqY9xq5ukxTUZBmoOp+m61cqwQD5pHJtFY3Mn8CA8ps6yghLH/Hw8UPdqg4OLmFW3IFlcXnQNmo/dh8HzXYIQ==}
     engines: {node: '>=18'}
@@ -2077,14 +2053,6 @@ packages:
   callsites@3.1.0:
     resolution: {integrity: sha512-P8BjAsXvZS+VIDUI11hHCQEv74YT67YUi5JJFNWIqL235sBmjX4+qx9Muvls5ivyNENctx46xQLQ3aTuE7ssaQ==}
     engines: {node: '>=6'}
-
-  camelcase-keys@9.1.3:
-    resolution: {integrity: sha512-Rircqi9ch8AnZscQcsA1C47NFdaO3wukpmIRzYcDOrmvgt78hM/sj5pZhZNec2NM12uk5vTwRHZ4anGcrC4ZTg==}
-    engines: {node: '>=16'}
-
-  camelcase@8.0.0:
-    resolution: {integrity: sha512-8WB3Jcas3swSvjIeA2yvCJ+Miyz5l1ZmB6HFb9R1317dt9LCQoswg/BGrmAmkWVEszSrrg4RwmO46qIm2OEnSA==}
-    engines: {node: '>=16'}
 
   caniuse-lite@1.0.30001774:
     resolution: {integrity: sha512-DDdwPGz99nmIEv216hKSgLD+D4ikHQHjBC/seF98N9CPqRX4M5mSxT9eTV6oyisnJcuzxtZy4n17yKKQYmYQOA==}
@@ -2755,14 +2723,8 @@ packages:
     resolution: {integrity: sha512-ekilCSN1jwRvIbgeg/57YFh8qQDNbwDb9xT/qu2DAHbFFZUicIl4ygVaAvzveMhMVr3LnpSKTNnwt8PoOfmKhQ==}
     hasBin: true
 
-  jose@5.10.0:
-    resolution: {integrity: sha512-s+3Al/p9g32Iq+oqXxkW//7jk2Vig6FF1CFqzVXoTUXt2qz89YWbL+OwS17NFYEvxC35n0FKeGO2LGYSxeM2Gg==}
-
   jose@6.1.3:
     resolution: {integrity: sha512-0TpaTfihd4QMNwrz/ob2Bp7X04yuxJkjRGi4aKmOqwhov54i6u79oCv7T+C7lo70MKH6BesI3vscD1yb/yzKXQ==}
-
-  js-base64@3.7.8:
-    resolution: {integrity: sha512-hNngCeKxIUQiEUN3GPJOkz4wF/YvdUdbNL9hsBcMQTkKzboD7T/q3OYOuuPZLUE6dBxSGpwhk5mwuDud7JVAow==}
 
   js-tokens@4.0.0:
     resolution: {integrity: sha512-RdJUflcE3cUzKiMqQgsCu06FPu9UdIJO0beYbPhHN4k6apgJtifcoCtT9bcxOpYBtpD2kCM6Sbzg4CausW/PKQ==}
@@ -2915,10 +2877,6 @@ packages:
 
   magic-string@0.30.21:
     resolution: {integrity: sha512-vd2F4YUyEXKGcLHoq+TEyCjxueSeHnFxyyjNp80yg0XV4vUhnDer/lvvlqM/arB5bXQN5K2/3oinyCRyx8T2CQ==}
-
-  map-obj@5.0.0:
-    resolution: {integrity: sha512-2L3MIgJynYrZ3TYMriLDLWocz15okFakV6J12HXvMXDHui2x/zgChzg1u9mFFGbbGWE+GsLpQByt4POb9Or+uA==}
-    engines: {node: ^12.20.0 || ^14.13.1 || >=16.0.0}
 
   math-intrinsics@1.1.0:
     resolution: {integrity: sha512-/IXtbwEk5HTPyEwyKX6hGkYXxM9nbj64B+ilVJnC/R6B0pH5G4V3b0pVbL7DBj4tkhBAppbQUlf6F6Xl9LHu1g==}
@@ -3223,10 +3181,6 @@ packages:
 
   queue-microtask@1.2.3:
     resolution: {integrity: sha512-NuaNSa6flKT5JaSYQzJok04JzTL1CA6aGhv5rfLW3PgqA+M2ChpZQnAC8h8i4ZFkBS8X5RqkDBHA7r4hej3K9A==}
-
-  quick-lru@6.1.2:
-    resolution: {integrity: sha512-AAFUA5O1d83pIHEhJwWCq/RQcRukCkn/NSm2QsTEMle5f2hP0ChI2+3Xb051PZCkLryI/Ir1MVKviT2FIloaTQ==}
-    engines: {node: '>=12'}
 
   radix-ui@1.4.3:
     resolution: {integrity: sha512-aWizCQiyeAenIdUbqEpXgRA1ya65P13NKn/W8rWkcN0OPkRDxdBVLWnIEDsS2RpwCK2nobI7oMUSmexzTDyAmA==}
@@ -3570,10 +3524,6 @@ packages:
   type-check@0.4.0:
     resolution: {integrity: sha512-XleUoc9uwGXqjWwXaUTZAmzMcFZ5858QA2vvx1Ur5xIcixXIP+8LnFDgRplU30us6teqdlskFfu+ae4K79Ooew==}
     engines: {node: '>= 0.8.0'}
-
-  type-fest@4.41.0:
-    resolution: {integrity: sha512-TeTSQ6H5YHvpqVwBRcnLDCBnDOHWYu7IvGbHT6N8AOymcr9PJGjc1GTtiWZTYg0NCgYwvnYWEkVChQAr9bjfwA==}
-    engines: {node: '>=16'}
 
   type-fest@5.4.4:
     resolution: {integrity: sha512-JnTrzGu+zPV3aXIUhnyWJj4z/wigMsdYajGLIYakqyOW1nPllzXEJee0QQbHj+CTIQtXGlAjuK0UY+2xTyjVAw==}
@@ -4222,30 +4172,6 @@ snapshots:
     dependencies:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.5
-
-  '@logto/browser@3.0.12':
-    dependencies:
-      '@logto/client': 3.1.7
-      '@silverhand/essentials': 2.9.3
-      js-base64: 3.7.8
-
-  '@logto/client@3.1.7':
-    dependencies:
-      '@logto/js': 6.1.1
-      '@silverhand/essentials': 2.9.3
-      camelcase-keys: 9.1.3
-      jose: 5.10.0
-
-  '@logto/js@6.1.1':
-    dependencies:
-      '@silverhand/essentials': 2.9.3
-      camelcase-keys: 9.1.3
-
-  '@logto/react@4.0.13(react@19.2.4)':
-    dependencies:
-      '@logto/browser': 3.0.12
-      '@silverhand/essentials': 2.9.3
-      react: 19.2.4
 
   '@marsidev/react-turnstile@1.4.2(react-dom@19.2.4(react@19.2.4))(react@19.2.4)':
     dependencies:
@@ -5306,8 +5232,6 @@ snapshots:
 
   '@shikijs/vscode-textmate@10.0.2': {}
 
-  '@silverhand/essentials@2.9.3': {}
-
   '@sindresorhus/merge-streams@4.0.0': {}
 
   '@tailwindcss/node@4.2.1':
@@ -5649,15 +5573,6 @@ snapshots:
       get-intrinsic: 1.3.0
 
   callsites@3.1.0: {}
-
-  camelcase-keys@9.1.3:
-    dependencies:
-      camelcase: 8.0.0
-      map-obj: 5.0.0
-      quick-lru: 6.1.2
-      type-fest: 4.41.0
-
-  camelcase@8.0.0: {}
 
   caniuse-lite@1.0.30001774: {}
 
@@ -6297,11 +6212,7 @@ snapshots:
 
   jiti@2.6.1: {}
 
-  jose@5.10.0: {}
-
   jose@6.1.3: {}
-
-  js-base64@3.7.8: {}
 
   js-tokens@4.0.0: {}
 
@@ -6417,8 +6328,6 @@ snapshots:
   magic-string@0.30.21:
     dependencies:
       '@jridgewell/sourcemap-codec': 1.5.5
-
-  map-obj@5.0.0: {}
 
   math-intrinsics@1.1.0: {}
 
@@ -6743,8 +6652,6 @@ snapshots:
       side-channel: 1.1.0
 
   queue-microtask@1.2.3: {}
-
-  quick-lru@6.1.2: {}
 
   radix-ui@1.4.3(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(react-dom@19.2.4(react@19.2.4))(react@19.2.4):
     dependencies:
@@ -7194,8 +7101,6 @@ snapshots:
   type-check@0.4.0:
     dependencies:
       prelude-ls: 1.2.1
-
-  type-fest@4.41.0: {}
 
   type-fest@5.4.4:
     dependencies:

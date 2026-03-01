@@ -18,7 +18,6 @@ export default defineConfig({
           if (!id.includes("node_modules")) return;
           if (id.includes("react-router")) return "router";
           if (id.includes("@radix-ui")) return "radix";
-          if (id.includes("@logto")) return "logto";
           if (id.includes("lucide-react")) return "icons";
           if (id.includes("react-circle-flags")) return "flags";
           if (id.includes("react-turnstile")) return "turnstile";

@@ -11,14 +11,14 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 export function LanguageSwitcher() {
-  const { locale, setLocale } = useTranslation();
+  const { locale, setLocale, t } = useTranslation();
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" size="icon">
           <Languages className="h-[1.2rem] w-[1.2rem]" />
-          <span className="sr-only">Toggle language</span>
+          <span className="sr-only">{t.common.toggle_language}</span>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">

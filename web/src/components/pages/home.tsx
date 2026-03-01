@@ -38,16 +38,16 @@ export default function HomePage() {
               (config.auth?.isAuthenticated && config.auth?.authType === "sso" ? (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" aria-label="User menu">
+                    <Button variant="ghost" size="icon" aria-label={t.home.account_menu.user_menu}>
                       <UserRound className="h-[1.2rem] w-[1.2rem]" />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                    <DropdownMenuLabel>{t.home.account_menu.my_account}</DropdownMenuLabel>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem>
                       <Database className="mr-2 h-4 w-4" />
-                      <span>Profile</span>
+                      <span>{t.home.account_menu.profile}</span>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
                       <a
@@ -55,14 +55,14 @@ export default function HomePage() {
                         className="w-full cursor-pointer text-destructive focus:text-destructive"
                       >
                         <LogOut className="mr-2 h-4 w-4" />
-                        <span>Logout</span>
+                        <span>{t.home.account_menu.logout}</span>
                       </a>
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               ) : (
                 <Button variant="ghost" size="icon" asChild>
-                  <a href="/api/auth/login" aria-label="Login">
+                  <a href="/api/auth/login" aria-label={t.home.account_menu.login}>
                     <LogIn className="h-[1.2rem] w-[1.2rem]" />
                   </a>
                 </Button>

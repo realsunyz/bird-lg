@@ -28,8 +28,6 @@ interface PingSequence {
   ttl: number;
   time: number;
   ip: string;
-  status: "success" | "timeout" | "error";
-  raw: string;
 }
 
 export function PingResult({ rawOutput }: PingResultProps) {
@@ -55,13 +53,8 @@ export function PingResult({ rawOutput }: PingResultProps) {
           seq: parseInt(seqMatch[3]),
           ttl: parseInt(seqMatch[4]),
           time: parseFloat(seqMatch[5]),
-          status: "success",
-          raw: line,
         });
         return;
-      }
-
-      if (line.includes("Request timeout") || line.includes("Destination Host Unreachable")) {
       }
 
       const statsMatch = line.match(statsHeaderRegex);
