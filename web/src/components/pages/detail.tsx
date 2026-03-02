@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/table";
 import { PingResult } from "@/components/ping-result";
 import { TracerouteResult } from "@/components/traceroute-result";
+import { RawOutputPanel } from "@/components/raw-output-panel";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -539,7 +540,8 @@ function RouteTab({
 
   const routeDataRaw = (result as { result?: { data: unknown }[] })?.result?.[0]?.data;
   const routeData = typeof routeDataRaw === "string" ? routeDataRaw : "";
-  const protocols = preset === "show protocols" ? parseProtocolSummary(routeData) : [];
+  const isShowAllProtocols = preset === "show protocols" && !input.trim();
+  const protocols = isShowAllProtocols ? parseProtocolSummary(routeData) : [];
   const filteredProtocols = protocols.filter((p) => {
     const proto = typeof p?.proto === "string" ? p.proto : "";
     return !["static", "device", "direct", "kernel"].includes(proto.toLowerCase());
@@ -577,7 +579,7 @@ function RouteTab({
       </div>
       <QueryErrorAlert message={error} />
 
-      {preset === "show protocols" && !loading && !error && filteredProtocols.length > 0 && (
+      {isShowAllProtocols && !loading && !error && filteredProtocols.length > 0 && (
         <div className="rounded-md border">
           <Table>
             <TableHeader>
@@ -617,10 +619,8 @@ function RouteTab({
         </div>
       )}
 
-      {routeData && (preset !== "show protocols" || filteredProtocols.length === 0) && (
-        <div className="rounded-md bg-muted p-4 overflow-x-auto">
-          <pre className="text-sm font-mono whitespace-pre-wrap">{routeData}</pre>
-        </div>
+      {(!isShowAllProtocols || filteredProtocols.length === 0) && routeData && !loading && !error && (
+        <RawOutputPanel output={routeData} />
       )}
     </div>
   );
