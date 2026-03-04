@@ -23,12 +23,14 @@ const getHighlighter = async () => {
 
 interface RawOutputPanelProps {
   output: string;
+  defaultOpen?: boolean;
+  collapsible?: boolean;
 }
 
-export function RawOutputPanel({ output }: RawOutputPanelProps) {
+export function RawOutputPanel({ output, defaultOpen = false, collapsible = true }: RawOutputPanelProps) {
   const { t } = useTranslation();
   const { theme } = useTheme();
-  const [showRaw, setShowRaw] = useState(false);
+  const [showRaw, setShowRaw] = useState(collapsible ? defaultOpen : true);
   const [html, setHtml] = useState("");
   const htmlRef = useRef<HTMLDivElement>(null);
 
@@ -66,17 +68,19 @@ export function RawOutputPanel({ output }: RawOutputPanelProps) {
   }, [showRaw, output, theme]);
 
   return (
-    <div className="border rounded-md">
-      <Button
-        variant="ghost"
-        className="w-full flex justify-between items-center p-4 h-auto"
-        onClick={() => setShowRaw(!showRaw)}
-      >
-        <span className="font-medium">{t.detail.raw_output}</span>
-        {showRaw ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-      </Button>
+    <div className={collapsible ? "border rounded-md" : ""}>
+      {collapsible && (
+        <Button
+          variant="ghost"
+          className="w-full flex justify-between items-center p-4 h-auto"
+          onClick={() => setShowRaw(!showRaw)}
+        >
+          <span className="font-medium">{t.detail.raw_output}</span>
+          {showRaw ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+        </Button>
+      )}
       {showRaw && (
-        <div className="p-4 bg-muted/30 border-t overflow-x-auto text-sm font-mono [&_pre]:bg-transparent! [&_pre]:m-0!">
+        <div className={`p-4 bg-muted/30 overflow-x-auto text-sm font-mono [&_pre]:bg-transparent! [&_pre]:m-0! ${collapsible ? "border-t" : "rounded-md border"}`}>
           {html ? (
             <div ref={htmlRef} />
           ) : (

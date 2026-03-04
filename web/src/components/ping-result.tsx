@@ -87,7 +87,7 @@ export function PingResult({ rawOutput }: PingResultProps) {
   if (!rawOutput) return null;
 
   return (
-    <div className="space-y-6 mt-6">
+    <div className="space-y-4 mt-4">
       {/* Summary Cards */}
       {hasStats && stats && (
         <Slot

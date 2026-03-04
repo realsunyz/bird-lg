@@ -82,7 +82,7 @@ export function TracerouteResult({ rawOutput }: TracerouteResultProps) {
   if (!rawOutput) return null;
 
   return (
-    <div className="space-y-6 mt-6">
+    <div className="space-y-4 mt-4">
       <Slot
         initial={{ opacity: 0, y: 10, filter: "blur(4px)" }}
         animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}

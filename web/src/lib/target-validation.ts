@@ -1,3 +1,5 @@
+import * as ipaddr from "ipaddr.js";
+
 export type TargetValidationErrorKey =
   | "target_required"
   | "target_invalid_format"
@@ -6,22 +8,6 @@ export type TargetValidationErrorKey =
 type TargetValidationResult =
   | { ok: true; normalized: string }
   | { ok: false; errorKey: TargetValidationErrorKey };
-
-const ipv4BogonPrefixes: Array<[number, number]> = [
-  [ipv4ToUint32("0.0.0.0"), 8],
-  [ipv4ToUint32("10.0.0.0"), 8],
-  [ipv4ToUint32("100.64.0.0"), 10],
-  [ipv4ToUint32("127.0.0.0"), 8],
-  [ipv4ToUint32("169.254.0.0"), 16],
-  [ipv4ToUint32("172.16.0.0"), 12],
-  [ipv4ToUint32("192.0.2.0"), 24],
-  [ipv4ToUint32("192.168.0.0"), 16],
-  [ipv4ToUint32("198.18.0.0"), 15],
-  [ipv4ToUint32("198.51.100.0"), 24],
-  [ipv4ToUint32("203.0.113.0"), 24],
-  [ipv4ToUint32("224.0.0.0"), 4],
-  [ipv4ToUint32("240.0.0.0"), 4],
-];
 
 export function validateTargetInput(raw: string): TargetValidationResult {
   const target = raw.trim();
@@ -33,15 +19,18 @@ export function validateTargetInput(raw: string): TargetValidationResult {
     return { ok: false, errorKey: "target_invalid_format" };
   }
 
-  if (isValidIPv4(target)) {
-    if (isIPv4Bogon(target)) {
-      return { ok: false, errorKey: "target_bogon_blocked" };
+  if (ipaddr.isValid(target)) {
+    try {
+      const parsed = ipaddr.parse(target);
+      if (parsed.kind() === "ipv4") {
+        if (parsed.range() !== "unicast") {
+          return { ok: false, errorKey: "target_bogon_blocked" };
+        }
+      }
+      return { ok: true, normalized: target.toLowerCase() };
+    } catch {
+      // Fallback in case of parse error despite validation
     }
-    return { ok: true, normalized: target };
-  }
-
-  if (isValidIPv6(target)) {
-    return { ok: true, normalized: target.toLowerCase() };
   }
 
   if (!isValidDomain(target)) {
@@ -49,6 +38,10 @@ export function validateTargetInput(raw: string): TargetValidationResult {
   }
 
   return { ok: true, normalized: target.toLowerCase() };
+}
+
+export function isIP(value: string): boolean {
+  return ipaddr.isValid(value);
 }
 
 export function extractErrorCode(message: string): string | undefined {
@@ -92,58 +85,7 @@ function containsWhitespace(value: string): boolean {
   return false;
 }
 
-function isValidIPv4(value: string): boolean {
-  const parts = value.split(".");
-  if (parts.length !== 4) return false;
 
-  for (const part of parts) {
-    if (part.length === 0 || part.length > 3) return false;
-    if (part.length > 1 && part[0] === "0") return false;
-
-    let number = 0;
-    for (let i = 0; i < part.length; i++) {
-      const code = part.charCodeAt(i);
-      if (code < 48 || code > 57) return false;
-      number = number * 10 + (code - 48);
-    }
-
-    if (number > 255) return false;
-  }
-
-  return true;
-}
-
-function ipv4ToUint32(value: string): number {
-  const parts = value.split(".").map((part) => Number(part));
-  return (
-    (((parts[0] << 24) >>> 0) +
-      ((parts[1] << 16) >>> 0) +
-      ((parts[2] << 8) >>> 0) +
-      (parts[3] >>> 0)) >>>
-    0
-  );
-}
-
-function isIPv4Bogon(value: string): boolean {
-  const ip = ipv4ToUint32(value);
-  for (const [prefixIP, prefixLen] of ipv4BogonPrefixes) {
-    const shift = 32 - prefixLen;
-    if (ip >>> shift === prefixIP >>> shift) {
-      return true;
-    }
-  }
-  return false;
-}
-
-function isValidIPv6(value: string): boolean {
-  if (value.indexOf(":") === -1) return false;
-  try {
-    new URL(`http://[${value}]/`);
-    return true;
-  } catch {
-    return false;
-  }
-}
 
 function isValidDomain(value: string): boolean {
   if (value.length === 0 || value.length > 253) return false;

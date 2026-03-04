@@ -57,7 +57,7 @@ import { useConfig } from "@/contexts/config-context";
 import { type ClientConfig, type ServerConfig } from "@/lib/types";
 import { buildPostJSONHeaders } from "@/lib/csrf";
 import { getLocalizedText } from "@/lib/localized-text";
-import { extractErrorCode, validateTargetInput } from "@/lib/target-validation";
+import { extractErrorCode, validateTargetInput, isIP } from "@/lib/target-validation";
 
 interface ProtocolInfo {
   name: string;
@@ -247,6 +247,7 @@ function QueryInterface({ server, config }: { server: ServerConfig; config: Clie
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState<unknown>(null);
+  const [lastCommand, setLastCommand] = useState("");
   const serverName = getLocalizedText(server.name, locale);
 
   const isSSO = config?.auth?.authType === "sso";
@@ -280,6 +281,7 @@ function QueryInterface({ server, config }: { server: ServerConfig; config: Clie
     setLoading(true);
     setError("");
     setResult(null);
+    setLastCommand(command);
 
     try {
       const res = await fetch("/api/bird", {
@@ -409,6 +411,7 @@ function QueryInterface({ server, config }: { server: ServerConfig; config: Clie
                   loading={loading}
                   result={result}
                   error={error}
+                  lastCommand={lastCommand}
                   preset={routePreset}
                   setPreset={(v) => {
                     setRoutePreset(v);
@@ -503,6 +506,7 @@ interface TabProps {
   loading: boolean;
   result: unknown;
   error: string;
+  lastCommand: string;
 }
 
 function RouteTab({
@@ -510,6 +514,7 @@ function RouteTab({
   loading,
   result,
   error,
+  lastCommand,
   preset,
   setPreset,
   input,
@@ -540,12 +545,17 @@ function RouteTab({
 
   const routeDataRaw = (result as { result?: { data: unknown }[] })?.result?.[0]?.data;
   const routeData = typeof routeDataRaw === "string" ? routeDataRaw : "";
-  const isShowAllProtocols = preset === "show protocols" && !input.trim();
+  const isShowAllProtocols = lastCommand === "show protocols";
   const protocols = isShowAllProtocols ? parseProtocolSummary(routeData) : [];
   const filteredProtocols = protocols.filter((p) => {
     const proto = typeof p?.proto === "string" ? p.proto : "";
     return !["static", "device", "direct", "kernel"].includes(proto.toLowerCase());
   });
+
+  const isExecuteDisabled =
+    loading ||
+    (preset === "show route for" && !isIP(input.trim())) ||
+    (preset === "custom" && input.trim().length === 0);
 
   return (
     <div className="space-y-4">
@@ -570,10 +580,10 @@ function RouteTab({
           }
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
+          onKeyDown={(e) => e.key === "Enter" && !isExecuteDisabled && handleSubmit()}
           className="w-full sm:flex-1 font-mono text-base md:text-sm"
         />
-        <Button onClick={handleSubmit} disabled={loading}>
+        <Button onClick={handleSubmit} disabled={isExecuteDisabled}>
           {loading ? <Spinner /> : t.detail.execute}
         </Button>
       </div>
@@ -620,7 +630,7 @@ function RouteTab({
       )}
 
       {(!isShowAllProtocols || filteredProtocols.length === 0) && routeData && !loading && !error && (
-        <RawOutputPanel output={routeData} />
+        <RawOutputPanel output={routeData} collapsible={false} />
       )}
     </div>
   );
