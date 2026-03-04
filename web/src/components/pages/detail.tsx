@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, Link } from "react-router-dom";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useTheme } from "@/components/theme-provider";
@@ -58,6 +58,7 @@ import { type ClientConfig, type ServerConfig } from "@/lib/types";
 import { buildPostJSONHeaders } from "@/lib/csrf";
 import { getLocalizedText } from "@/lib/localized-text";
 import { extractErrorCode, validateTargetInput, isIP } from "@/lib/target-validation";
+import { useBufferedText } from "@/hooks/use-buffered-text";
 
 interface ProtocolInfo {
   name: string;
@@ -78,6 +79,7 @@ type StreamRequestOptions = {
   url: string;
   body: unknown;
   startError: string;
+  signal?: AbortSignal;
   onUnauthorized: () => void;
   onData: (line: string) => void;
 };
@@ -89,20 +91,37 @@ async function consumeSSEResponse(response: Response, onData: (line: string) => 
   const decoder = new TextDecoder();
   let buffer = "";
 
+  const sepRe = /\r?\n\r?\n/;
+
   while (true) {
     const { done, value } = await reader.read();
     if (done) break;
 
     const chunk = decoder.decode(value, { stream: true });
     buffer += chunk;
-    const lines = buffer.split("\n\n");
-    buffer = lines.pop() || "";
 
-    lines.forEach((line) => {
-      if (line.startsWith("data: ")) {
-        onData(line.substring(6));
+    while (true) {
+      const idx = buffer.search(sepRe);
+      if (idx < 0) break;
+
+      const rest = buffer.slice(idx);
+      const sep = rest.match(sepRe)?.[0] ?? "\n\n";
+      const event = buffer.slice(0, idx);
+      buffer = buffer.slice(idx + sep.length);
+
+      if (!event) continue;
+      const lines = event.split(/\r?\n/);
+      const dataLines: string[] = [];
+      for (const line of lines) {
+        if (!line.startsWith("data:")) continue;
+        let value = line.slice(5);
+        if (value.startsWith(" ")) value = value.slice(1);
+        dataLines.push(value);
       }
-    });
+      if (dataLines.length > 0) {
+        onData(dataLines.join("\n"));
+      }
+    }
   }
 }
 
@@ -110,14 +129,22 @@ async function runStreamRequest({
   url,
   body,
   startError,
+  signal,
   onUnauthorized,
   onData,
 }: StreamRequestOptions) {
-  const response = await fetch(url, {
-    method: "POST",
-    headers: buildPostJSONHeaders(),
-    body: JSON.stringify(body),
-  });
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      method: "POST",
+      headers: buildPostJSONHeaders(),
+      body: JSON.stringify(body),
+      signal,
+    });
+  } catch (e) {
+    if (isAbortError(e)) return;
+    throw e;
+  }
 
   if (response.status === 401) {
     onUnauthorized();
@@ -129,7 +156,12 @@ async function runStreamRequest({
     throw new Error(errJson.error || startError);
   }
 
-  await consumeSSEResponse(response, onData);
+  try {
+    await consumeSSEResponse(response, onData);
+  } catch (e) {
+    if (isAbortError(e)) return;
+    throw e;
+  }
 }
 
 function getToolErrorMessage(value: unknown): string {
@@ -172,6 +204,12 @@ function getToolErrorMessage(value: unknown): string {
       if (code) return "unknown_error";
       return message;
   }
+}
+
+function isAbortError(value: unknown): boolean {
+  if (!value || typeof value !== "object") return false;
+  if (value instanceof DOMException && value.name === "AbortError") return true;
+  return "name" in value && (value as { name?: unknown }).name === "AbortError";
 }
 
 export default function DetailPage() {
@@ -646,10 +684,14 @@ function TracerouteTab({
   const { t } = useTranslation();
   const [target, setTarget] = useState("");
   const [loading, setLoading] = useState(false);
-  const [rawData, setRawData] = useState("");
+  const streamText = useBufferedText();
+  const abortRef = useRef<AbortController | null>(null);
   const [error, setError] = useState("");
 
   const handleTraceroute = async () => {
+    abortRef.current?.abort();
+    abortRef.current = new AbortController();
+
     const validation = validateTargetInput(target);
     if (!validation.ok) {
       if (validation.errorKey === "target_required") {
@@ -664,7 +706,7 @@ function TracerouteTab({
 
     const normalizedTarget = validation.normalized;
     setLoading(true);
-    setRawData("");
+    streamText.reset();
     setError("");
 
     try {
@@ -676,17 +718,21 @@ function TracerouteTab({
         url: `/api/tool/traceroute/stream?${params.toString()}`,
         body: { target: normalizedTarget },
         startError: t.detail.traceroute_start_failed,
+        signal: abortRef.current.signal,
         onUnauthorized: () => onUnauthorized(handleTraceroute),
         onData: (line) => {
           if (line.startsWith("ERR-")) {
             setError(getToolErrorMessage(line));
+            abortRef.current?.abort();
             return;
           }
-          setRawData((prev) => prev + line + "\n");
+          streamText.append(line);
         },
       });
     } catch (e) {
-      setError(getToolErrorMessage(e));
+      if (!isAbortError(e)) {
+        setError(getToolErrorMessage(e));
+      }
     } finally {
       setLoading(false);
     }
@@ -707,7 +753,7 @@ function TracerouteTab({
         </Button>
       </div>
       <QueryErrorAlert message={error} />
-      {rawData && !error && <TracerouteResult rawOutput={rawData} />}
+      {streamText.text && !error && <TracerouteResult rawOutput={streamText.text} />}
     </div>
   );
 }
@@ -725,10 +771,14 @@ function PingTab({
   const [target, setTarget] = useState("");
   const [count, setCount] = useState("4");
   const [loading, setLoading] = useState(false);
-  const [rawData, setRawData] = useState("");
+  const streamText = useBufferedText();
+  const abortRef = useRef<AbortController | null>(null);
   const [error, setError] = useState("");
 
   const handlePing = async () => {
+    abortRef.current?.abort();
+    abortRef.current = new AbortController();
+
     const validation = validateTargetInput(target);
     if (!validation.ok) {
       if (validation.errorKey === "target_required") {
@@ -743,7 +793,7 @@ function PingTab({
 
     const normalizedTarget = validation.normalized;
     setLoading(true);
-    setRawData("");
+    streamText.reset();
     setError("");
 
     try {
@@ -757,17 +807,21 @@ function PingTab({
         url: `/api/tool/ping/stream?${params.toString()}`,
         body: { target: normalizedTarget, count: countInt },
         startError: t.detail.ping_start_failed,
+        signal: abortRef.current.signal,
         onUnauthorized: () => onUnauthorized(handlePing),
         onData: (line) => {
           if (line.startsWith("ERR-")) {
             setError(getToolErrorMessage(line));
+            abortRef.current?.abort();
             return;
           }
-          setRawData((prev) => prev + line + "\n");
+          streamText.append(line);
         },
       });
     } catch (e) {
-      setError(getToolErrorMessage(e));
+      if (!isAbortError(e)) {
+        setError(getToolErrorMessage(e));
+      }
     } finally {
       setLoading(false);
     }
@@ -819,7 +873,7 @@ function PingTab({
         </Button>
       </div>
       <QueryErrorAlert message={error} />
-      {rawData && !error && <PingResult rawOutput={rawData} />}
+      {streamText.text && !error && <PingResult rawOutput={streamText.text} />}
     </div>
   );
 }
