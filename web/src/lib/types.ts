@@ -14,7 +14,7 @@ export interface ClientConfig {
   turnstile: {
     siteKey: string;
   };
-  logto: {
+  logto?: {
     endpoint: string;
     appId: string;
   };
@@ -27,4 +27,10 @@ export interface ClientConfig {
     user?: string;
     authType?: string;
   };
+}
+
+export interface AuthStatus {
+  isAuthenticated: boolean;
+  user?: string;
+  authType?: string;
 }

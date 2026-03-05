@@ -2,8 +2,11 @@ package api
 
 import (
 	"bufio"
+	"crypto/sha256"
+	"encoding/hex"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	apiclient "bird-lg/server/api/client"
@@ -22,15 +25,59 @@ import (
 type StreamBodyBuilder func(c fiber.Ctx, target string) (any, error)
 
 func HandleConfig(cfg *config.Config) fiber.Handler {
+	var once sync.Once
+	var payload []byte
+	var etag string
+	var marshalErr error
+
 	return func(c fiber.Ctx) error {
-		clientConfig := cfg.ToClientConfig()
+		once.Do(func() {
+			payload, marshalErr = c.App().Config().JSONEncoder(cfg.ToClientConfig())
+			if marshalErr != nil {
+				payload = nil
+				etag = ""
+				return
+			}
+			sum := sha256.Sum256(payload)
+			etag = `"` + hex.EncodeToString(sum[:]) + `"`
+		})
+
+		if marshalErr != nil || payload == nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to serialize config"})
+		}
+
+		c.Set("Cache-Control", "public, max-age=60, stale-while-revalidate=300")
+		c.Set("ETag", etag)
+
+		if match := strings.TrimSpace(c.Get("If-None-Match")); match != "" && match == etag {
+			return c.SendStatus(fiber.StatusNotModified)
+		}
+
+		c.Set(fiber.HeaderContentType, fiber.MIMEApplicationJSONCharsetUTF8)
+		return c.Send(payload)
+	}
+}
+
+type AuthStatusResponse struct {
+	IsAuthenticated bool   `json:"isAuthenticated"`
+	User            string `json:"user,omitempty"`
+	AuthType        string `json:"authType,omitempty"`
+}
+
+func HandleAuth(cfg *config.Config) fiber.Handler {
+	return func(c fiber.Ctx) error {
+		c.Set("Cache-Control", "no-store")
+
 		token := c.Cookies(cfg.CookieName())
 		if payload := auth.GetValidJWTPayload(token, cfg.JWTSecret); payload != nil {
-			clientConfig.Auth.IsAuthenticated = true
-			clientConfig.Auth.AuthType = payload.AuthType
-			clientConfig.Auth.User = payload.Sub
+			return c.JSON(AuthStatusResponse{
+				IsAuthenticated: true,
+				AuthType:        payload.AuthType,
+				User:            payload.Sub,
+			})
 		}
-		return c.JSON(clientConfig)
+
+		return c.JSON(AuthStatusResponse{IsAuthenticated: false})
 	}
 }
 

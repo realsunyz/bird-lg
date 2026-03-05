@@ -246,11 +246,6 @@ type ClientConfig struct {
 	} `json:"logto,omitempty"`
 	Servers []ClientServerConfig `json:"servers"`
 	App     AppSettings          `json:"app"`
-	Auth    struct {
-		IsAuthenticated bool   `json:"isAuthenticated"`
-		User            string `json:"user,omitempty"`
-		AuthType        string `json:"authType,omitempty"`
-	} `json:"auth"`
 }
 
 func (c *Config) ToClientConfig() ClientConfig {

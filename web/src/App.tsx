@@ -14,7 +14,7 @@ import {
   EmptyHeader,
   EmptyTitle,
 } from "@/components/ui/empty";
-import { type ClientConfig } from "@/lib/types";
+import { type AuthStatus, type ClientConfig } from "@/lib/types";
 import HomePage from "@/components/pages/home";
 
 const DetailPage = lazy(() => import("@/components/pages/detail"));
@@ -36,6 +36,19 @@ function isClientConfig(value: unknown): value is ClientConfig {
   const cfg = value as Partial<ClientConfig>;
   if (!cfg.app || typeof cfg.app.title !== "string") return false;
   if (!Array.isArray(cfg.servers)) return false;
+  if (!cfg.turnstile || typeof cfg.turnstile.siteKey !== "string") return false;
+  if (cfg.logto) {
+    if (typeof cfg.logto.endpoint !== "string" || typeof cfg.logto.appId !== "string") return false;
+  }
+  return true;
+}
+
+function isAuthStatus(value: unknown): value is AuthStatus {
+  if (!value || typeof value !== "object") return false;
+  const auth = value as Partial<AuthStatus>;
+  if (typeof auth.isAuthenticated !== "boolean") return false;
+  if (auth.user !== undefined && typeof auth.user !== "string") return false;
+  if (auth.authType !== undefined && typeof auth.authType !== "string") return false;
   return true;
 }
 
@@ -49,18 +62,23 @@ function AppBootstrap() {
     setLoading(true);
     setHasLoadError(false);
     try {
-      const res = await fetch("/api/config", { signal });
-      if (!res.ok) {
-        throw new Error(`Unexpected status: ${res.status}`);
-      }
-      const data: unknown = await res.json();
-      if (!isClientConfig(data)) {
-        throw new Error("Invalid config payload");
-      }
-      setConfig(data);
+      const [cfgRes, authRes] = await Promise.all([
+        fetch("/api/config", { signal }),
+        fetch("/api/auth", { signal }),
+      ]);
+      if (!cfgRes.ok) throw new Error(`Unexpected status: ${cfgRes.status}`);
+      if (!authRes.ok) throw new Error(`Unexpected status: ${authRes.status}`);
+
+      const cfgJson: unknown = await cfgRes.json();
+      const authJson: unknown = await authRes.json();
+
+      if (!isClientConfig(cfgJson)) throw new Error("Invalid config payload");
+      if (!isAuthStatus(authJson)) throw new Error("Invalid auth payload");
+
+      setConfig({ ...cfgJson, auth: authJson });
     } catch (error) {
       if (signal?.aborted) return;
-      console.error("Failed to load /api/config:", error);
+      console.error("Failed to bootstrap app:", error);
       setConfig(null);
       setHasLoadError(true);
     } finally {

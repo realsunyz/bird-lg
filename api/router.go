@@ -24,6 +24,9 @@ func Register(app *fiber.App, cfg *config.Config) {
 	api.Use(csrf.New(csrf.Config{
 		CookieSecure: cfg.HTTPS,
 		CookieName:   "csrf_",
+		Next: func(c fiber.Ctx) bool {
+			return c.Method() == fiber.MethodGet && c.Path() == "/api/config"
+		},
 		ErrorHandler: func(c fiber.Ctx, _ error) error {
 			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"error": errx.FormatPublicError("ERR-REQ-403-CSRF", "CSRF token validation failed")})
 		},
@@ -33,6 +36,7 @@ func Register(app *fiber.App, cfg *config.Config) {
 	ssoAuth := auth.SSOJWTMiddleware(cfg)
 
 	api.Get("/config", WithTimeout(HandleConfig(cfg), 5*time.Second))
+	api.Get("/auth", WithTimeout(HandleAuth(cfg), 5*time.Second))
 	api.Get("/health", healthcheck.New())
 	api.Post("/verify", WithTimeout(HandleVerify(cfg), 10*time.Second))
 	api.Post("/bird", ssoAuth, WithTimeout(HandleBird(cfg), 35*time.Second))
