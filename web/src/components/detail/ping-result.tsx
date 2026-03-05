@@ -88,7 +88,6 @@ export function PingResult({ rawOutput }: PingResultProps) {
 
   return (
     <div className="space-y-4 mt-4">
-      {/* Summary Cards */}
       {hasStats && stats && (
         <Slot
           initial={{ opacity: 0, y: 10, filter: "blur(4px)" }}
@@ -96,7 +95,6 @@ export function PingResult({ rawOutput }: PingResultProps) {
           transition={{ duration: 0.3, delay: 0.1 }}
         >
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* Packet Loss Card */}
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">
@@ -123,7 +121,6 @@ export function PingResult({ rawOutput }: PingResultProps) {
               </CardContent>
             </Card>
 
-            {/* Average Latency Card */}
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">
@@ -136,13 +133,13 @@ export function PingResult({ rawOutput }: PingResultProps) {
                   {stats.avg !== undefined ? `${stats.avg.toFixed(2)} ms` : t.detail.ping_result.na}
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  {t.detail.ping_result.min}: {stats.min !== undefined ? stats.min.toFixed(2) : "-"} ms / {t.detail.ping_result.max}:{" "}
+                  {t.detail.ping_result.min}: {stats.min !== undefined ? stats.min.toFixed(2) : "-"}{" "}
+                  ms / {t.detail.ping_result.max}:{" "}
                   {stats.max !== undefined ? stats.max.toFixed(2) : "-"} ms
                 </p>
               </CardContent>
             </Card>
 
-            {/* Jitter (mdev) Card */}
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">{t.detail.ping_result.jitter}</CardTitle>
@@ -159,7 +156,6 @@ export function PingResult({ rawOutput }: PingResultProps) {
         </Slot>
       )}
 
-      {/* Sequence List */}
       <Slot
         initial={{ opacity: 0, y: 10, filter: "blur(4px)" }}
         animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
@@ -211,3 +207,4 @@ export function PingResult({ rawOutput }: PingResultProps) {
     </div>
   );
 }
+
