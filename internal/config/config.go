@@ -245,7 +245,6 @@ type ClientConfig struct {
 		AppID    string `json:"appId,omitempty"`
 	} `json:"logto,omitempty"`
 	Servers []ClientServerConfig `json:"servers"`
-	App     AppSettings          `json:"app"`
 }
 
 func (c *Config) ToClientConfig() ClientConfig {
@@ -267,6 +266,5 @@ func (c *Config) ToClientConfig() ClientConfig {
 		cc.Servers[i] = ClientServerConfig{ID: s.ID, Name: name, Descr: descr, Icon: s.Icon}
 	}
 
-	cc.App = c.App
 	return cc
 }

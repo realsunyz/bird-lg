@@ -21,11 +21,6 @@ jwt:
 hmac:
   secret: ""
 
-# Application branding
-app:
-  title: "BIRD Looking Glass"
-  subtitle: "Select a server to continue"
-
 # Server nodes configuration
 # Each server connects to a bird-lg-client instance
 servers:

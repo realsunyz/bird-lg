@@ -19,9 +19,6 @@ export interface ClientConfig {
     appId: string;
   };
   servers: ServerConfig[];
-  app: {
-    title: string;
-  };
   auth?: {
     isAuthenticated: boolean;
     user?: string;

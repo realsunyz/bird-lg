@@ -40,6 +40,7 @@ import { RouteTab } from "@/components/detail/route-tab";
 import { PingTab } from "@/components/detail/ping-tab";
 import { TracerouteTab } from "@/components/detail/traceroute-tab";
 import { getToolErrorMessage } from "@/components/detail/tool-client";
+import { Badge } from "@/components/ui/badge";
 
 const tabsListClass =
   "flex w-full min-w-max items-stretch justify-start gap-4 md:gap-8 bg-transparent p-0 px-4 md:px-6";
@@ -77,17 +78,23 @@ export default function DetailPage() {
 
   return (
     <div className="flex-1 bg-background flex flex-col font-sans">
-      <Header title={config.app.title} />
+      <Header />
       <QueryInterface server={server} config={config} />
     </div>
   );
 }
 
-function Header({ title }: { title: string }) {
+function Header() {
   return (
     <div className="border-b bg-card">
-      <div className="flex h-16 items-center px-4 max-w-7xl mx-auto w-full justify-between">
-        <span className="text-lg font-normal font-title tracking-tight">{title}</span>
+      <div className="flex h-16 items-center pl-7 pr-4 sm:pl-7 sm:pr-4 max-w-7xl mx-auto w-full justify-between">
+        <div className="flex items-center gap-2">
+          <img src="/logo.svg" alt="Sunyz Network" className="h-4 w-auto" />
+          <Badge variant="secondary" className="shrink-0">
+            <span className="sm:hidden">LG</span>
+            <span className="hidden sm:inline">Looking Glass</span>
+          </Badge>
+        </div>
         <div className="flex items-center gap-1">
           <ThemeToggle />
           <LanguageSwitcher />

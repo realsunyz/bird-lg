@@ -6,6 +6,7 @@ import { TracerouteResult } from "@/components/detail/traceroute-result";
 import { useTranslation } from "@/components/i18n-provider";
 import { validateTargetInput } from "@/lib/target-validation";
 import { useBufferedText } from "@/hooks/use-buffered-text";
+import { useMediaQuery } from "@/hooks/use-media-query";
 import { QueryErrorAlert } from "@/components/detail/query-error-alert";
 import { getToolErrorMessage, isAbortError, runStreamRequest } from "@/components/detail/tool-client";
 
@@ -22,6 +23,7 @@ export function TracerouteTab({
   const [target, setTarget] = useState("");
   const [loading, setLoading] = useState(false);
   const streamText = useBufferedText();
+  const isMobile = useMediaQuery("(max-width: 639px)");
   const abortRef = useRef<AbortController | null>(null);
   const [error, setError] = useState("");
 
@@ -73,7 +75,7 @@ export function TracerouteTab({
     <div className="space-y-4">
       <div className="flex gap-2">
         <Input
-          placeholder={t.detail.traceroute_placeholder}
+          placeholder={isMobile ? t.detail.traceroute_placeholder_mobile : t.detail.traceroute_placeholder}
           value={target}
           onChange={(e) => setTarget(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && target.trim().length > 0 && !loading && handleTraceroute()}

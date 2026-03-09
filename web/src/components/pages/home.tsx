@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,7 +18,8 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { useConfig } from "@/contexts/config-context";
 import { getLocalizedText } from "@/lib/localized-text";
 
-const navContainerClass = "flex h-16 items-center px-4 max-w-7xl mx-auto w-full justify-between";
+const navContainerClass =
+  "flex h-16 items-center pl-7 pr-4 sm:pl-7 sm:pr-4 max-w-7xl mx-auto w-full justify-between";
 const serverCardIconClass =
   "w-12 h-12 rounded-full border-2 flex items-center justify-center bg-muted/30 group-hover:bg-muted text-foreground transition-colors shrink-0 font-title overflow-hidden";
 
@@ -27,10 +29,16 @@ export default function HomePage() {
 
   return (
     <div className="flex-1 bg-background flex flex-col font-sans">
-      <div className="border-b bg-card">
-        <div className={navContainerClass}>
-          <span className="text-lg font-normal font-title tracking-tight">{config.app.title}</span>
-          <div className="flex items-center gap-1">
+	      <div className="border-b bg-card">
+	        <div className={navContainerClass}>
+		          <div className="flex items-center gap-2">
+	            <img src="/logo.svg" alt="Sunyz Network" className="h-4 w-auto" />
+	            <Badge variant="secondary" className="shrink-0">
+	              <span className="sm:hidden">LG</span>
+	              <span className="hidden sm:inline">Looking Glass</span>
+	            </Badge>
+	          </div>
+		          <div className="flex items-center gap-1">
             <ThemeToggle />
             <LanguageSwitcher />
             {config.logto?.endpoint &&

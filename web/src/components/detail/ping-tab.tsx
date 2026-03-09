@@ -6,6 +6,7 @@ import { PingResult } from "@/components/detail/ping-result";
 import { useTranslation } from "@/components/i18n-provider";
 import { validateTargetInput } from "@/lib/target-validation";
 import { useBufferedText } from "@/hooks/use-buffered-text";
+import { useMediaQuery } from "@/hooks/use-media-query";
 import { QueryErrorAlert } from "@/components/detail/query-error-alert";
 import { getToolErrorMessage, isAbortError, runStreamRequest } from "@/components/detail/tool-client";
 import {
@@ -32,6 +33,7 @@ export function PingTab({
   const [count, setCount] = useState("4");
   const [loading, setLoading] = useState(false);
   const streamText = useBufferedText();
+  const isMobile = useMediaQuery("(max-width: 639px)");
   const abortRef = useRef<AbortController | null>(null);
   const [error, setError] = useState("");
 
@@ -85,7 +87,7 @@ export function PingTab({
     <div className="space-y-4">
       <div className="flex gap-2">
         <Input
-          placeholder={t.detail.ping_placeholder}
+          placeholder={isMobile ? t.detail.ping_placeholder_mobile : t.detail.ping_placeholder}
           value={target}
           onChange={(e) => setTarget(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && target.trim().length > 0 && !loading && handlePing()}
