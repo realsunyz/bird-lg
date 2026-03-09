@@ -1,0 +1,43 @@
+# BIRD Looking Glass Server Configuration
+# Environment variables override these settings
+
+# Server listen address
+listen: ":3000"
+
+# Static files directory
+static_dir: "./apps/web/dist"
+
+# Cloudflare Turnstile configuration
+# Leave empty to disable CAPTCHA verification
+turnstile:
+  site_key: ""
+  secret_key: ""
+
+# JWT configuration for session tokens
+jwt:
+  secret: "" # Set in production! Tokens expire in 5 minutes
+
+# HMAC secret for signing requests to client nodes
+hmac:
+  secret: ""
+
+# Server nodes configuration
+# Each server connects to a bird-lg-client instance
+servers:
+  - id: tokyo
+    name:
+      en: Tokyo
+      zh: 东京
+    descr:
+      en: Tokyo, Japan
+      zh: 日本东京
+    endpoint: http://localhost:18000
+    icon: "🇯🇵"
+
+  # - id: frankfurt
+  #   name:
+  #     en: Frankfurt
+  #   descr:
+  #     en: Frankfurt, Germany
+  #   endpoint: http://frankfurt.example.com:18000
+  #   icon: "🇩🇪"

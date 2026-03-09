@@ -34,16 +34,17 @@ jobs:
         with:
           filters: |
             frontend:
-              - 'web/**'
-              - 'main.go'
-              - 'api/**'
-              - 'internal/**'
+              - 'apps/web/**'
+              - 'apps/server/**'
+              - 'internal/server/**'
               - 'go.mod'
               - 'go.sum'
-              - 'Dockerfile'
-              - 'config.example.yaml'
+              - 'deployments/server.Dockerfile'
+              - 'deployments/config.example.yaml'
+              - 'schemas/**'
             client:
-              - 'client/**'
+              - 'apps/client/**'
+              - 'deployments/client.Dockerfile'
 
   build-client-binary:
     name: Build Client Binary
@@ -62,8 +63,8 @@ jobs:
       - name: Setup Golang
         uses: actions/setup-go@v5
         with:
-          go-version-file: client/go.mod
-          cache-dependency-path: client/go.sum
+          go-version-file: apps/client/go.mod
+          cache-dependency-path: apps/client/go.sum
 
       - name: Build Client
         env:
@@ -71,14 +72,14 @@ jobs:
           GOARCH: ${{ matrix.goarch }}
           CGO_ENABLED: 0
         run: |
-          cd client
+          cd apps/client
           go build -ldflags="-s -w" -o bird-lg-client-linux-${{ matrix.goarch }} .
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: bird-lg-client-linux-${{ matrix.goarch }}
-          path: client/bird-lg-client-*
+          path: apps/client/bird-lg-client-*
 
   build-docker-arch:
     name: Build Docker Image
@@ -125,6 +126,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: "{{defaultContext}}"
+          file: deployments/server.Dockerfile
           platforms: ${{ matrix.platform }}
           push: true
           cache-from: type=gha,scope=frontend-${{ matrix.goarch }}
@@ -149,7 +151,8 @@ jobs:
         if: github.event_name == 'workflow_dispatch' || needs.changes.outputs.client == 'true'
         uses: docker/build-push-action@v6
         with:
-          context: "{{defaultContext}}:client"
+          context: "{{defaultContext}}"
+          file: deployments/client.Dockerfile
           platforms: ${{ matrix.platform }}
           push: true
           cache-from: type=gha,scope=client-${{ matrix.goarch }}

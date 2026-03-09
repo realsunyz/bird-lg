@@ -26,8 +26,8 @@ jobs:
       - name: Setup Golang
         uses: actions/setup-go@v5
         with:
-          go-version-file: client/go.mod
-          cache-dependency-path: client/go.sum
+          go-version-file: apps/client/go.mod
+          cache-dependency-path: apps/client/go.sum
 
       - name: Build Client
         env:
@@ -35,13 +35,13 @@ jobs:
           GOARCH: ${{ matrix.goarch }}
           CGO_ENABLED: 0
         run: |
-          cd client
+          cd apps/client
           go build -ldflags="-s -w" -o bird-lg-client-linux-${{ matrix.goarch }} .
 
       - name: Upload Client Binary
         uses: softprops/action-gh-release@v1
         with:
-          files: client/bird-lg-client-*
+          files: apps/client/bird-lg-client-*
 
   build-docker-arch:
     name: Build Docker Image
@@ -84,6 +84,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: "{{defaultContext}}"
+          file: deployments/server.Dockerfile
           platforms: ${{ matrix.platform }}
           push: true
           cache-from: type=gha,scope=frontend-${{ matrix.goarch }}
@@ -106,7 +107,8 @@ jobs:
         id: client
         uses: docker/build-push-action@v6
         with:
-          context: "{{defaultContext}}:client"
+          context: "{{defaultContext}}"
+          file: deployments/client.Dockerfile
           platforms: ${{ matrix.platform }}
           push: true
           cache-from: type=gha,scope=client-${{ matrix.goarch }}
