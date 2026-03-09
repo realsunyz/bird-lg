@@ -1,13 +1,11 @@
 import { useState, useEffect, useCallback, lazy, Suspense } from "react";
 import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
 import { LazyMotion, domAnimation } from "motion/react";
-import { ThemeToggle } from "@/components/theme-toggle";
 import { ThemeProvider } from "@/components/theme-provider";
 import { I18nProvider, useTranslation } from "@/components/i18n-provider";
-import { LanguageSwitcher } from "@/components/language-switcher";
 import { ConfigProvider } from "@/contexts/config-context";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { AppHeader } from "@/components/app-header";
 import {
   Empty,
   EmptyActions,
@@ -151,21 +149,7 @@ function NotFoundPage() {
 
   return (
     <div className="flex-1 bg-background flex flex-col font-sans">
-      <div className="border-b bg-card">
-        <div className="flex h-16 items-center pl-7 pr-4 sm:pl-7 sm:pr-4 max-w-7xl mx-auto w-full justify-between">
-          <div className="flex items-center gap-2">
-            <img src="/logo.svg" alt="Sunyz Network" className="h-4 w-auto" />
-            <Badge variant="secondary" className="shrink-0">
-              <span className="sm:hidden">LG</span>
-              <span className="hidden sm:inline">Looking Glass</span>
-            </Badge>
-          </div>
-          <div className="flex items-center gap-1">
-            <ThemeToggle />
-            <LanguageSwitcher />
-          </div>
-        </div>
-      </div>
+      <AppHeader />
       <div className="flex-1 flex items-center justify-center p-6">
         <Empty className="max-w-none gap-3 rounded-none border-0 bg-transparent p-0 shadow-none">
           <EmptyHeader>
