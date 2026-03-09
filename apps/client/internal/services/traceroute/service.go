@@ -18,7 +18,6 @@ func init() {
 	}{
 		{"traceroute", []string{"-q1", "-N32", "-w1"}},
 		{"traceroute", []string{"-q1", "-w1"}},
-		{"mtr", []string{"-w", "-c1", "-Z1", "-G1", "-b"}},
 		{"traceroute", nil},
 	}
 

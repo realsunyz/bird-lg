@@ -117,9 +117,16 @@ func (h *Handler) streamTool(c fiber.Ctx, timeout time.Duration, build func(mode
 		ctx, cancel := context.WithTimeout(context.Background(), timeout)
 		defer cancel()
 
-		_ = h.runner.Stream(ctx, bin, args, func(line string) {
+		err := h.runner.Stream(ctx, bin, args, func(line string) {
 			stream.WriteData(w, line)
 		})
+		if ctx.Err() == context.DeadlineExceeded {
+			stream.WriteData(w, platform.PublicErrorFromKey("timeout"))
+			return
+		}
+		if err != nil {
+			stream.WriteData(w, platform.PublicErrorFromKey("exec_failed"))
+		}
 	})
 	return nil
 }

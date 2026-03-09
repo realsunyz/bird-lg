@@ -9,6 +9,36 @@ type TargetValidationResult =
   | { ok: true; normalized: string }
   | { ok: false; errorKey: TargetValidationErrorKey };
 
+const bogonPrefixes = [
+  "0.0.0.0/8",
+  "10.0.0.0/8",
+  "100.64.0.0/10",
+  "127.0.0.0/8",
+  "169.254.0.0/16",
+  "172.16.0.0/12",
+  "192.0.2.0/24",
+  "192.168.0.0/16",
+  "198.18.0.0/15",
+  "198.51.100.0/24",
+  "203.0.113.0/24",
+  "224.0.0.0/4",
+  "240.0.0.0/4",
+  "100::/64",
+  "2001:2::/48",
+  "2001:10::/28",
+  "2001:db8::/32",
+  "2002::/16",
+  "3ffe::/16",
+  "3fff::/20",
+  "5f00::/16",
+  "fc00::/7",
+  "fe80::/10",
+  "fec0::/10",
+  "ff00::/8",
+] as const;
+
+const parsedBogonPrefixes = bogonPrefixes.map((cidr) => ipaddr.parseCIDR(cidr));
+
 export function validateTargetInput(raw: string): TargetValidationResult {
   const target = raw.trim();
   if (target.length === 0) {
@@ -22,14 +52,12 @@ export function validateTargetInput(raw: string): TargetValidationResult {
   if (ipaddr.isValid(target)) {
     try {
       const parsed = ipaddr.parse(target);
-      if (parsed.kind() === "ipv4") {
-        if (parsed.range() !== "unicast") {
-          return { ok: false, errorKey: "target_bogon_blocked" };
-        }
+      if (isBogonIP(parsed)) {
+        return { ok: false, errorKey: "target_bogon_blocked" };
       }
-      return { ok: true, normalized: target.toLowerCase() };
+      return { ok: true, normalized: parsed.toNormalizedString() };
     } catch {
-      // Fallback in case of parse error despite validation
+      return { ok: false, errorKey: "target_invalid_format" };
     }
   }
 
@@ -85,7 +113,13 @@ function containsWhitespace(value: string): boolean {
   return false;
 }
 
-
+function isBogonIP(addr: ipaddr.IPv4 | ipaddr.IPv6): boolean {
+  for (const prefix of parsedBogonPrefixes) {
+    if (addr.kind() !== prefix[0].kind()) continue;
+    if (addr.match(prefix)) return true;
+  }
+  return false;
+}
 
 function isValidDomain(value: string): boolean {
   if (value.length === 0 || value.length > 253) return false;
@@ -94,36 +128,35 @@ function isValidDomain(value: string): boolean {
   const labels = value.split(".");
   if (labels.length < 2) return false;
 
-  const tld = labels[labels.length - 1];
   let tldHasLetter = false;
-
-  for (const label of labels) {
+  for (let i = 0; i < labels.length; i++) {
+    const label = labels[i];
     if (label.length === 0 || label.length > 63) return false;
 
-    if (!isAlphaNumeric(label[0]) || !isAlphaNumeric(label[label.length - 1])) {
+    const first = label[0];
+    const last = label[label.length - 1];
+    if (!isDomainAlphaNum(first) || !isDomainAlphaNum(last)) {
       return false;
     }
 
-    for (let i = 0; i < label.length; i++) {
-      const ch = label[i];
-      if (!(isAlphaNumeric(ch) || ch === "-")) return false;
-    }
-  }
-
-  for (let i = 0; i < tld.length; i++) {
-    if (isLetter(tld[i])) {
-      tldHasLetter = true;
-      break;
+    for (let j = 0; j < label.length; j++) {
+      const ch = label[j];
+      if (!(isDomainAlphaNum(ch) || ch === "-")) {
+        return false;
+      }
+      if (i === labels.length - 1 && isDomainLetter(ch)) {
+        tldHasLetter = true;
+      }
     }
   }
 
   return tldHasLetter;
 }
 
-function isAlphaNumeric(ch: string): boolean {
-  return isLetter(ch) || (ch >= "0" && ch <= "9");
+function isDomainAlphaNum(ch: string): boolean {
+  return isDomainLetter(ch) || (ch >= "0" && ch <= "9");
 }
 
-function isLetter(ch: string): boolean {
+function isDomainLetter(ch: string): boolean {
   return (ch >= "a" && ch <= "z") || (ch >= "A" && ch <= "Z");
 }

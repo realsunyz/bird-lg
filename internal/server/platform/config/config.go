@@ -96,6 +96,8 @@ type Config struct {
 	HMACSecret         string `yaml:"-"`
 	LogtoEndpoint      string `yaml:"-"`
 	LogtoAppID         string `yaml:"-"`
+
+	serversByID map[string]*ServerConfig
 }
 
 func (c *Config) CookieName() string {
@@ -186,15 +188,17 @@ func LoadConfig() *Config {
 	if strings.TrimSpace(cfg.StaticDir) == "" {
 		cfg.StaticDir = "./static"
 	}
+	cfg.rebuildServerIndex()
 
 	return cfg
 }
 
 func (c *Config) FindServer(id string) *ServerConfig {
-	for i := range c.Servers {
-		if c.Servers[i].ID == id {
-			return &c.Servers[i]
-		}
+	if c == nil {
+		return nil
+	}
+	if c.serversByID != nil {
+		return c.serversByID[id]
 	}
 	return nil
 }
@@ -227,6 +231,18 @@ func persistConfig(configPath string, cfg *Config) error {
 		return err
 	}
 	return os.WriteFile(configPath, data, 0o600)
+}
+
+func (c *Config) rebuildServerIndex() {
+	if c == nil {
+		return
+	}
+	index := make(map[string]*ServerConfig, len(c.Servers))
+	for i := range c.Servers {
+		server := &c.Servers[i]
+		index[server.ID] = server
+	}
+	c.serversByID = index
 }
 
 type ClientServerConfig struct {

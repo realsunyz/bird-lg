@@ -19,12 +19,3 @@ func WithTimeout(handler fiber.Handler, d time.Duration) fiber.Handler {
 		},
 	})
 }
-
-func ProxyErrorResponse(c fiber.Ctx, err error) error {
-	if fiberErr, ok := err.(*fiber.Error); ok {
-		return c.Status(fiber.StatusBadGateway).JSON(fiber.Map{"error": fiberErr.Message})
-	}
-	return c.Status(fiber.StatusBadGateway).JSON(fiber.Map{
-		"error": errx.FormatPublicError(errx.ErrCodeServerBadStatus, "Upstream client returned an error"),
-	})
-}

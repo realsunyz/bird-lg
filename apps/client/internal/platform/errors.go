@@ -5,7 +5,7 @@ import "strings"
 const (
 	ErrCodeReqBadRequest        = "ERR-REQ-400"
 	ErrCodeTargetEmpty          = "ERR-TARGET-400-EMPTY"
-	ErrCodeTargetInvalid        = "ERR-TARGET-400-INVALID"
+	ErrCodeTargetInvalid        = "ERR-TARGET-400-FORMAT"
 	ErrCodeAuthMissingSignature = "ERR-AUTH-401-MISSING_SIG"
 	ErrCodeAuthInvalidTimestamp = "ERR-AUTH-401-BAD_TS"
 	ErrCodeAuthTimestampExpired = "ERR-AUTH-401-TS_EXPIRED"
@@ -19,27 +19,12 @@ const (
 	ErrCodeBirdQueryFailed      = "ERR-BIRD-502"
 )
 
-func FormatPublicError(code, explanation string) string {
+func FormatPublicError(code, _ string) string {
 	code = strings.TrimSpace(code)
-	explanation = strings.TrimSpace(explanation)
-	if explanation == "" {
-		explanation = "Error"
-	}
-
-	needsExplanationPunct := !strings.HasSuffix(explanation, ".") &&
-		!strings.HasSuffix(explanation, "!") &&
-		!strings.HasSuffix(explanation, "?") &&
-		!strings.HasSuffix(explanation, "。") &&
-		!strings.HasSuffix(explanation, "！") &&
-		!strings.HasSuffix(explanation, "？")
-	if needsExplanationPunct {
-		explanation += "."
-	}
-
 	if code == "" {
-		return explanation
+		return ErrCodeToolExecFailed
 	}
-	return explanation + " (" + code + ")."
+	return code
 }
 
 func PublicErrorFromKey(key string) string {
