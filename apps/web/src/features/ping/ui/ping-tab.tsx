@@ -22,10 +22,12 @@ const toolInputClass = "flex-1 font-mono text-base md:text-sm";
 export function PingTab({
   activeServer,
   isSSO,
+  canRunWithoutCaptcha,
   onUnauthorized,
 }: {
   activeServer: string;
   isSSO: boolean;
+  canRunWithoutCaptcha: boolean;
   onUnauthorized: (retry: () => void) => void;
 }) {
   const { t } = useTranslation();
@@ -37,7 +39,14 @@ export function PingTab({
   const abortRef = useRef<AbortController | null>(null);
   const [error, setError] = useState("");
 
-  const handlePing = async () => {
+  const handlePing = async (skipAuthGate = false) => {
+    if (!skipAuthGate && !canRunWithoutCaptcha) {
+      onUnauthorized(() => {
+        void handlePing(true);
+      });
+      return;
+    }
+
     abortRef.current?.abort();
     abortRef.current = new AbortController();
 
@@ -64,7 +73,10 @@ export function PingTab({
         body: { target: normalizedTarget, count: countInt },
         startError: t.detail.ping_start_failed,
         signal: abortRef.current.signal,
-        onUnauthorized: () => onUnauthorized(handlePing),
+        onUnauthorized: () =>
+          onUnauthorized(() => {
+            void handlePing(true);
+          }),
         onData: (line) => {
           if (line.startsWith("ERR-")) {
             setError(getToolErrorMessage(line));
@@ -124,7 +136,7 @@ export function PingTab({
             </SelectContent>
           </Select>
         </div>
-        <Button onClick={handlePing} disabled={loading || target.trim().length === 0}>
+        <Button onClick={() => void handlePing()} disabled={loading || target.trim().length === 0}>
           {loading ? <Spinner /> : t.detail.execute}
         </Button>
       </div>

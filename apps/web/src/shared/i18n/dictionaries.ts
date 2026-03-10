@@ -62,6 +62,8 @@ export const dictionaries = {
       traceroute_placeholder_mobile: "IP or Hostname",
       security_check: "Security Check",
       complete_captcha: "Please complete the CAPTCHA to continue.",
+      sso_sign_in: "Sign in required",
+      sso_sign_in_description: "Your SSO session is required or has expired. Please sign in again to continue.",
     },
     error: {
       title: "Error",
@@ -147,6 +149,8 @@ export const dictionaries = {
       traceroute_placeholder_mobile: "IP 或主机名",
       security_check: "安全检查",
       complete_captcha: "请完成验证码以继续",
+      sso_sign_in: "需要重新登录",
+      sso_sign_in_description: "当前 SSO 会话缺失或已过期，请重新登录后继续。",
     },
     error: {
       title: "错误",

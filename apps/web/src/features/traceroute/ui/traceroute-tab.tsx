@@ -14,9 +14,11 @@ const toolInputClass = "flex-1 font-mono text-base md:text-sm";
 
 export function TracerouteTab({
   activeServer,
+  canRunWithoutCaptcha,
   onUnauthorized,
 }: {
   activeServer: string;
+  canRunWithoutCaptcha: boolean;
   onUnauthorized: (retry: () => void) => void;
 }) {
   const { t } = useTranslation();
@@ -27,7 +29,14 @@ export function TracerouteTab({
   const abortRef = useRef<AbortController | null>(null);
   const [error, setError] = useState("");
 
-  const handleTraceroute = async () => {
+  const handleTraceroute = async (skipAuthGate = false) => {
+    if (!skipAuthGate && !canRunWithoutCaptcha) {
+      onUnauthorized(() => {
+        void handleTraceroute(true);
+      });
+      return;
+    }
+
     abortRef.current?.abort();
     abortRef.current = new AbortController();
 
@@ -52,7 +61,10 @@ export function TracerouteTab({
         body: { target: normalizedTarget },
         startError: t.detail.traceroute_start_failed,
         signal: abortRef.current.signal,
-        onUnauthorized: () => onUnauthorized(handleTraceroute),
+        onUnauthorized: () =>
+          onUnauthorized(() => {
+            void handleTraceroute(true);
+          }),
         onData: (line) => {
           if (line.startsWith("ERR-")) {
             setError(getToolErrorMessage(line));
@@ -81,7 +93,7 @@ export function TracerouteTab({
           onKeyDown={(e) => e.key === "Enter" && target.trim().length > 0 && !loading && handleTraceroute()}
           className={toolInputClass}
         />
-        <Button onClick={handleTraceroute} disabled={loading || target.trim().length === 0}>
+        <Button onClick={() => void handleTraceroute()} disabled={loading || target.trim().length === 0}>
           {loading ? <Spinner /> : t.detail.execute}
         </Button>
       </div>

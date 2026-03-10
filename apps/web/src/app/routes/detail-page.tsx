@@ -92,6 +92,9 @@ function QueryInterface({ server, config }: { server: ServerConfig; config: Clie
   const serverName = getLocalizedText(server.name, locale);
 
   const isSSO = config?.auth?.authType === "sso";
+  const [hasToolAuth, setHasToolAuth] = useState(Boolean(config?.auth?.isAuthenticated));
+  const requiresCaptcha = Boolean(config?.turnstile?.siteKey);
+  const canRunToolImmediately = !requiresCaptcha || hasToolAuth;
   const [activeTab, setActiveTab] = useState("ping");
   const [enableTabSwitchAnimation, setEnableTabSwitchAnimation] = useState(false);
 
@@ -99,11 +102,8 @@ function QueryInterface({ server, config }: { server: ServerConfig; config: Clie
   const [routeInput, setRouteInput] = useState("");
 
   const [showCaptcha, setShowCaptcha] = useState(false);
+  const [showSSOLogin, setShowSSOLogin] = useState(false);
   const [pendingAction, setPendingAction] = useState<
-    | {
-        kind: "query";
-        command: string;
-      }
     | {
         kind: "retry";
         run: () => void;
@@ -111,11 +111,22 @@ function QueryInterface({ server, config }: { server: ServerConfig; config: Clie
     | null
   >(null);
   const [captchaError, setCaptchaError] = useState("");
+  const loginRedirect =
+    typeof window === "undefined" ? `/detail/${server.id}` : `${window.location.pathname}${window.location.search}`;
 
   const requestCaptcha = (run: () => void) => {
     setCaptchaError("");
     setPendingAction({ kind: "retry", run });
     setShowCaptcha(true);
+  };
+
+  const handleToolUnauthorized = (run: () => void) => {
+    setHasToolAuth(false);
+    requestCaptcha(run);
+  };
+
+  const requestSSOLogin = () => {
+    setShowSSOLogin(true);
   };
 
   const runBirdQuery = async (command: string) => {
@@ -135,14 +146,8 @@ function QueryInterface({ server, config }: { server: ServerConfig; config: Clie
         }),
       });
 
-      if (res.status === 401) {
-        setCaptchaError("");
-        setPendingAction({ kind: "query", command });
-        setShowCaptcha(true);
-        return;
-      }
-      if (res.status === 403) {
-        setError("auth_required");
+      if (res.status === 401 || res.status === 403) {
+        requestSSOLogin();
         return;
       }
 
@@ -225,21 +230,23 @@ function QueryInterface({ server, config }: { server: ServerConfig; config: Clie
               className="mt-0"
               initial={enableTabSwitchAnimation ? { opacity: 0, filter: "blur(4px)" } : false}
             >
-                <PingTab
-                  activeServer={server.id}
-                  isSSO={config?.auth?.authType === "sso"}
-                  onUnauthorized={(retry) => requestCaptcha(retry)}
-                />
+                    <PingTab
+                      activeServer={server.id}
+                      isSSO={config?.auth?.authType === "sso"}
+                      canRunWithoutCaptcha={canRunToolImmediately}
+                      onUnauthorized={handleToolUnauthorized}
+                    />
             </TabsContent>
             <TabsContent
               value="traceroute"
               className="mt-0"
               initial={enableTabSwitchAnimation ? { opacity: 0, filter: "blur(4px)" } : false}
             >
-                <TracerouteTab
-                  activeServer={server.id}
-                  onUnauthorized={(retry) => requestCaptcha(retry)}
-                />
+                    <TracerouteTab
+                      activeServer={server.id}
+                      canRunWithoutCaptcha={canRunToolImmediately}
+                      onUnauthorized={handleToolUnauthorized}
+                    />
             </TabsContent>
             {isSSO && (
               <TabsContent
@@ -302,12 +309,11 @@ function QueryInterface({ server, config }: { server: ServerConfig; config: Clie
                       body: JSON.stringify({ token }),
                     });
                     if (res.ok) {
+                      setHasToolAuth(true);
                       setShowCaptcha(false);
                       const pending = pendingAction;
                       setPendingAction(null);
-                      if (pending?.kind === "query") {
-                        runBirdQuery(pending.command);
-                      } else if (pending?.kind === "retry") {
+                      if (pending?.kind === "retry") {
                         pending.run();
                       }
                     } else {
@@ -336,6 +342,20 @@ function QueryInterface({ server, config }: { server: ServerConfig; config: Clie
               </AlertDescription>
             </Alert>
           )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showSSOLogin} onOpenChange={setShowSSOLogin}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{t.detail.sso_sign_in}</DialogTitle>
+            <DialogDescription>{t.detail.sso_sign_in_description}</DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end">
+            <Button asChild>
+              <a href={`/api/auth/login?redirect=${encodeURIComponent(loginRedirect)}`}>{t.home.account_menu.login}</a>
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
