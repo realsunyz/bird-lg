@@ -47,6 +47,6 @@ func Register(app *fiber.App, cfg *config.Config) {
 	api.Post("/tool/traceroute/stream", toolAuth, handlers.HandleToolTracerouteStream(cfg))
 
 	api.Get("/auth/login", httpmiddleware.WithTimeout(handlers.HandleLogtoLogin(cfg), 10*time.Second))
-	api.Get("/auth/logout", httpmiddleware.WithTimeout(handlers.HandleLogtoLogout(cfg), 5*time.Second))
+	app.Get("/auth/logout", httpmiddleware.WithTimeout(handlers.HandleLogtoLogout(cfg), 5*time.Second))
 	app.Get("/auth/callback", httpmiddleware.WithTimeout(handlers.HandleLogtoCallback(cfg), 20*time.Second))
 }

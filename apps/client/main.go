@@ -80,11 +80,11 @@ func main() {
 	auth := middleware.NewAuth(cfg.HMACSecret)
 	h := handlers.New(runner.SystemRunner{}, cfg.BirdSocket)
 
-	app.Post("/api/tool/ping", auth.Wrap(middleware.WithTimeout(h.Ping, 30*time.Second)))
+	app.Post("/api/tool/ping", auth.Wrap(middleware.WithTimeout(h.Ping, handlers.PingTimeout)))
 	app.Post("/api/tool/ping/stream", auth.Wrap(h.PingStream))
-	app.Post("/api/tool/traceroute", auth.Wrap(middleware.WithTimeout(h.Traceroute, 70*time.Second)))
+	app.Post("/api/tool/traceroute", auth.Wrap(middleware.WithTimeout(h.Traceroute, handlers.TracerouteTimeout)))
 	app.Post("/api/tool/traceroute/stream", auth.Wrap(h.TracerouteStream))
-	app.Post("/api/tool/bird", auth.Wrap(middleware.WithTimeout(h.Bird, 35*time.Second)))
+	app.Post("/api/tool/bird", auth.Wrap(middleware.WithTimeout(h.Bird, handlers.BirdTimeout)))
 	app.Get("/api/health", healthcheck.New())
 
 	log.Printf("[INFO] Starting on %s", cfg.ListenAddr)

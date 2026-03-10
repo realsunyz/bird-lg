@@ -13,7 +13,7 @@ These interfaces are intentionally unchanged by the `apps/*` refactor.
 - `POST /api/tool/traceroute`
 - `POST /api/tool/traceroute/stream`
 - `GET /api/auth/login`
-- `GET /api/auth/logout`
+- `GET /auth/logout`
 - `GET /auth/callback`
 
 ## Frontend Routes

@@ -16,6 +16,12 @@ import (
 	"github.com/gofiber/fiber/v3"
 )
 
+const (
+	PingTimeout       = 20 * time.Second
+	TracerouteTimeout = 30 * time.Second
+	BirdTimeout       = 10 * time.Second
+)
+
 type Handler struct {
 	runner     runner.CommandRunner
 	birdSocket string
@@ -26,25 +32,25 @@ func New(r runner.CommandRunner, birdSocket string) *Handler {
 }
 
 func (h *Handler) Ping(c fiber.Ctx) error {
-	return h.runTool(c, 20*time.Second, func(req model.ToolTargetRequest) (string, []string, error) {
+	return h.runTool(c, PingTimeout, func(req model.ToolTargetRequest) (string, []string, error) {
 		return pingsvc.BuildCommand(req.Target, req.Count)
 	})
 }
 
 func (h *Handler) PingStream(c fiber.Ctx) error {
-	return h.streamTool(c, 20*time.Second, func(req model.ToolTargetRequest) (string, []string, error) {
+	return h.streamTool(c, PingTimeout, func(req model.ToolTargetRequest) (string, []string, error) {
 		return pingsvc.BuildCommand(req.Target, req.Count)
 	})
 }
 
 func (h *Handler) Traceroute(c fiber.Ctx) error {
-	return h.runTool(c, 60*time.Second, func(req model.ToolTargetRequest) (string, []string, error) {
+	return h.runTool(c, TracerouteTimeout, func(req model.ToolTargetRequest) (string, []string, error) {
 		return tracesvc.BuildCommand(req.Target)
 	})
 }
 
 func (h *Handler) TracerouteStream(c fiber.Ctx) error {
-	return h.streamTool(c, 60*time.Second, func(req model.ToolTargetRequest) (string, []string, error) {
+	return h.streamTool(c, TracerouteTimeout, func(req model.ToolTargetRequest) (string, []string, error) {
 		return tracesvc.BuildCommand(req.Target)
 	})
 }
@@ -60,8 +66,11 @@ func (h *Handler) Bird(c fiber.Ctx) error {
 		return c.JSON(model.ApiGenericResponse{Error: platform.PublicErrorFromKey("command_not_allowed")})
 	}
 
-	output, err := birdsvc.Query(h.birdSocket, command)
+	output, err := birdsvc.Query(h.birdSocket, command, BirdTimeout)
 	if err != nil {
+		if err.Error() == "timeout" {
+			return c.JSON(model.ApiGenericResponse{Error: platform.PublicErrorFromKey("timeout")})
+		}
 		return c.JSON(model.ApiGenericResponse{Error: platform.PublicErrorFromKey("bird_query_failed")})
 	}
 

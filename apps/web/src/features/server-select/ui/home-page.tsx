@@ -39,7 +39,7 @@ export default function HomePage() {
             <span>{t.home.account_menu.profile}</span>
           </DropdownMenuItem>
           <DropdownMenuItem asChild>
-            <a href="/api/auth/logout" className="w-full cursor-pointer text-destructive focus:text-destructive">
+            <a href="/auth/logout" className="w-full cursor-pointer text-destructive focus:text-destructive">
               <LogOut className="mr-2 h-4 w-4" />
               <span>{t.home.account_menu.logout}</span>
             </a>
