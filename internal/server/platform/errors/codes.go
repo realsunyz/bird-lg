@@ -18,8 +18,12 @@ const (
 	ErrCodeSSOMissingCodeVerifier  = "ERR-SSO-400-MISSING_VERIFIER"
 	ErrCodeSSOTokenExchangeFailed  = "ERR-SSO-401-TOKEN_EXCHANGE"
 	ErrCodeSSOVerifierGenFailed    = "ERR-SSO-500-VERIFIER_GEN"
+	ErrCodeCaptchaMissingToken     = "ERR-CAPTCHA-400-MISSING_TOKEN"
+	ErrCodeCaptchaInvalidToken     = "ERR-CAPTCHA-422-INVALID_TOKEN"
+	ErrCodeCaptchaTokenSpent       = "ERR-CAPTCHA-409-SPENT"
 	ErrCodeCaptchaUnavailable      = "ERR-CAPTCHA-503"
 	ErrCodeCaptchaVerificationFail = "ERR-CAPTCHA-403"
+	ErrCodeCaptchaMisconfigured    = "ERR-CAPTCHA-500-CONFIG"
 )
 
 func FormatPublicError(code, _ string) string {

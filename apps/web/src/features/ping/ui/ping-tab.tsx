@@ -40,6 +40,12 @@ export function PingTab({
   const [error, setError] = useState("");
 
   const handlePing = async (skipAuthGate = false) => {
+    const validation = validateTargetInput(target);
+    if (!validation.ok) {
+      setError(validation.errorKey);
+      return;
+    }
+
     if (!skipAuthGate && !canRunWithoutCaptcha) {
       onUnauthorized(() => {
         void handlePing(true);
@@ -49,12 +55,6 @@ export function PingTab({
 
     abortRef.current?.abort();
     abortRef.current = new AbortController();
-
-    const validation = validateTargetInput(target);
-    if (!validation.ok) {
-      setError(validation.errorKey);
-      return;
-    }
 
     const normalizedTarget = validation.normalized;
     setLoading(true);

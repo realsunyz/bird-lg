@@ -119,6 +119,14 @@ export function getToolErrorMessage(value: unknown): string {
       return "auth_required";
     case "ERR-RATE-429":
       return "rate_limit_exceeded";
+    case "ERR-CAPTCHA-400-MISSING_TOKEN":
+      return "captcha_token_missing";
+    case "ERR-CAPTCHA-422-INVALID_TOKEN":
+      return "captcha_token_invalid";
+    case "ERR-CAPTCHA-409-SPENT":
+      return "captcha_token_spent";
+    case "ERR-CAPTCHA-500-CONFIG":
+      return "captcha_misconfigured";
     case "ERR-CAPTCHA-503":
       return "captcha_unavailable";
     case "ERR-CAPTCHA-403":
@@ -137,4 +145,3 @@ export function getToolErrorMessage(value: unknown): string {
       return message;
   }
 }
-

@@ -30,6 +30,12 @@ export function TracerouteTab({
   const [error, setError] = useState("");
 
   const handleTraceroute = async (skipAuthGate = false) => {
+    const validation = validateTargetInput(target);
+    if (!validation.ok) {
+      setError(validation.errorKey);
+      return;
+    }
+
     if (!skipAuthGate && !canRunWithoutCaptcha) {
       onUnauthorized(() => {
         void handleTraceroute(true);
@@ -39,12 +45,6 @@ export function TracerouteTab({
 
     abortRef.current?.abort();
     abortRef.current = new AbortController();
-
-    const validation = validateTargetInput(target);
-    if (!validation.ok) {
-      setError(validation.errorKey);
-      return;
-    }
 
     const normalizedTarget = validation.normalized;
     setLoading(true);

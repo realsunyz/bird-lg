@@ -45,6 +45,49 @@ const tabsListClass =
 const tabsTriggerClass =
   "rounded-none px-0 py-2 text-sm font-medium text-muted-foreground data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none";
 
+function mapTurnstileClientError(errorCode?: string): string {
+  const code = (errorCode ?? "").trim();
+  if (code === "110600" || code === "110620") return "captcha_timeout";
+  if (code === "102020" || code === "120020" || code === "120030") return "captcha_network_issue";
+  if (code === "110200") return "captcha_domain_not_allowed";
+  if (
+    code === "110100" ||
+    code === "110110" ||
+    code === "104010" ||
+    code === "400020" ||
+    code === "400030" ||
+    code === "400040"
+  ) {
+    return "captcha_misconfigured";
+  }
+  if (code === "103010") return "captcha_unsupported";
+  if (code === "102010" || code.startsWith("300") || code.startsWith("600")) return "captcha_challenge_failed";
+  if (
+    code === "100010" ||
+    code === "100020" ||
+    code === "100030" ||
+    code === "103020" ||
+    code === "103030" ||
+    code === "200010" ||
+    code === "200100" ||
+    code === "200500"
+  ) {
+    return "captcha_widget_error";
+  }
+  return "captcha_widget_error";
+}
+
+function isCaptchaRetryable(errorKey: string): boolean {
+  switch (errorKey) {
+    case "captcha_domain_not_allowed":
+    case "captcha_misconfigured":
+    case "captcha_unsupported":
+      return false;
+    default:
+      return true;
+  }
+}
+
 export default function DetailPage() {
   const { serverId } = useParams<{ serverId: string }>();
   const { t } = useTranslation();
@@ -111,11 +154,18 @@ function QueryInterface({ server, config }: { server: ServerConfig; config: Clie
     | null
   >(null);
   const [captchaError, setCaptchaError] = useState("");
+  const [captchaWidgetKey, setCaptchaWidgetKey] = useState(0);
+  const [captchaWidgetLoaded, setCaptchaWidgetLoaded] = useState(false);
+  const [captchaVerifying, setCaptchaVerifying] = useState(false);
   const loginRedirect =
     typeof window === "undefined" ? `/detail/${server.id}` : `${window.location.pathname}${window.location.search}`;
+  const shouldRenderCaptchaWidget =
+    Boolean(config?.turnstile?.siteKey) && (!captchaError || isCaptchaRetryable(captchaError));
 
   const requestCaptcha = (run: () => void) => {
     setCaptchaError("");
+    setCaptchaWidgetLoaded(false);
+    setCaptchaVerifying(false);
     setPendingAction({ kind: "retry", run });
     setShowCaptcha(true);
   };
@@ -128,6 +178,35 @@ function QueryInterface({ server, config }: { server: ServerConfig; config: Clie
   const requestSSOLogin = () => {
     setShowSSOLogin(true);
   };
+
+  const resetCaptchaWidget = (errorKey = "") => {
+    setCaptchaWidgetLoaded(false);
+    setCaptchaVerifying(false);
+    setCaptchaError(errorKey);
+    setCaptchaWidgetKey((value) => value + 1);
+  };
+
+  const showCaptchaError = (errorKey: string) => {
+    setCaptchaWidgetLoaded(false);
+    setCaptchaVerifying(false);
+    setCaptchaError(errorKey);
+  };
+
+  useEffect(() => {
+    if (!showCaptcha) return;
+    if (!config?.turnstile?.siteKey) {
+      setCaptchaError("captcha_misconfigured");
+      return;
+    }
+    if (!shouldRenderCaptchaWidget) return;
+    if (captchaWidgetLoaded) return;
+
+    const timeoutId = window.setTimeout(() => {
+      setCaptchaError((current) => current || "captcha_load_failed");
+    }, 10000);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [captchaWidgetKey, captchaWidgetLoaded, config?.turnstile?.siteKey, shouldRenderCaptchaWidget, showCaptcha]);
 
   const runBirdQuery = async (command: string) => {
     setLoading(true);
@@ -283,6 +362,8 @@ function QueryInterface({ server, config }: { server: ServerConfig; config: Clie
           if (!open) {
             setPendingAction(null);
             setCaptchaError("");
+            setCaptchaWidgetLoaded(false);
+            setCaptchaVerifying(false);
           }
         }}
       >
@@ -297,11 +378,46 @@ function QueryInterface({ server, config }: { server: ServerConfig; config: Clie
             <DialogDescription>{t.detail.complete_captcha}</DialogDescription>
           </DialogHeader>
           <div className="flex justify-center py-4">
-            {config?.turnstile?.siteKey && (
+            {shouldRenderCaptchaWidget && (
               <Turnstile
+                key={captchaWidgetKey}
                 siteKey={config.turnstile.siteKey}
-                options={{ theme: theme === "system" ? "auto" : theme }}
+                options={{
+                  theme: theme === "system" ? "auto" : theme,
+                  retry: "never",
+                  refreshExpired: "manual",
+                  refreshTimeout: "manual",
+                }}
+                onLoadScript={() => {
+                  setCaptchaWidgetLoaded(false);
+                }}
+                onWidgetLoad={() => {
+                  setCaptchaWidgetLoaded(true);
+                }}
+                onExpire={() => {
+                  resetCaptchaWidget("captcha_expired");
+                }}
+                onTimeout={() => {
+                  resetCaptchaWidget("captcha_timeout");
+                }}
+                onError={(errorCode) => {
+                  const errorKey = mapTurnstileClientError(errorCode);
+                  if (isCaptchaRetryable(errorKey)) {
+                    resetCaptchaWidget(errorKey);
+                    return;
+                  }
+                  showCaptchaError(errorKey);
+                }}
+                onUnsupported={() => {
+                  showCaptchaError("captcha_unsupported");
+                }}
+                scriptOptions={{
+                  onError: () => {
+                    showCaptchaError("captcha_load_failed");
+                  },
+                }}
                 onSuccess={async (token) => {
+                  setCaptchaVerifying(true);
                   try {
                     const res = await fetch("/api/verify", {
                       method: "POST",
@@ -311,6 +427,9 @@ function QueryInterface({ server, config }: { server: ServerConfig; config: Clie
                     if (res.ok) {
                       setHasToolAuth(true);
                       setShowCaptcha(false);
+                      setCaptchaError("");
+                      setCaptchaWidgetLoaded(false);
+                      setCaptchaVerifying(false);
                       const pending = pendingAction;
                       setPendingAction(null);
                       if (pending?.kind === "retry") {
@@ -318,14 +437,14 @@ function QueryInterface({ server, config }: { server: ServerConfig; config: Clie
                       }
                     } else {
                       const errJson = await res.json().catch(() => ({}));
-                      setCaptchaError(
+                      resetCaptchaWidget(
                         typeof errJson?.error === "string" && errJson.error
                           ? getToolErrorMessage(errJson.error)
                           : "verification_failed",
                       );
                     }
                   } catch (e) {
-                    setCaptchaError(getToolErrorMessage(e));
+                    resetCaptchaWidget(getToolErrorMessage(e));
                   }
                 }}
               />
@@ -341,6 +460,33 @@ function QueryInterface({ server, config }: { server: ServerConfig; config: Clie
                   : captchaError}
               </AlertDescription>
             </Alert>
+          )}
+          {captchaError && (
+            <div className="flex items-center justify-end gap-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowCaptcha(false);
+                  setPendingAction(null);
+                  setCaptchaError("");
+                  setCaptchaWidgetLoaded(false);
+                  setCaptchaVerifying(false);
+                }}
+              >
+                {t.common.cancel}
+              </Button>
+              {isCaptchaRetryable(captchaError) && (
+                <Button
+                  variant="secondary"
+                  disabled={!config?.turnstile?.siteKey || captchaVerifying}
+                  onClick={() => {
+                    resetCaptchaWidget("");
+                  }}
+                >
+                  {captchaVerifying ? t.common.loading : t.common.retry}
+                </Button>
+              )}
+            </div>
           )}
         </DialogContent>
       </Dialog>
