@@ -51,7 +51,7 @@ export default defineConfig({
         manualChunks(id) {
           if (!id.includes("node_modules")) return;
           if (id.includes("react-router")) return "router";
-          if (id.includes("@radix-ui")) return "radix";
+          if (id.includes("@radix-ui") || id.includes("radix-ui") || id.includes("vaul")) return "radix";
           if (id.includes("lucide-react")) return "icons";
           if (id.includes("react-circle-flags")) return "flags";
           if (id.includes("react-turnstile")) return "turnstile";

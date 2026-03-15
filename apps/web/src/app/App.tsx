@@ -8,6 +8,7 @@ import { Button } from "@/shared/ui/button";
 import { AppHeader } from "@/shared/ui/app-header";
 import { appBuildInfo } from "@/shared/lib/build-info";
 import { useDebuggerGuard } from "@/shared/hooks/use-debugger-guard";
+import { AUPDialog } from "@/shared/ui/aup-dialog";
 import {
   Empty,
   EmptyActions,
@@ -169,8 +170,12 @@ function AppBootstrap() {
                 </p>
               </div>
               <div className="shrink-0 self-center text-right">
-                <span className="hidden sm:inline">{t.footer.aup_full}</span>
-                <span className="sm:hidden">{t.footer.aup_short}</span>
+                <div className="hidden sm:block">
+                  <AUPDialog />
+                </div>
+                <div className="sm:hidden">
+                  <AUPDialog mobile />
+                </div>
               </div>
             </div>
           </footer>

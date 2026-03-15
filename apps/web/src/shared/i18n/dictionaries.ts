@@ -31,6 +31,31 @@ export const dictionaries = {
       aup_full: "Acceptable Use Policy",
       aup_short: "AUP",
     },
+    aup: {
+      title: "Acceptable Use Policy",
+      sections: [
+        {
+          heading: "1. Introduction",
+          body: "Welcome to Sunyz Network Looking Glass. This service is provided to offer basic network diagnostic tools, such as ping and traceroute, for network administrators, developers, and general users. By accessing or using this service, you agree to comply with this Acceptable Use Policy.",
+        },
+        {
+          heading: "2. Permitted Use",
+          body: "You may only use this service for legitimate network diagnostics and testing purposes. This includes, but is not limited to, testing network connectivity, analyzing network routing, and measuring network latency.",
+        },
+        {
+          heading: "3. Prohibited Activities",
+          body: "To ensure the stability of the service and the security of public networks, it is strictly prohibited to use the service to launch any form of Denial of Service (DoS/DDoS) attacks, traffic amplification attacks, or malicious harassment against any third-party servers. Additionally, attempting to bypass the Cloudflare Turnstile verification mechanism, or using automated scripts, scrapers, or bots to frequently invoke the service's API or web interface is forbidden. Furthermore, using the service for port scanning, vulnerability probing, intelligence gathering, or any activities that violate applicable laws and regulations is strictly prohibited.",
+        },
+        {
+          heading: "4. Privacy and Security",
+          body: "This website uses Cloudflare Turnstile to distinguish human users from automated bots to protect the service from abuse. To maintain service quality and investigate malicious behavior, we may temporarily log visitors' IP addresses, timestamps of requests, and queried destination addresses. This data is strictly used for security auditing and abuse prevention purposes and will not be used to track personal privacy.",
+        },
+        {
+          heading: "5. Open Source License and Violations",
+          body: 'The source code for this project is open-source under the MIT License, allowing you to freely view, modify, and distribute the source code. However, this online service is provided on an "as is" basis without warranties of any kind, either express or implied. We are not responsible for the absolute accuracy of the diagnostic results, nor shall we be liable for any direct or indirect damages arising from the use of this service. If you violate this policy, we reserve the right to restrict, suspend, or permanently block your IP address and access to the service at any time without prior notice.',
+        },
+      ],
+    },
     admin: {
       title: "PoP Administration",
       description: "View the bird-lg client version for each PoP.",
@@ -166,7 +191,32 @@ export const dictionaries = {
       build: "构建",
       rights_reserved: "保留所有权利.",
       aup_full: "可接受使用政策",
-      aup_short: "使用政策",
+      aup_short: "AUP",
+    },
+    aup: {
+      title: "可接受使用政策",
+      sections: [
+        {
+          heading: "1. 简介",
+          body: "欢迎使用 Sunyz Network Looking Glass。本服务旨在为网络管理员、开发人员和普通用户提供基础的网络诊断工具，如 ping 和 traceroute。访问或使用本服务，即表示您同意遵守本《可接受使用政策》。",
+        },
+        {
+          heading: "2. 允许的用途",
+          body: "您只能将本服务用于合法的网络诊断和测试目的。这包括但不限于测试网络连通性、分析网络路由以及测量网络延迟。",
+        },
+        {
+          heading: "3. 禁止的行为",
+          body: "为确保服务的稳定性和公共网络的安全，严禁利用本服务发起任何形式的拒绝服务攻击（DoS/DDoS）、流量放大攻击或对任何第三方服务器进行恶意骚扰。同时，禁止尝试绕过 Cloudflare Turnstile 验证机制，或使用任何自动化脚本、爬虫、机器人频繁调用本服务 API 或网页界面。此外，严禁使用本服务进行端口扫描、漏洞探测、信息收集或任何违反适用法律法规的活动。",
+        },
+        {
+          heading: "4. 隐私与安全",
+          body: "本网站使用 Cloudflare Turnstile 来区分人类用户与自动化机器人，以保护服务免受滥用。为了维护服务质量和排查恶意行为，我们可能会临时记录访问者的 IP 地址、请求的时间戳以及查询的目标地址。这些数据仅用于安全审计和防滥用目的，不会用于追踪用户的个人隐私。",
+        },
+        {
+          heading: "5. 开源声明与违规处理",
+          body: "本项目代码基于 MIT 许可证开源，您可以自由地查看、修改和分发源代码。然而，本在线提供的服务按“原样”提供，不附带任何明示或暗示的保证。我们不对诊断结果的绝对准确性负责，也不对因使用本服务而导致的任何直接或间接损失承担责任。如果您违反了本政策，我们保留在不提前通知的情况下，随时限制、暂停或永久封禁您的 IP 地址及访问权限的权利。",
+        },
+      ],
     },
     admin: {
       title: "接入点管理",
