@@ -11,6 +11,11 @@ FROM pnpm-base AS frontend
 
 WORKDIR /app/apps/web
 
+ARG APP_VERSION=dev
+ARG APP_BUILD=
+ENV APP_VERSION=$APP_VERSION
+ENV APP_BUILD=$APP_BUILD
+
 COPY apps/web/pnpm-lock.yaml ./pnpm-lock.yaml
 RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store pnpm fetch --frozen-lockfile
 

@@ -48,4 +48,6 @@ type APIGenericResponse struct {
 	Error     string                 `json:"error,omitempty"`
 	Result    []APIGenericResultPair `json:"result,omitempty"`
 	RateLimit bool                   `json:"rateLimit,omitempty"`
+	Version   string                 `json:"version"`
+	Build     string                 `json:"build"`
 }

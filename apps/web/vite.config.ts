@@ -1,9 +1,43 @@
+import { execSync } from "node:child_process";
 import path from "path";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 
+function normalizeVersion(value: string | undefined): string {
+  const normalized = value?.trim();
+  return normalized ? normalized : "dev";
+}
+
+function resolveGitBuild(): string {
+  try {
+    return execSync("git rev-parse --short=7 HEAD", {
+      cwd: path.resolve(__dirname, "..", ".."),
+      stdio: ["ignore", "pipe", "ignore"],
+    })
+      .toString()
+      .trim();
+  } catch {
+    return "unknown";
+  }
+}
+
+function normalizeBuild(value: string | undefined): string {
+  const normalized = value?.trim();
+  if (normalized) {
+    return normalized.slice(0, 7).toLowerCase();
+  }
+  return resolveGitBuild().slice(0, 7).toLowerCase();
+}
+
+const appVersion = normalizeVersion(process.env.APP_VERSION);
+const appBuild = normalizeBuild(process.env.APP_BUILD);
+
 export default defineConfig({
+  define: {
+    __APP_VERSION__: JSON.stringify(appVersion),
+    __APP_BUILD__: JSON.stringify(appBuild),
+  },
   plugins: [react(), tailwindcss()],
   resolve: {
     alias: {

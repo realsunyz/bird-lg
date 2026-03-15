@@ -73,7 +73,7 @@ jobs:
           CGO_ENABLED: 0
         run: |
           cd apps/client
-          go build -ldflags="-s -w" -o bird-lg-client-linux-${{ matrix.goarch }} .
+          go build -ldflags="-s -w -X bird-lg-client/internal/buildinfo.Version=dev -X bird-lg-client/internal/buildinfo.Build=${{ github.sha }}" -o bird-lg-client-linux-${{ matrix.goarch }} .
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
@@ -127,6 +127,9 @@ jobs:
         with:
           context: "{{defaultContext}}"
           file: deployments/server.Dockerfile
+          build-args: |
+            APP_VERSION=dev
+            APP_BUILD=${{ github.sha }}
           platforms: ${{ matrix.platform }}
           push: true
           cache-from: type=gha,scope=frontend-${{ matrix.goarch }}
@@ -153,6 +156,9 @@ jobs:
         with:
           context: "{{defaultContext}}"
           file: deployments/client.Dockerfile
+          build-args: |
+            APP_VERSION=dev
+            APP_BUILD=${{ github.sha }}
           platforms: ${{ matrix.platform }}
           push: true
           cache-from: type=gha,scope=client-${{ matrix.goarch }}

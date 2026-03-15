@@ -7,6 +7,7 @@ import (
 
 	"bird-lg-client/internal/http/handlers"
 	"bird-lg-client/internal/http/middleware"
+	"bird-lg-client/internal/model"
 	"bird-lg-client/internal/platform"
 	"bird-lg-client/internal/runner"
 	"github.com/gofiber/fiber/v3"
@@ -69,10 +70,10 @@ func main() {
 				return "global"
 			},
 			LimitReached: func(c fiber.Ctx) error {
-				return c.Status(fiber.StatusTooManyRequests).JSON(fiber.Map{
-					"error":     platform.PublicErrorFromKey("rate_limit_exceeded"),
-					"rateLimit": true,
-				})
+				return c.Status(fiber.StatusTooManyRequests).JSON(model.WithBuildInfo(model.ApiGenericResponse{
+					Error:     platform.PublicErrorFromKey("rate_limit_exceeded"),
+					RateLimit: true,
+				}))
 			},
 		}))
 	}

@@ -6,6 +6,7 @@ import { I18nProvider, useTranslation } from "@/shared/i18n/provider";
 import { ConfigProvider } from "@/entities/server/config-context";
 import { Button } from "@/shared/ui/button";
 import { AppHeader } from "@/shared/ui/app-header";
+import { appBuildInfo } from "@/shared/lib/build-info";
 import {
   Empty,
   EmptyActions,
@@ -55,6 +56,7 @@ function AppBootstrap() {
   const [config, setConfig] = useState<ClientConfig | null>(null);
   const [loading, setLoading] = useState(true);
   const [hasLoadError, setHasLoadError] = useState(false);
+  const currentYear = new Date().getFullYear();
 
   const loadConfig = useCallback(async (signal?: AbortSignal) => {
     setLoading(true);
@@ -135,8 +137,19 @@ function AppBootstrap() {
               </Routes>
             </Suspense>
           </main>
-          <footer className="border-t py-6 text-center text-sm text-muted-foreground font-sans bg-card mt-auto shrink-0 w-full">
-            <p>{t.home.powered_by}</p>
+          <footer className="border-t bg-card mt-auto shrink-0 w-full">
+            <div className="mx-auto flex w-full max-w-7xl flex-col gap-4 px-6 py-5 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+              <div className="text-left">
+                <p>Copyright © {currentYear} Sunyz Network. All rights reserved.</p>
+                <p className="mt-1 text-xs text-muted-foreground/80">
+                  Version {appBuildInfo.displayVersion} (build{" "}
+                  <span className="font-mono">{appBuildInfo.build}</span>)
+                </p>
+              </div>
+              <div className="text-left sm:text-right">
+                <span>Acceptable Use Policy</span>
+              </div>
+            </div>
           </footer>
         </div>
       </BrowserRouter>

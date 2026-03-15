@@ -58,36 +58,36 @@ func (h *Handler) TracerouteStream(c fiber.Ctx) error {
 func (h *Handler) Bird(c fiber.Ctx) error {
 	var req model.ToolBirdRequest
 	if err := c.Bind().JSON(&req); err != nil {
-		return c.JSON(model.ApiGenericResponse{Error: platform.PublicErrorFromKey("invalid_request")})
+		return c.JSON(model.WithBuildInfo(model.ApiGenericResponse{Error: platform.PublicErrorFromKey("invalid_request")}))
 	}
 
 	command := strings.TrimSpace(req.Command)
 	if !birdsvc.IsAllowedCommand(command) {
-		return c.JSON(model.ApiGenericResponse{Error: platform.PublicErrorFromKey("command_not_allowed")})
+		return c.JSON(model.WithBuildInfo(model.ApiGenericResponse{Error: platform.PublicErrorFromKey("command_not_allowed")}))
 	}
 
 	output, err := birdsvc.Query(h.birdSocket, command, BirdTimeout)
 	if err != nil {
 		if err.Error() == "timeout" {
-			return c.JSON(model.ApiGenericResponse{Error: platform.PublicErrorFromKey("timeout")})
+			return c.JSON(model.WithBuildInfo(model.ApiGenericResponse{Error: platform.PublicErrorFromKey("timeout")}))
 		}
-		return c.JSON(model.ApiGenericResponse{Error: platform.PublicErrorFromKey("bird_query_failed")})
+		return c.JSON(model.WithBuildInfo(model.ApiGenericResponse{Error: platform.PublicErrorFromKey("bird_query_failed")}))
 	}
 
-	return c.JSON(model.ApiGenericResponse{
+	return c.JSON(model.WithBuildInfo(model.ApiGenericResponse{
 		Result: []model.ApiGenericResultPair{{Server: "local", Data: output}},
-	})
+	}))
 }
 
 func (h *Handler) runTool(c fiber.Ctx, timeout time.Duration, build func(model.ToolTargetRequest) (string, []string, error)) error {
 	var req model.ToolTargetRequest
 	if err := c.Bind().JSON(&req); err != nil {
-		return c.JSON(model.ApiGenericResponse{Error: platform.PublicErrorFromKey("invalid_request")})
+		return c.JSON(model.WithBuildInfo(model.ApiGenericResponse{Error: platform.PublicErrorFromKey("invalid_request")}))
 	}
 
 	bin, args, err := build(req)
 	if err != nil {
-		return c.JSON(model.ApiGenericResponse{Error: platform.PublicErrorFromKey(err.Error())})
+		return c.JSON(model.WithBuildInfo(model.ApiGenericResponse{Error: platform.PublicErrorFromKey(err.Error())}))
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
@@ -95,26 +95,26 @@ func (h *Handler) runTool(c fiber.Ctx, timeout time.Duration, build func(model.T
 
 	out, runErr := h.runner.CombinedOutput(ctx, bin, args)
 	if ctx.Err() == context.DeadlineExceeded {
-		return c.JSON(model.ApiGenericResponse{Error: platform.PublicErrorFromKey("timeout")})
+		return c.JSON(model.WithBuildInfo(model.ApiGenericResponse{Error: platform.PublicErrorFromKey("timeout")}))
 	}
 	if runErr != nil {
-		return c.JSON(model.ApiGenericResponse{Error: platform.PublicErrorFromKey("exec_failed")})
+		return c.JSON(model.WithBuildInfo(model.ApiGenericResponse{Error: platform.PublicErrorFromKey("exec_failed")}))
 	}
 
-	return c.JSON(model.ApiGenericResponse{
+	return c.JSON(model.WithBuildInfo(model.ApiGenericResponse{
 		Result: []model.ApiGenericResultPair{{Server: "local", Data: string(out)}},
-	})
+	}))
 }
 
 func (h *Handler) streamTool(c fiber.Ctx, timeout time.Duration, build func(model.ToolTargetRequest) (string, []string, error)) error {
 	var req model.ToolTargetRequest
 	if err := c.Bind().JSON(&req); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(model.ApiGenericResponse{Error: platform.PublicErrorFromKey("invalid_request")})
+		return c.Status(fiber.StatusBadRequest).JSON(model.WithBuildInfo(model.ApiGenericResponse{Error: platform.PublicErrorFromKey("invalid_request")}))
 	}
 
 	bin, args, err := build(req)
 	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(model.ApiGenericResponse{Error: platform.PublicErrorFromKey(err.Error())})
+		return c.Status(fiber.StatusBadRequest).JSON(model.WithBuildInfo(model.ApiGenericResponse{Error: platform.PublicErrorFromKey(err.Error())}))
 	}
 
 	c.Set("Content-Type", "text/event-stream")
