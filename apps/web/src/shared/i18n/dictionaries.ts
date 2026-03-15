@@ -64,7 +64,8 @@ export const dictionaries = {
       security_check: "Security Check",
       complete_captcha: "Please complete the CAPTCHA to continue",
       sso_sign_in: "Sign in required",
-      sso_sign_in_description: "Your SSO session is required or has expired. Please sign in again to continue.",
+      sso_sign_in_description:
+        "Your SSO session is required or has expired. Please sign in again to continue.",
     },
     error: {
       title: "Error",
@@ -79,7 +80,8 @@ export const dictionaries = {
       server_error: "Target server is unavailable",
       sso_error: "SSO service is unavailable",
       unknown_error: "An unexpected error occurred",
-      rate_limit_exceeded: "You have exceeded the rate limit, please try again later",
+      rate_limit_exceeded:
+        "You have exceeded the rate limit, please try again later",
       target_required: "Target is required",
       target_invalid_format: "Target must be a valid IP address or domain name",
       target_bogon_blocked: "Bogon targets are not allowed",
@@ -93,10 +95,13 @@ export const dictionaries = {
       captcha_load_failed: "Failed to load the CAPTCHA widget",
       captcha_network_issue: "The CAPTCHA request hit a network timeout",
       captcha_widget_error: "The CAPTCHA widget encountered an error",
-      captcha_domain_not_allowed: "This hostname is not allowed, please contact the NOC",
+      captcha_domain_not_allowed:
+        "This hostname is not allowed, please contact the NOC",
       captcha_challenge_failed: "The CAPTCHA challenge failed",
-      captcha_unsupported: "Your browser is not supported by the CAPTCHA widget",
-      captcha_misconfigured: "The CAPTCHA service is misconfigured, please contact the NOC",
+      captcha_unsupported:
+        "Your browser is not supported by the CAPTCHA widget",
+      captcha_misconfigured:
+        "The CAPTCHA service is misconfigured, please contact the NOC",
       failed_load_config: "Failed to load configuration",
     },
   },
@@ -192,7 +197,8 @@ export const dictionaries = {
       captcha_load_failed: "人机验证组件加载失败",
       captcha_network_issue: "人机验证组件请求超时",
       captcha_widget_error: "人机验证组件发生错误",
-      captcha_domain_not_allowed: "当前域名不在人机验证服务白名单内, 请联系 NOC",
+      captcha_domain_not_allowed:
+        "当前域名不在人机验证服务白名单内, 请联系 NOC",
       captcha_challenge_failed: "人机验证挑战失败",
       captcha_unsupported: "当前浏览器不支持人机验证组件",
       captcha_misconfigured: "人机验证服务配置错误, 请联系 NOC",

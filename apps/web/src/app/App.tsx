@@ -7,6 +7,7 @@ import { ConfigProvider } from "@/entities/server/config-context";
 import { Button } from "@/shared/ui/button";
 import { AppHeader } from "@/shared/ui/app-header";
 import { appBuildInfo } from "@/shared/lib/build-info";
+import { useDebuggerGuard } from "@/shared/hooks/use-debugger-guard";
 import {
   Empty,
   EmptyActions,
@@ -53,6 +54,7 @@ function isAuthStatus(value: unknown): value is AuthStatus {
 
 function AppBootstrap() {
   const { t } = useTranslation();
+  const isDebuggerBlocked = useDebuggerGuard();
   const [config, setConfig] = useState<ClientConfig | null>(null);
   const [loading, setLoading] = useState(true);
   const [hasLoadError, setHasLoadError] = useState(false);
@@ -93,6 +95,10 @@ function AppBootstrap() {
     void loadConfig(controller.signal);
     return () => controller.abort();
   }, [loadConfig]);
+
+  if (isDebuggerBlocked) {
+    return <div className="min-h-dvh bg-background" />;
+  }
 
   if (loading) {
     return (
