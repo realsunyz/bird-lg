@@ -24,4 +24,15 @@ export interface ClientConfig {
   auth?: AuthStatus;
 }
 
+export interface PopVersionInfo {
+  serverId: string;
+  version?: string;
+  build?: string;
+  error?: string;
+}
+
+export interface PopVersionsResponse {
+  pops: PopVersionInfo[];
+}
+
 export type { AuthStatus };

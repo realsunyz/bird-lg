@@ -1,20 +1,11 @@
 import { Link } from "react-router-dom";
 import { Card, CardContent } from "@/shared/ui/card";
-import { Button } from "@/shared/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/shared/ui/dropdown-menu";
 import { useTranslation } from "@/shared/i18n/provider";
-import { LogIn, UserRound, LogOut, Database } from "lucide-react";
 import { DynamicFlag } from "@sankyu/react-circle-flags";
 import { useConfig } from "@/entities/server/config-context";
 import { getLocalizedText } from "@/entities/server/localized-text";
 import { AppHeader } from "@/shared/ui/app-header";
+import { AccountActions } from "@/shared/ui/account-actions";
 
 const serverCardIconClass =
   "w-12 h-12 rounded-full border-2 flex items-center justify-center bg-muted/30 group-hover:bg-muted text-foreground transition-colors shrink-0 font-title overflow-hidden";
@@ -22,42 +13,10 @@ const serverCardIconClass =
 export default function HomePage() {
   const { t, locale } = useTranslation();
   const config = useConfig();
-  const hasSSO = Boolean(config.logto?.endpoint && config.logto?.appId);
-  const accountActions = hasSSO ? (
-    config.auth?.isAuthenticated && config.auth?.authType === "sso" ? (
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon" aria-label={t.home.account_menu.user_menu}>
-            <UserRound className="h-[1.2rem] w-[1.2rem]" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <DropdownMenuLabel>{t.home.account_menu.my_account}</DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem>
-            <Database className="mr-2 h-4 w-4" />
-            <span>{t.home.account_menu.profile}</span>
-          </DropdownMenuItem>
-          <DropdownMenuItem asChild>
-            <a href="/auth/logout" className="w-full cursor-pointer text-destructive focus:text-destructive">
-              <LogOut className="mr-2 h-4 w-4" />
-              <span>{t.home.account_menu.logout}</span>
-            </a>
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-    ) : (
-      <Button variant="ghost" size="icon" asChild>
-        <a href="/api/auth/login" aria-label={t.home.account_menu.login}>
-          <LogIn className="h-[1.2rem] w-[1.2rem]" />
-        </a>
-      </Button>
-    )
-  ) : null;
 
   return (
     <div className="flex-1 bg-background flex flex-col font-sans">
-      <AppHeader rightExtra={accountActions} />
+      <AppHeader rightExtra={<AccountActions />} />
 
       <div className="flex-1 flex flex-col items-center justify-center py-16 px-8 md:py-8">
         <h1 className="text-4xl font-normal font-title mb-2 text-foreground flex items-center justify-center">

@@ -18,8 +18,41 @@ export const dictionaries = {
         user_menu: "User Menu",
         my_account: "My Account",
         profile: "Profile",
+        admin: "Admin",
         login: "Login",
         logout: "Logout",
+      },
+    },
+    footer: {
+      copyright: "Copyright ©",
+      version: "Version",
+      build: "build",
+      rights_reserved: "All rights reserved.",
+      aup_full: "Acceptable Use Policy",
+      aup_short: "AUP",
+    },
+    admin: {
+      title: "PoP Administration",
+      description: "View the bird-lg client version for each PoP.",
+      table_title: "PoP Versions",
+      table_description:
+        "All entries are fetched from the corresponding server",
+      login_required_title: "Sign in required",
+      login_required_description: "Please sign in with SSO to access this page",
+      columns: {
+        pop: "PoP",
+        version: "Version",
+        build: "Build",
+        status: "Status",
+      },
+      status: {
+        available: "Available",
+        incompatible: "Incompatible",
+        unavailable: "Unavailable",
+      },
+      messages: {
+        incompatible:
+          "Client is too old and does not support the version endpoint.",
       },
     },
     detail: {
@@ -122,8 +155,39 @@ export const dictionaries = {
         user_menu: "用户菜单",
         my_account: "我的账户",
         profile: "个人资料",
+        admin: "管理页",
         login: "登录",
         logout: "退出登录",
+      },
+    },
+    footer: {
+      copyright: "版权所有 ©",
+      version: "版本",
+      build: "构建",
+      rights_reserved: "保留所有权利.",
+      aup_full: "可接受使用政策",
+      aup_short: "使用政策",
+    },
+    admin: {
+      title: "接入点管理",
+      description: "查看每个接入点的 bird-lg 客户端版本",
+      table_title: "版本信息",
+      table_description: "所有项目均从对应的服务器拉取",
+      login_required_title: "需要登录",
+      login_required_description: "请先通过 SSO 登录后再访问该页面",
+      columns: {
+        pop: "接入点",
+        version: "版本",
+        build: "构建",
+        status: "状态",
+      },
+      status: {
+        available: "可用",
+        incompatible: "不兼容",
+        unavailable: "不可用",
+      },
+      messages: {
+        incompatible: "该客户端版本过旧, 不支持版本信息接口",
       },
     },
     detail: {

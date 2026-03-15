@@ -86,6 +86,7 @@ func main() {
 	app.Post("/api/tool/traceroute", auth.Wrap(middleware.WithTimeout(h.Traceroute, handlers.TracerouteTimeout)))
 	app.Post("/api/tool/traceroute/stream", auth.Wrap(h.TracerouteStream))
 	app.Post("/api/tool/bird", auth.Wrap(middleware.WithTimeout(h.Bird, handlers.BirdTimeout)))
+	app.Post("/api/version", auth.Wrap(h.Version))
 	app.Get("/api/health", healthcheck.New())
 
 	log.Printf("[INFO] Starting on %s", cfg.ListenAddr)

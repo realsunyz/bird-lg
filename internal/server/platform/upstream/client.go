@@ -176,3 +176,43 @@ func ProxyToClientPath(endpoint, path string, request any, hmacSecret string) (m
 	}
 	return result, nil
 }
+
+func FetchClientVersion(endpoint, hmacSecret string) (model.ClientVersionResponse, error) {
+	cc := NewHTTPClient()
+
+	body, err := marshalClientJSON(cc, fiber.Map{})
+	if err != nil {
+		return model.ClientVersionResponse{}, err
+	}
+
+	req := cc.R()
+	req.SetTimeout(10 * time.Second)
+	req.SetHeader("Content-Type", "application/json")
+	req.SetRawBody(body)
+
+	if hmacSecret != "" {
+		timestamp := strconv.FormatInt(time.Now().Unix(), 10)
+		signature := ComputeSignature(hmacSecret, timestamp, fiber.MethodPost, "/api/version", body)
+		req.SetHeader("X-Signature", signature)
+		req.SetHeader("X-Timestamp", timestamp)
+	}
+
+	resp, err := req.Post(endpoint + "/api/version")
+	if err != nil {
+		return model.ClientVersionResponse{}, fiber.NewError(fiber.StatusBadGateway, errx.FormatPublicError(errx.ErrCodeServerConnectFailed, "Failed to connect to upstream client"))
+	}
+
+	if resp.StatusCode() != fiber.StatusOK {
+		if resp.StatusCode() == fiber.StatusNotFound && strings.TrimSpace(string(resp.Body())) == "Not Found" {
+			return model.ClientVersionResponse{}, fiber.NewError(fiber.StatusBadGateway, "incompatible_client")
+		}
+		return model.ClientVersionResponse{}, fiber.NewError(fiber.StatusBadGateway, errx.FormatPublicError(errx.ErrCodeServerBadStatus, "Upstream client returned an error"))
+	}
+
+	var result model.ClientVersionResponse
+	if err := resp.JSON(&result); err != nil {
+		return model.ClientVersionResponse{}, err
+	}
+
+	return result, nil
+}

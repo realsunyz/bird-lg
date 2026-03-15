@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { appBuildInfo } from "@/shared/lib/build-info";
 
 const CHECK_INTERVAL_MS = 1000;
 const BLOCK_THRESHOLD_MS = 150;
@@ -8,7 +9,7 @@ export function useDebuggerGuard() {
   const isBlockedRef = useRef(false);
 
   useEffect(() => {
-    if (import.meta.env.DEV) {
+    if (import.meta.env.DEV || appBuildInfo.version === "dev") {
       return;
     }
 

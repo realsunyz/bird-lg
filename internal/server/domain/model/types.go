@@ -51,3 +51,19 @@ type APIGenericResponse struct {
 	Version   string                 `json:"version"`
 	Build     string                 `json:"build"`
 }
+
+type ClientVersionResponse struct {
+	Version string `json:"version"`
+	Build   string `json:"build"`
+}
+
+type PopVersionItem struct {
+	ServerID string `json:"serverId"`
+	Version  string `json:"version,omitempty"`
+	Build    string `json:"build,omitempty"`
+	Error    string `json:"error,omitempty"`
+}
+
+type PopVersionsResponse struct {
+	Pops []PopVersionItem `json:"pops"`
+}

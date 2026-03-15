@@ -19,6 +19,7 @@ import { type AuthStatus, type ClientConfig } from "@/entities/server/types";
 import HomePage from "@/features/server-select/ui/home-page";
 
 const DetailPage = lazy(() => import("@/app/routes/detail-page"));
+const AdminPage = lazy(() => import("@/app/routes/admin-page"));
 
 function App() {
   return (
@@ -38,7 +39,11 @@ function isClientConfig(value: unknown): value is ClientConfig {
   if (!Array.isArray(cfg.servers)) return false;
   if (!cfg.turnstile || typeof cfg.turnstile.siteKey !== "string") return false;
   if (cfg.logto) {
-    if (typeof cfg.logto.endpoint !== "string" || typeof cfg.logto.appId !== "string") return false;
+    if (
+      typeof cfg.logto.endpoint !== "string" ||
+      typeof cfg.logto.appId !== "string"
+    )
+      return false;
   }
   return true;
 }
@@ -48,7 +53,8 @@ function isAuthStatus(value: unknown): value is AuthStatus {
   const auth = value as Partial<AuthStatus>;
   if (typeof auth.isAuthenticated !== "boolean") return false;
   if (auth.user !== undefined && typeof auth.user !== "string") return false;
-  if (auth.authType !== undefined && typeof auth.authType !== "string") return false;
+  if (auth.authType !== undefined && typeof auth.authType !== "string")
+    return false;
   return true;
 }
 
@@ -103,7 +109,9 @@ function AppBootstrap() {
   if (loading) {
     return (
       <div className="min-h-dvh bg-background flex items-center justify-center">
-        <div className="animate-pulse text-muted-foreground">{t.common.loading}</div>
+        <div className="animate-pulse text-muted-foreground">
+          {t.common.loading}
+        </div>
       </div>
     );
   }
@@ -132,28 +140,37 @@ function AppBootstrap() {
             <Suspense
               fallback={
                 <div className="flex-1 bg-background flex items-center justify-center">
-                  <div className="animate-pulse text-muted-foreground">{t.common.loading}</div>
+                  <div className="animate-pulse text-muted-foreground">
+                    {t.common.loading}
+                  </div>
                 </div>
               }
             >
               <Routes>
                 <Route path="/" element={<HomePage />} />
                 <Route path="/detail/:serverId" element={<DetailPage />} />
+                <Route path="/admin" element={<AdminPage />} />
                 <Route path="*" element={<NotFoundPage />} />
               </Routes>
             </Suspense>
           </main>
           <footer className="border-t bg-card mt-auto shrink-0 w-full">
-            <div className="mx-auto flex w-full max-w-7xl flex-col gap-4 px-6 py-5 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+            <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-6 py-5 text-sm text-muted-foreground">
               <div className="text-left">
-                <p>Copyright © {currentYear} Sunyz Network. All rights reserved.</p>
+                <p className="hidden sm:block">
+                  {t.footer.copyright} {currentYear} Sunyz Network. {t.footer.rights_reserved}
+                </p>
+                <p className="sm:hidden">
+                  {t.footer.copyright} {currentYear} Sunyz Network
+                </p>
                 <p className="mt-1 text-xs text-muted-foreground/80">
-                  Version {appBuildInfo.displayVersion} (build{" "}
+                  {t.footer.version} {appBuildInfo.displayVersion} ({t.footer.build}{" "}
                   <span className="font-mono">{appBuildInfo.build}</span>)
                 </p>
               </div>
-              <div className="text-left sm:text-right">
-                <span>Acceptable Use Policy</span>
+              <div className="shrink-0 self-center text-right">
+                <span className="hidden sm:inline">{t.footer.aup_full}</span>
+                <span className="sm:hidden">{t.footer.aup_short}</span>
               </div>
             </div>
           </footer>
@@ -178,7 +195,9 @@ function NotFoundPage() {
             <EmptyDescription className="font-title text-base text-foreground">
               {t.error.page_not_found_title}
             </EmptyDescription>
-            <EmptyDescription>{t.error.page_not_found_description}</EmptyDescription>
+            <EmptyDescription>
+              {t.error.page_not_found_description}
+            </EmptyDescription>
           </EmptyHeader>
           <EmptyActions>
             <Button asChild>

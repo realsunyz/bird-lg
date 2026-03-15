@@ -10,6 +10,7 @@ import (
 	platformconfig "bird-lg/server/internal/server/platform/config"
 	errx "bird-lg/server/internal/server/platform/errors"
 	"bird-lg/server/internal/server/platform/upstream"
+	adminsvc "bird-lg/server/internal/server/services/admin"
 	authsvc "bird-lg/server/internal/server/services/auth"
 	birdsvc "bird-lg/server/internal/server/services/bird"
 	configsvc "bird-lg/server/internal/server/services/config"
@@ -78,6 +79,14 @@ func HandleLogtoCallback(cfg *platformconfig.Config) fiber.Handler {
 
 func HandleVerify(cfg *platformconfig.Config) fiber.Handler {
 	return authsvc.HandleVerify(cfg)
+}
+
+func HandleAdminPops(cfg *platformconfig.Config) fiber.Handler {
+	service := adminsvc.NewService(cfg)
+
+	return func(c fiber.Ctx) error {
+		return c.JSON(service.PopVersions())
+	}
 }
 
 func HandleBird(cfg *platformconfig.Config) fiber.Handler {

@@ -24,6 +24,11 @@ type ToolBirdRequest struct {
 	Command string `json:"command"`
 }
 
+type VersionResponse struct {
+	Version string `json:"version"`
+	Build   string `json:"build"`
+}
+
 func WithBuildInfo(resp ApiGenericResponse) ApiGenericResponse {
 	info := buildinfo.Current()
 	resp.Version = info.Version
