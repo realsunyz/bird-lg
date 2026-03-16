@@ -2,8 +2,6 @@ import { useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card";
 import { Badge } from "@/shared/ui/badge";
 import { ScrollArea } from "@/shared/ui/scroll-area";
-import { Activity, AlertTriangle, CheckCircle2, Clock } from "lucide-react";
-import { cn } from "@/shared/lib/utils";
 import { RawOutputPanel } from "@/shared/ui/raw-output-panel";
 import { useTranslation } from "@/shared/i18n/provider";
 import { Slot } from "@/shared/ui/animate-ui/primitives/animate/slot";
@@ -83,90 +81,32 @@ export function PingResult({ rawOutput }: PingResultProps) {
   }, [rawOutput]);
 
   const hasStats = !!stats;
+  const repliesViewportHeight = Math.min(
+    300,
+    sequences.length > 0 ? (sequences.length + 1) * 44 : 140,
+  );
+  const getLatencyClassName = (value?: number) => {
+    if (value === undefined) return "font-semibold";
+    if (value < 50) return "font-semibold text-green-600";
+    if (value < 150) return "font-semibold text-yellow-600";
+    return "font-semibold text-destructive";
+  };
 
   if (!rawOutput) return null;
 
   return (
     <div className="space-y-4 mt-4">
-      {hasStats && stats && (
-        <Slot
-          initial={{ opacity: 0, y: 10, filter: "blur(4px)" }}
-          animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-          transition={{ duration: 0.3, delay: 0.1 }}
-        >
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  {t.detail.ping_result.packet_loss}
-                </CardTitle>
-                {stats.loss === 0 ? (
-                  <CheckCircle2 className="h-4 w-4 text-green-500" />
-                ) : (
-                  <AlertTriangle className="h-4 w-4 text-destructive" />
-                )}
-              </CardHeader>
-              <CardContent>
-                <div
-                  className={cn(
-                    "text-2xl font-bold",
-                    stats.loss > 0 ? "text-destructive" : "text-green-500",
-                  )}
-                >
-                  {stats.loss}%
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  {stats.received} / {stats.transmitted} {t.detail.ping_result.packets_received}
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  {t.detail.ping_result.avg_latency}
-                </CardTitle>
-                <Clock className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {stats.avg !== undefined ? `${stats.avg.toFixed(2)} ms` : t.detail.ping_result.na}
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  {t.detail.ping_result.min}: {stats.min !== undefined ? stats.min.toFixed(2) : "-"}{" "}
-                  ms / {t.detail.ping_result.max}:{" "}
-                  {stats.max !== undefined ? stats.max.toFixed(2) : "-"} ms
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">{t.detail.ping_result.jitter}</CardTitle>
-                <Activity className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {stats.mdev !== undefined ? `${stats.mdev.toFixed(2)} ms` : t.detail.ping_result.na}
-                </div>
-                <p className="text-xs text-muted-foreground">{t.detail.ping_result.std_dev}</p>
-              </CardContent>
-            </Card>
-          </div>
-        </Slot>
-      )}
-
       <Slot
         initial={{ opacity: 0, y: 10, filter: "blur(4px)" }}
         animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
         transition={{ duration: 0.3 }}
       >
-        <Card>
-          <CardHeader className="pb-3">
+        <Card className="shadow-none">
+          <CardHeader className="pb-3 pt-4">
             <CardTitle className="text-base">{t.detail.ping_result.replies}</CardTitle>
           </CardHeader>
           <CardContent className="p-0">
-            <ScrollArea className="h-[300px]">
+            <ScrollArea style={{ height: `${repliesViewportHeight}px` }}>
               <div className="divide-y">
                 {sequences.map((seq) => (
                   <div
@@ -182,10 +122,8 @@ export function PingResult({ rawOutput }: PingResultProps) {
                     <div className="flex items-center gap-4">
                       <span className="text-sm text-muted-foreground">ttl={seq.ttl}</span>
                       <Badge
-                        variant={
-                          seq.time < 50 ? "secondary" : seq.time < 150 ? "outline" : "destructive"
-                        }
-                        className="font-mono"
+                        variant="outline"
+                        className={getLatencyClassName(seq.time)}
                       >
                         {seq.time.toFixed(2)} ms
                       </Badge>
@@ -199,6 +137,28 @@ export function PingResult({ rawOutput }: PingResultProps) {
                 )}
               </div>
             </ScrollArea>
+            {hasStats && stats && (
+              <div className="flex flex-wrap items-center gap-x-6 gap-y-2 border-t px-6 py-4 text-sm">
+                <div className="flex items-center gap-2">
+                  <span className="text-muted-foreground">{t.detail.ping_result.packet_loss}</span>
+                  <span className={stats.loss > 0 ? "font-semibold text-destructive" : "font-semibold"}>
+                    {stats.loss}%
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-muted-foreground">{t.detail.ping_result.avg_latency}</span>
+                  <span className={getLatencyClassName(stats.avg)}>
+                    {stats.avg !== undefined ? `${stats.avg.toFixed(2)} ms` : t.detail.ping_result.na}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-muted-foreground">{t.detail.ping_result.jitter}</span>
+                  <span className={getLatencyClassName(stats.mdev)}>
+                    {stats.mdev !== undefined ? `${stats.mdev.toFixed(2)} ms` : t.detail.ping_result.na}
+                  </span>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       </Slot>
@@ -207,4 +167,3 @@ export function PingResult({ rawOutput }: PingResultProps) {
     </div>
   );
 }
-

@@ -1,10 +1,10 @@
 import { useState, useEffect, useMemo } from "react";
 import { ChevronDown, ChevronUp } from "lucide-react";
-import { Button } from "@/shared/ui/button";
 import { useTranslation } from "@/shared/i18n/provider";
 import { useTheme } from "@/shared/ui/theme-provider";
 import { createHighlighterCore } from "shiki/core";
 import { createJavaScriptRegexEngine } from "shiki/engine/javascript";
+import { cn } from "@/shared/lib/utils";
 
 let highlighterInstance: any = null;
 
@@ -132,19 +132,29 @@ export function RawOutputPanel({ output, defaultOpen = false, collapsible = true
   }, [showRaw, output, theme]);
 
   return (
-    <div className={collapsible ? "border rounded-md" : ""}>
+    <div
+      className={cn(
+        collapsible && "overflow-hidden rounded-xl border bg-card text-card-foreground",
+      )}
+    >
       {collapsible && (
-        <Button
-          variant="ghost"
-          className="w-full flex justify-between items-center p-4 h-auto"
+        <button
+          type="button"
+          className="flex w-full items-center justify-between px-6 py-4 text-left transition-colors hover:bg-accent/30"
           onClick={() => setShowRaw(!showRaw)}
         >
-          <span className="font-medium">{t.detail.raw_output}</span>
+          <span className="text-base font-normal tracking-tight">
+            {t.detail.raw_output}
+          </span>
           {showRaw ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-        </Button>
+        </button>
       )}
       {showRaw && (
-        <div className={`p-4 bg-muted/30 overflow-x-auto text-sm font-mono [&_pre]:bg-transparent! [&_pre]:m-0! ${collapsible ? "border-t" : "rounded-md border"}`}>
+        <div
+          className={`bg-muted/30 overflow-x-auto text-sm font-mono [&_pre]:bg-transparent! [&_pre]:m-0! ${
+            collapsible ? "border-t px-6 py-4" : "rounded-md border p-4"
+          }`}
+        >
           {safeHtml ? (
             <div dangerouslySetInnerHTML={{ __html: safeHtml }} />
           ) : (

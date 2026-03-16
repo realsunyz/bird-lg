@@ -88,7 +88,7 @@ export function TracerouteResult({ rawOutput }: TracerouteResultProps) {
         animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
         transition={{ duration: 0.3 }}
       >
-        <Card>
+        <Card className="shadow-none">
           <CardContent className="p-0">
             <Table>
               <TableHeader>
@@ -154,4 +154,3 @@ export function TracerouteResult({ rawOutput }: TracerouteResultProps) {
     </div>
   );
 }
-

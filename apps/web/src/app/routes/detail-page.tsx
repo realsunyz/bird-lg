@@ -306,6 +306,7 @@ function QueryInterface({ server, config }: { server: ServerConfig; config: Clie
           <CardContent className="pt-6">
             <TabsContent
               value="ping"
+              forceMount
               className="mt-0"
               initial={enableTabSwitchAnimation ? { opacity: 0, filter: "blur(4px)" } : false}
             >
@@ -318,6 +319,7 @@ function QueryInterface({ server, config }: { server: ServerConfig; config: Clie
             </TabsContent>
             <TabsContent
               value="traceroute"
+              forceMount
               className="mt-0"
               initial={enableTabSwitchAnimation ? { opacity: 0, filter: "blur(4px)" } : false}
             >
@@ -330,6 +332,7 @@ function QueryInterface({ server, config }: { server: ServerConfig; config: Clie
             {isSSO && (
               <TabsContent
                 value="route"
+                forceMount
                 className="mt-0"
                 initial={enableTabSwitchAnimation ? { opacity: 0, filter: "blur(4px)" } : false}
               >

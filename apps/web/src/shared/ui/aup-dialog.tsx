@@ -28,7 +28,7 @@ export function AUPDialog({ mobile = false }: AUPDialogProps) {
         variant="link"
         size="sm"
         className={cn(
-          "h-auto p-0 text-muted-foreground hover:text-foreground",
+          "h-auto p-0 font-normal text-muted-foreground hover:text-foreground",
           mobile ? "text-xs" : "text-sm",
         )}
       >
