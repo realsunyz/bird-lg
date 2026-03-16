@@ -45,9 +45,9 @@ func BuildCommand(target string, count int) (string, []string, error) {
 		count = 20
 	}
 
-	args := []string{"-c", fmt.Sprintf("%d", count), "-i", "0.2", target}
+	args := []string{"-c", fmt.Sprintf("%d", count), "-i", "0.5", target}
 	if pingSupportsOutstanding {
-		args = []string{"-O", "-c", fmt.Sprintf("%d", count), "-i", "0.2", target}
+		args = []string{"-O", "-c", fmt.Sprintf("%d", count), "-i", "0.5", target}
 	}
 	return pingBin, args, nil
 }
