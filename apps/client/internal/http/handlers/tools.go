@@ -3,6 +3,8 @@ package handlers
 import (
 	"bufio"
 	"context"
+	"errors"
+	"os/exec"
 	"strings"
 	"time"
 
@@ -32,25 +34,25 @@ func New(r runner.CommandRunner, birdSocket string) *Handler {
 }
 
 func (h *Handler) Ping(c fiber.Ctx) error {
-	return h.runTool(c, PingTimeout, func(req model.ToolTargetRequest) (string, []string, error) {
+	return h.runTool(c, PingTimeout, isIgnorablePingExitError, func(req model.ToolTargetRequest) (string, []string, error) {
 		return pingsvc.BuildCommand(req.Target, req.Count)
 	})
 }
 
 func (h *Handler) PingStream(c fiber.Ctx) error {
-	return h.streamTool(c, PingTimeout, func(req model.ToolTargetRequest) (string, []string, error) {
+	return h.streamTool(c, PingTimeout, isIgnorablePingExitError, func(req model.ToolTargetRequest) (string, []string, error) {
 		return pingsvc.BuildCommand(req.Target, req.Count)
 	})
 }
 
 func (h *Handler) Traceroute(c fiber.Ctx) error {
-	return h.runTool(c, TracerouteTimeout, func(req model.ToolTargetRequest) (string, []string, error) {
+	return h.runTool(c, TracerouteTimeout, nil, func(req model.ToolTargetRequest) (string, []string, error) {
 		return tracesvc.BuildCommand(req.Target)
 	})
 }
 
 func (h *Handler) TracerouteStream(c fiber.Ctx) error {
-	return h.streamTool(c, TracerouteTimeout, func(req model.ToolTargetRequest) (string, []string, error) {
+	return h.streamTool(c, TracerouteTimeout, nil, func(req model.ToolTargetRequest) (string, []string, error) {
 		return tracesvc.BuildCommand(req.Target)
 	})
 }
@@ -79,7 +81,12 @@ func (h *Handler) Bird(c fiber.Ctx) error {
 	}))
 }
 
-func (h *Handler) runTool(c fiber.Ctx, timeout time.Duration, build func(model.ToolTargetRequest) (string, []string, error)) error {
+func (h *Handler) runTool(
+	c fiber.Ctx,
+	timeout time.Duration,
+	allowExitErr func(error) bool,
+	build func(model.ToolTargetRequest) (string, []string, error),
+) error {
 	var req model.ToolTargetRequest
 	if err := c.Bind().JSON(&req); err != nil {
 		return c.JSON(model.WithBuildInfo(model.ApiGenericResponse{Error: platform.PublicErrorFromKey("invalid_request")}))
@@ -97,7 +104,7 @@ func (h *Handler) runTool(c fiber.Ctx, timeout time.Duration, build func(model.T
 	if ctx.Err() == context.DeadlineExceeded {
 		return c.JSON(model.WithBuildInfo(model.ApiGenericResponse{Error: platform.PublicErrorFromKey("timeout")}))
 	}
-	if runErr != nil {
+	if runErr != nil && (allowExitErr == nil || !allowExitErr(runErr)) {
 		return c.JSON(model.WithBuildInfo(model.ApiGenericResponse{Error: platform.PublicErrorFromKey("exec_failed")}))
 	}
 
@@ -106,7 +113,12 @@ func (h *Handler) runTool(c fiber.Ctx, timeout time.Duration, build func(model.T
 	}))
 }
 
-func (h *Handler) streamTool(c fiber.Ctx, timeout time.Duration, build func(model.ToolTargetRequest) (string, []string, error)) error {
+func (h *Handler) streamTool(
+	c fiber.Ctx,
+	timeout time.Duration,
+	allowExitErr func(error) bool,
+	build func(model.ToolTargetRequest) (string, []string, error),
+) error {
 	var req model.ToolTargetRequest
 	if err := c.Bind().JSON(&req); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(model.WithBuildInfo(model.ApiGenericResponse{Error: platform.PublicErrorFromKey("invalid_request")}))
@@ -133,9 +145,17 @@ func (h *Handler) streamTool(c fiber.Ctx, timeout time.Duration, build func(mode
 			stream.WriteData(w, platform.PublicErrorFromKey("timeout"))
 			return
 		}
-		if err != nil {
+		if err != nil && (allowExitErr == nil || !allowExitErr(err)) {
 			stream.WriteData(w, platform.PublicErrorFromKey("exec_failed"))
 		}
 	})
 	return nil
+}
+
+func isIgnorablePingExitError(err error) bool {
+	var exitErr *exec.ExitError
+	if !errors.As(err, &exitErr) {
+		return false
+	}
+	return exitErr.ExitCode() == 1
 }
