@@ -160,7 +160,7 @@ export function PingResult({ rawOutput }: PingResultProps) {
                     </div>
                     <div className="flex items-center gap-4">
                       <span className="text-sm text-muted-foreground">
-                        {seq.status === "timeout" ? "ttl=-" : `ttl=${seq.ttl}`}
+                        {seq.status === "timeout" ? "ttl=n/a" : `ttl=${seq.ttl}`}
                       </span>
                       <Badge
                         variant="outline"
@@ -171,7 +171,7 @@ export function PingResult({ rawOutput }: PingResultProps) {
                         }
                       >
                         {seq.status === "timeout"
-                          ? t.detail.ping_result.timeout
+                          ? `${t.detail.ping_result.na} ms`
                           : `${seq.time?.toFixed(2)} ms`}
                       </Badge>
                     </div>
