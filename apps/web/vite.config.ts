@@ -1,8 +1,11 @@
 import { execSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
 import path from "path";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
+
+const webRoot = path.dirname(fileURLToPath(import.meta.url));
 
 function normalizeVersion(value: string | undefined): string {
   const normalized = value?.trim();
@@ -12,7 +15,7 @@ function normalizeVersion(value: string | undefined): string {
 function resolveGitBuild(): string {
   try {
     return execSync("git rev-parse --short=7 HEAD", {
-      cwd: path.resolve(__dirname, "..", ".."),
+      cwd: path.resolve(webRoot, "..", ".."),
       stdio: ["ignore", "pipe", "ignore"],
     })
       .toString()
@@ -41,7 +44,7 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "./src"),
+      "@": path.resolve(webRoot, "./src"),
     },
   },
   build: {
