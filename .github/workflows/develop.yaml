@@ -180,7 +180,8 @@ jobs:
         id: frontend-manifest
         if: github.event_name == 'workflow_dispatch' || needs.changes.outputs.frontend == 'true'
         run: |
-          digest=$(docker buildx imagetools inspect ghcr.io/${{ env.GHCR_IMAGE_NAME }}:frontend-dev --format '{{json .Manifest}}' | grep -o '"digest":"sha256:[^"]*"' | head -n1 | cut -d'"' -f4)
+          digest=$(docker buildx imagetools inspect ghcr.io/${{ env.GHCR_IMAGE_NAME }}:frontend-dev --format '{{json .Manifest}}' | jq -r '.digest')
+          test -n "$digest" && test "$digest" != "null"
           echo "digest=$digest" >> "$GITHUB_OUTPUT"
 
       - name: Generate Artifact Attestation - Frontend
@@ -206,7 +207,8 @@ jobs:
         id: client-manifest
         if: github.event_name == 'workflow_dispatch' || needs.changes.outputs.client-image == 'true'
         run: |
-          digest=$(docker buildx imagetools inspect ghcr.io/${{ env.GHCR_IMAGE_NAME }}:client-dev --format '{{json .Manifest}}' | grep -o '"digest":"sha256:[^"]*"' | head -n1 | cut -d'"' -f4)
+          digest=$(docker buildx imagetools inspect ghcr.io/${{ env.GHCR_IMAGE_NAME }}:client-dev --format '{{json .Manifest}}' | jq -r '.digest')
+          test -n "$digest" && test "$digest" != "null"
           echo "digest=$digest" >> "$GITHUB_OUTPUT"
 
       - name: Generate Artifact Attestation - Client

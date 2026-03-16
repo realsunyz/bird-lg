@@ -161,13 +161,15 @@ jobs:
       - name: Read Frontend Manifest Digest - GHCR
         id: frontend-manifest
         run: |
-          digest=$(docker buildx imagetools inspect ghcr.io/${{ env.GHCR_IMAGE_NAME }}:frontend --format '{{json .Manifest}}' | grep -o '"digest":"sha256:[^"]*"' | head -n1 | cut -d'"' -f4)
+          digest=$(docker buildx imagetools inspect ghcr.io/${{ env.GHCR_IMAGE_NAME }}:frontend --format '{{json .Manifest}}' | jq -r '.digest')
+          test -n "$digest" && test "$digest" != "null"
           echo "digest=$digest" >> "$GITHUB_OUTPUT"
 
       - name: Read Frontend Manifest Digest - Vultr
         id: frontend-manifest-vultr
         run: |
-          digest=$(docker buildx imagetools inspect ${{ env.VULTR_REGISTRY }}/${{ env.VULTR_IMAGE_NAME }}:frontend --format '{{json .Manifest}}' | grep -o '"digest":"sha256:[^"]*"' | head -n1 | cut -d'"' -f4)
+          digest=$(docker buildx imagetools inspect ${{ env.VULTR_REGISTRY }}/${{ env.VULTR_IMAGE_NAME }}:frontend --format '{{json .Manifest}}' | jq -r '.digest')
+          test -n "$digest" && test "$digest" != "null"
           echo "digest=$digest" >> "$GITHUB_OUTPUT"
 
       - name: Generate Frontend Artifact Attestation - GHCR
@@ -205,13 +207,15 @@ jobs:
       - name: Read Client Manifest Digest - GHCR
         id: client-manifest
         run: |
-          digest=$(docker buildx imagetools inspect ghcr.io/${{ env.GHCR_IMAGE_NAME }}:client --format '{{json .Manifest}}' | grep -o '"digest":"sha256:[^"]*"' | head -n1 | cut -d'"' -f4)
+          digest=$(docker buildx imagetools inspect ghcr.io/${{ env.GHCR_IMAGE_NAME }}:client --format '{{json .Manifest}}' | jq -r '.digest')
+          test -n "$digest" && test "$digest" != "null"
           echo "digest=$digest" >> "$GITHUB_OUTPUT"
 
       - name: Read Client Manifest Digest - Vultr
         id: client-manifest-vultr
         run: |
-          digest=$(docker buildx imagetools inspect ${{ env.VULTR_REGISTRY }}/${{ env.VULTR_IMAGE_NAME }}:client --format '{{json .Manifest}}' | grep -o '"digest":"sha256:[^"]*"' | head -n1 | cut -d'"' -f4)
+          digest=$(docker buildx imagetools inspect ${{ env.VULTR_REGISTRY }}/${{ env.VULTR_IMAGE_NAME }}:client --format '{{json .Manifest}}' | jq -r '.digest')
+          test -n "$digest" && test "$digest" != "null"
           echo "digest=$digest" >> "$GITHUB_OUTPUT"
 
       - name: Generate Client Artifact Attestation - GHCR
