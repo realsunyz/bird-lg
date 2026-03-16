@@ -7,11 +7,21 @@ import (
 )
 
 var pingBin string
+var pingSupportsOutstanding bool
 
 func init() {
 	if path, err := exec.LookPath("ping"); err == nil {
 		pingBin = path
+		pingSupportsOutstanding = supportsOutstandingReport(path)
 	}
+}
+
+func supportsOutstandingReport(path string) bool {
+	out, _ := exec.Command(path, "-h").CombinedOutput()
+	if len(out) == 0 {
+		out, _ = exec.Command(path, "--help").CombinedOutput()
+	}
+	return strings.Contains(string(out), "-O")
 }
 
 func BuildCommand(target string, count int) (string, []string, error) {
@@ -36,5 +46,8 @@ func BuildCommand(target string, count int) (string, []string, error) {
 	}
 
 	args := []string{"-c", fmt.Sprintf("%d", count), "-i", "0.2", target}
+	if pingSupportsOutstanding {
+		args = []string{"-O", "-c", fmt.Sprintf("%d", count), "-i", "0.2", target}
+	}
 	return pingBin, args, nil
 }

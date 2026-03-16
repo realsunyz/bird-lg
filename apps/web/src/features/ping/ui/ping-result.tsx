@@ -23,9 +23,10 @@ interface PingStats {
 
 interface PingSequence {
   seq: number;
-  ttl: number;
-  time: number;
+  ttl?: number;
+  time?: number;
   ip: string;
+  status: "success" | "timeout";
 }
 
 export function PingResult({ rawOutput }: PingResultProps) {
@@ -35,30 +36,53 @@ export function PingResult({ rawOutput }: PingResultProps) {
     sequences: PingSequence[];
   }>(() => {
     const lines = rawOutput.split("\n");
-    const sequences: PingSequence[] = [];
+    const sequenceMap = new Map<number, PingSequence>();
     let stats: PingStats | null = null;
+    let transmitted = 0;
 
     const seqRegex =
-      /(\d+) bytes from ([a-fA-F0-9:.]+).*?: icmp_seq=(\d+) ttl=(\d+) time=([\d.]+) ms/;
+      /(\d+) bytes from (.+?)(?:\s*:|\s+):?\s*icmp_seq=(\d+) ttl=(\d+) time=([\d.]+) ms/;
+    const timeoutRegexes = [
+      /no answer yet for icmp_seq=(\d+)/,
+      /Request timeout for icmp_seq[=\s](\d+)/,
+    ];
     const statsHeaderRegex = /(\d+) packets transmitted, (\d+) received, ([\d.]+)% packet loss/;
     const rttRegex = /rtt min\/avg\/max\/mdev = ([\d.]+)\/([\d.]+)\/([\d.]+)\/([\d.]+) ms/;
 
     lines.forEach((line) => {
       const seqMatch = line.match(seqRegex);
       if (seqMatch) {
-        sequences.push({
+        const seq = parseInt(seqMatch[3]);
+        sequenceMap.set(seq, {
           ip: seqMatch[2],
-          seq: parseInt(seqMatch[3]),
+          seq,
           ttl: parseInt(seqMatch[4]),
           time: parseFloat(seqMatch[5]),
+          status: "success",
         });
+        return;
+      }
+
+      for (const timeoutRegex of timeoutRegexes) {
+        const timeoutMatch = line.match(timeoutRegex);
+        if (!timeoutMatch) continue;
+        const seq = parseInt(timeoutMatch[1]);
+        const existing = sequenceMap.get(seq);
+        if (!existing || existing.status !== "success") {
+          sequenceMap.set(seq, {
+            seq,
+            ip: "",
+            status: "timeout",
+          });
+        }
         return;
       }
 
       const statsMatch = line.match(statsHeaderRegex);
       if (statsMatch) {
+        transmitted = parseInt(statsMatch[1]);
         stats = {
-          transmitted: parseInt(statsMatch[1]),
+          transmitted,
           received: parseInt(statsMatch[2]),
           loss: parseFloat(statsMatch[3]),
           ...stats,
@@ -77,6 +101,19 @@ export function PingResult({ rawOutput }: PingResultProps) {
       }
     });
 
+    if (transmitted > 0) {
+      for (let seq = 1; seq <= transmitted; seq += 1) {
+        if (!sequenceMap.has(seq)) {
+          sequenceMap.set(seq, {
+            seq,
+            ip: "",
+            status: "timeout",
+          });
+        }
+      }
+    }
+
+    const sequences = Array.from(sequenceMap.values()).sort((a, b) => a.seq - b.seq);
     return { stats, sequences };
   }, [rawOutput]);
 
@@ -117,15 +154,25 @@ export function PingResult({ rawOutput }: PingResultProps) {
                       <Badge variant="outline" className="font-mono">
                         {seq.seq}
                       </Badge>
-                      <span className="font-mono text-sm">{seq.ip}</span>
+                      <span className="font-mono text-sm">
+                        {seq.status === "timeout" ? t.detail.ping_result.timeout : seq.ip}
+                      </span>
                     </div>
                     <div className="flex items-center gap-4">
-                      <span className="text-sm text-muted-foreground">ttl={seq.ttl}</span>
+                      <span className="text-sm text-muted-foreground">
+                        {seq.status === "timeout" ? "ttl=-" : `ttl=${seq.ttl}`}
+                      </span>
                       <Badge
                         variant="outline"
-                        className={getLatencyClassName(seq.time)}
+                        className={
+                          seq.status === "timeout"
+                            ? "font-semibold text-destructive"
+                            : getLatencyClassName(seq.time)
+                        }
                       >
-                        {seq.time.toFixed(2)} ms
+                        {seq.status === "timeout"
+                          ? t.detail.ping_result.timeout
+                          : `${seq.time?.toFixed(2)} ms`}
                       </Badge>
                     </div>
                   </div>
