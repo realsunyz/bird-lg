@@ -14,11 +14,13 @@ export function AUPDialog({ mobile = false }: AUPDialogProps) {
     <ResponsiveDialog
       title={t.aup.title}
       content={
-        <div className="space-y-5 pr-2 text-sm leading-6">
+        <div className="mx-auto max-w-[42rem] space-y-4 pr-2 text-sm leading-6">
           {t.aup.sections.map((section) => (
-            <section key={section.heading} className="space-y-1.5">
-              <h3 className="font-medium">{section.heading}</h3>
-              <p>{section.body}</p>
+            <section key={section.heading} className="space-y-0.5">
+              <h3 className="text-sm font-semibold tracking-tight text-foreground">
+                {section.heading}
+              </h3>
+              <p className="text-sm leading-6 text-foreground">{section.body}</p>
             </section>
           ))}
         </div>

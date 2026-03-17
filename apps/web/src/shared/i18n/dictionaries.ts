@@ -50,10 +50,6 @@ export const dictionaries = {
           heading: "4. Privacy and Security",
           body: "This website uses Cloudflare Turnstile to distinguish human users from automated bots to protect the service from abuse. To maintain service quality and investigate malicious behavior, we may temporarily log visitors' IP addresses, timestamps of requests, and queried destination addresses. This data is strictly used for security auditing and abuse prevention purposes and will not be used to track personal privacy.",
         },
-        {
-          heading: "5. Open Source License and Violations",
-          body: 'The source code for this project is open-source under the MIT License, allowing you to freely view, modify, and distribute the source code. However, this online service is provided on an "as is" basis without warranties of any kind, either express or implied. We are not responsible for the absolute accuracy of the diagnostic results, nor shall we be liable for any direct or indirect damages arising from the use of this service. If you violate this policy, we reserve the right to restrict, suspend, or permanently block your IP address and access to the service at any time without prior notice.',
-        },
       ],
     },
     admin: {
@@ -212,10 +208,6 @@ export const dictionaries = {
         {
           heading: "4. 隐私与安全",
           body: "本网站使用 Cloudflare Turnstile 来区分人类用户与自动化机器人，以保护服务免受滥用。为了维护服务质量和排查恶意行为，我们可能会临时记录访问者的 IP 地址、请求的时间戳以及查询的目标地址。这些数据仅用于安全审计和防滥用目的，不会用于追踪用户的个人隐私。",
-        },
-        {
-          heading: "5. 开源声明与违规处理",
-          body: "本项目代码基于 MIT 许可证开源，您可以自由地查看、修改和分发源代码。然而，本在线提供的服务按“原样”提供，不附带任何明示或暗示的保证。我们不对诊断结果的绝对准确性负责，也不对因使用本服务而导致的任何直接或间接损失承担责任。如果您违反了本政策，我们保留在不提前通知的情况下，随时限制、暂停或永久封禁您的 IP 地址及访问权限的权利。",
         },
       ],
     },
