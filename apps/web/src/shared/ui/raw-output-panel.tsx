@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { useTranslation } from "@/shared/i18n/provider";
 import { useTheme } from "@/shared/ui/theme-provider";
@@ -102,10 +102,17 @@ export function RawOutputPanel({ output, defaultOpen = false, collapsible = true
   const { theme } = useTheme();
   const [showRaw, setShowRaw] = useState(collapsible ? defaultOpen : true);
   const [html, setHtml] = useState("");
+  const requestIdRef = useRef(0);
   const safeHtml = useMemo(() => sanitizeHighlightedHtml(html), [html]);
 
   useEffect(() => {
-    if (!showRaw || !output) return;
+    requestIdRef.current += 1;
+    const requestId = requestIdRef.current;
+
+    if (!showRaw || !output) {
+      setHtml("");
+      return;
+    }
 
     const resolveTheme = () => {
       if (theme === "system") {
@@ -118,6 +125,7 @@ export function RawOutputPanel({ output, defaultOpen = false, collapsible = true
 
     getHighlighter()
       .then((highlighter) => {
+        if (requestIdRef.current !== requestId) return;
         setHtml(
           highlighter.codeToHtml(output, {
             lang: "shell",
@@ -126,9 +134,16 @@ export function RawOutputPanel({ output, defaultOpen = false, collapsible = true
         );
       })
       .catch((e) => {
+        if (requestIdRef.current !== requestId) return;
         console.error("Failed to highlight code", e);
         setHtml("");
       });
+
+    return () => {
+      if (requestIdRef.current === requestId) {
+        requestIdRef.current += 1;
+      }
+    };
   }, [showRaw, output, theme]);
 
   return (

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useTheme } from "@/shared/ui/theme-provider";
 import { AlertCircle } from "lucide-react";
@@ -37,7 +37,7 @@ import { getLocalizedText } from "@/entities/server/localized-text";
 import { RouteTab } from "@/features/bird-route/ui/route-tab";
 import { PingTab } from "@/features/ping/ui/ping-tab";
 import { TracerouteTab } from "@/features/traceroute/ui/traceroute-tab";
-import { getToolErrorMessage } from "@/shared/api/tool-client";
+import { getToolErrorMessage, isAbortError } from "@/shared/api/tool-client";
 import { AppHeader } from "@/shared/ui/app-header";
 
 const tabsListClass =
@@ -157,6 +157,8 @@ function QueryInterface({ server, config }: { server: ServerConfig; config: Clie
   const [captchaWidgetKey, setCaptchaWidgetKey] = useState(0);
   const [captchaWidgetLoaded, setCaptchaWidgetLoaded] = useState(false);
   const [captchaVerifying, setCaptchaVerifying] = useState(false);
+  const birdRequestRef = useRef<AbortController | null>(null);
+  const verifyRequestRef = useRef<AbortController | null>(null);
   const loginRedirect =
     typeof window === "undefined" ? `/detail/${server.id}` : `${window.location.pathname}${window.location.search}`;
   const shouldRenderCaptchaWidget =
@@ -208,7 +210,25 @@ function QueryInterface({ server, config }: { server: ServerConfig; config: Clie
     return () => window.clearTimeout(timeoutId);
   }, [captchaWidgetKey, captchaWidgetLoaded, config?.turnstile?.siteKey, shouldRenderCaptchaWidget, showCaptcha]);
 
+  useEffect(() => {
+    return () => {
+      const birdRequest = birdRequestRef.current;
+      birdRequestRef.current = null;
+      birdRequest?.abort();
+
+      const verifyRequest = verifyRequestRef.current;
+      verifyRequestRef.current = null;
+      verifyRequest?.abort();
+    };
+  }, []);
+
   const runBirdQuery = async (command: string) => {
+    const previousRequest = birdRequestRef.current;
+    birdRequestRef.current = null;
+    previousRequest?.abort();
+
+    const controller = new AbortController();
+    birdRequestRef.current = controller;
     setLoading(true);
     setError("");
     setResult(null);
@@ -218,6 +238,7 @@ function QueryInterface({ server, config }: { server: ServerConfig; config: Clie
       const res = await fetch("/api/bird", {
         method: "POST",
         headers: buildPostJSONHeaders(),
+        signal: controller.signal,
         body: JSON.stringify({
           type: "bird",
           server: server.id,
@@ -225,19 +246,32 @@ function QueryInterface({ server, config }: { server: ServerConfig; config: Clie
         }),
       });
 
+      if (birdRequestRef.current !== controller || controller.signal.aborted) {
+        return;
+      }
+
       if (res.status === 401 || res.status === 403) {
         requestSSOLogin();
         return;
       }
 
       const data = await res.json();
+      if (birdRequestRef.current !== controller || controller.signal.aborted) {
+        return;
+      }
       if (data.rateLimit) setError("rate_limit_exceeded");
       else if (data.error) setError(getToolErrorMessage(data.error));
       else setResult(data);
     } catch (e) {
+      if (isAbortError(e)) {
+        return;
+      }
       setError(getToolErrorMessage(e));
     } finally {
-      setLoading(false);
+      if (birdRequestRef.current === controller) {
+        birdRequestRef.current = null;
+        setLoading(false);
+      }
     }
   };
 
@@ -420,13 +454,23 @@ function QueryInterface({ server, config }: { server: ServerConfig; config: Clie
                   },
                 }}
                 onSuccess={async (token) => {
+                  const previousRequest = verifyRequestRef.current;
+                  verifyRequestRef.current = null;
+                  previousRequest?.abort();
+
+                  const controller = new AbortController();
+                  verifyRequestRef.current = controller;
                   setCaptchaVerifying(true);
                   try {
                     const res = await fetch("/api/verify", {
                       method: "POST",
                       headers: buildPostJSONHeaders(),
+                      signal: controller.signal,
                       body: JSON.stringify({ token }),
                     });
+                    if (verifyRequestRef.current !== controller || controller.signal.aborted) {
+                      return;
+                    }
                     if (res.ok) {
                       setHasToolAuth(true);
                       setShowCaptcha(false);
@@ -440,6 +484,9 @@ function QueryInterface({ server, config }: { server: ServerConfig; config: Clie
                       }
                     } else {
                       const errJson = await res.json().catch(() => ({}));
+                      if (verifyRequestRef.current !== controller || controller.signal.aborted) {
+                        return;
+                      }
                       resetCaptchaWidget(
                         typeof errJson?.error === "string" && errJson.error
                           ? getToolErrorMessage(errJson.error)
@@ -447,7 +494,15 @@ function QueryInterface({ server, config }: { server: ServerConfig; config: Clie
                       );
                     }
                   } catch (e) {
+                    if (isAbortError(e)) {
+                      return;
+                    }
                     resetCaptchaWidget(getToolErrorMessage(e));
+                  } finally {
+                    if (verifyRequestRef.current === controller) {
+                      verifyRequestRef.current = null;
+                      setCaptchaVerifying(false);
+                    }
                   }
                 }}
               />

@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Input } from "@/shared/ui/input";
 import { Button } from "@/shared/ui/button";
 import { Spinner } from "@/shared/ui/spinner";
@@ -39,6 +39,14 @@ export function PingTab({
   const abortRef = useRef<AbortController | null>(null);
   const [error, setError] = useState("");
 
+  useEffect(() => {
+    return () => {
+      const controller = abortRef.current;
+      abortRef.current = null;
+      controller?.abort();
+    };
+  }, []);
+
   const handlePing = async (skipAuthGate = false) => {
     const validation = validateTargetInput(target);
     if (!validation.ok) {
@@ -53,8 +61,12 @@ export function PingTab({
       return;
     }
 
-    abortRef.current?.abort();
-    abortRef.current = new AbortController();
+    const previousRequest = abortRef.current;
+    abortRef.current = null;
+    previousRequest?.abort();
+
+    const controller = new AbortController();
+    abortRef.current = controller;
 
     const normalizedTarget = validation.normalized;
     setLoading(true);
@@ -72,7 +84,7 @@ export function PingTab({
         url: `/api/tool/ping/stream?${params.toString()}`,
         body: { target: normalizedTarget, count: countInt },
         startError: t.detail.ping_start_failed,
-        signal: abortRef.current.signal,
+        signal: controller.signal,
         onUnauthorized: () =>
           onUnauthorized(() => {
             void handlePing(true);
@@ -80,7 +92,11 @@ export function PingTab({
         onData: (line) => {
           if (line.startsWith("ERR-")) {
             setError(getToolErrorMessage(line));
-            abortRef.current?.abort();
+            if (abortRef.current === controller) {
+              abortRef.current = null;
+            }
+            controller.abort();
+            setLoading(false);
             return;
           }
           streamText.append(line);
@@ -91,7 +107,10 @@ export function PingTab({
         setError(getToolErrorMessage(e));
       }
     } finally {
-      setLoading(false);
+      if (abortRef.current === controller) {
+        abortRef.current = null;
+        setLoading(false);
+      }
     }
   };
 

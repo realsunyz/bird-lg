@@ -169,6 +169,8 @@ export default function AdminPage() {
                           ? t.admin.status.incompatible
                           : t.admin.status.unavailable;
                       const detailMessage = isIncompatible ? incompatibleMessage : item.error;
+                      const availableBadgeClass =
+                        "border-emerald-300 bg-emerald-100 text-emerald-800 hover:bg-emerald-100 dark:border-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-200 dark:hover:bg-emerald-950/50";
                       const incompatibleBadgeClass =
                         "border-amber-300 bg-amber-100 text-amber-800 hover:bg-amber-100 dark:border-amber-800 dark:bg-amber-950/50 dark:text-amber-200 dark:hover:bg-amber-950/50";
 
@@ -190,7 +192,13 @@ export default function AdminPage() {
                                       ? "outline"
                                       : "destructive"
                                 }
-                                className={isIncompatible ? incompatibleBadgeClass : undefined}
+                                className={
+                                  isAvailable
+                                    ? availableBadgeClass
+                                    : isIncompatible
+                                      ? incompatibleBadgeClass
+                                      : undefined
+                                }
                               >
                                 {statusLabel}
                               </Badge>
