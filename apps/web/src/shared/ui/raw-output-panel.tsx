@@ -166,7 +166,7 @@ export function RawOutputPanel({ output, defaultOpen = false, collapsible = true
       )}
       {showRaw && (
         <div
-          className={`bg-muted/30 overflow-x-auto text-sm font-mono [&_pre]:bg-transparent! [&_pre]:m-0! ${
+          className={`bg-muted/30 overflow-x-auto text-xs sm:text-sm font-mono [&_pre]:bg-transparent! [&_pre]:m-0! ${
             collapsible ? "border-t px-6 py-4" : "rounded-md border p-4"
           }`}
         >
