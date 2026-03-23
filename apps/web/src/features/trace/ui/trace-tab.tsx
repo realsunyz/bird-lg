@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Input } from "@/shared/ui/input";
 import { Button } from "@/shared/ui/button";
 import { Spinner } from "@/shared/ui/spinner";
-import { TracerouteResult } from "@/features/traceroute/ui/traceroute-result";
+import { TraceResult } from "@/features/trace/ui/trace-result";
 import { useTranslation } from "@/shared/i18n/provider";
 import { validateTargetInput } from "@/shared/lib/target-validation";
 import { useBufferedText } from "@/shared/hooks/use-buffered-text";
@@ -12,7 +12,7 @@ import { getToolErrorMessage, isAbortError, runStreamRequest } from "@/shared/ap
 
 const toolInputClass = "flex-1 font-mono text-base md:text-sm";
 
-export function TracerouteTab({
+export function TraceTab({
   activeServer,
   canRunWithoutCaptcha,
   onUnauthorized,
@@ -37,7 +37,7 @@ export function TracerouteTab({
     };
   }, []);
 
-  const handleTraceroute = async (skipAuthGate = false) => {
+  const handleTrace = async (skipAuthGate = false) => {
     const validation = validateTargetInput(target);
     if (!validation.ok) {
       setError(validation.errorKey);
@@ -46,7 +46,7 @@ export function TracerouteTab({
 
     if (!skipAuthGate && !canRunWithoutCaptcha) {
       onUnauthorized(() => {
-        void handleTraceroute(true);
+        void handleTrace(true);
       });
       return;
     }
@@ -71,11 +71,11 @@ export function TracerouteTab({
       await runStreamRequest({
         url: `/api/tool/traceroute/stream?${params.toString()}`,
         body: { target: normalizedTarget },
-        startError: t.detail.traceroute_start_failed,
+        startError: t.detail.trace_start_failed,
         signal: controller.signal,
         onUnauthorized: () =>
           onUnauthorized(() => {
-            void handleTraceroute(true);
+            void handleTrace(true);
           }),
         onData: (line) => {
           if (line.startsWith("ERR-")) {
@@ -106,18 +106,18 @@ export function TracerouteTab({
     <div className="space-y-4">
       <div className="flex gap-2">
         <Input
-          placeholder={isMobile ? t.detail.traceroute_placeholder_mobile : t.detail.traceroute_placeholder}
+          placeholder={isMobile ? t.detail.trace_placeholder_mobile : t.detail.trace_placeholder}
           value={target}
           onChange={(e) => setTarget(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && target.trim().length > 0 && !loading && handleTraceroute()}
+          onKeyDown={(e) => e.key === "Enter" && target.trim().length > 0 && !loading && handleTrace()}
           className={toolInputClass}
         />
-        <Button onClick={() => void handleTraceroute()} disabled={loading || target.trim().length === 0}>
+        <Button onClick={() => void handleTrace()} disabled={loading || target.trim().length === 0}>
           {loading ? <Spinner /> : t.detail.execute}
         </Button>
       </div>
       <QueryErrorAlert message={error} />
-      {streamText.text && !error && <TracerouteResult rawOutput={streamText.text} />}
+      {streamText.text && !error && <TraceResult rawOutput={streamText.text} />}
     </div>
   );
 }

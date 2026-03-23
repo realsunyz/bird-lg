@@ -1,10 +1,16 @@
 import { useState, useEffect, useRef } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useSearchParams } from "react-router-dom";
 import { useTheme } from "@/shared/ui/theme-provider";
 import { AlertCircle } from "lucide-react";
 
 import { Button } from "@/shared/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/shared/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/shared/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/shared/ui/alert";
 import {
   Tabs,
@@ -36,7 +42,7 @@ import { buildPostJSONHeaders } from "@/shared/lib/csrf";
 import { getLocalizedText } from "@/entities/server/localized-text";
 import { RouteTab } from "@/features/bird-route/ui/route-tab";
 import { PingTab } from "@/features/ping/ui/ping-tab";
-import { TracerouteTab } from "@/features/traceroute/ui/traceroute-tab";
+import { TraceTab } from "@/features/trace/ui/trace-tab";
 import { getToolErrorMessage, isAbortError } from "@/shared/api/tool-client";
 import { AppHeader } from "@/shared/ui/app-header";
 
@@ -48,7 +54,8 @@ const tabsTriggerClass =
 function mapTurnstileClientError(errorCode?: string): string {
   const code = (errorCode ?? "").trim();
   if (code === "110600" || code === "110620") return "captcha_timeout";
-  if (code === "102020" || code === "120020" || code === "120030") return "captcha_network_issue";
+  if (code === "102020" || code === "120020" || code === "120030")
+    return "captcha_network_issue";
   if (code === "110200") return "captcha_domain_not_allowed";
   if (
     code === "110100" ||
@@ -61,7 +68,8 @@ function mapTurnstileClientError(errorCode?: string): string {
     return "captcha_misconfigured";
   }
   if (code === "103010") return "captcha_unsupported";
-  if (code === "102010" || code.startsWith("300") || code.startsWith("600")) return "captcha_challenge_failed";
+  if (code === "102010" || code.startsWith("300") || code.startsWith("600"))
+    return "captcha_challenge_failed";
   if (
     code === "100010" ||
     code === "100020" ||
@@ -125,7 +133,13 @@ export default function DetailPage() {
   );
 }
 
-function QueryInterface({ server, config }: { server: ServerConfig; config: ClientConfig }) {
+function QueryInterface({
+  server,
+  config,
+}: {
+  server: ServerConfig;
+  config: ClientConfig;
+}) {
   const { t, locale } = useTranslation();
   const { theme } = useTheme();
   const [loading, setLoading] = useState(false);
@@ -135,24 +149,31 @@ function QueryInterface({ server, config }: { server: ServerConfig; config: Clie
   const serverName = getLocalizedText(server.name, locale);
 
   const isSSO = config?.auth?.authType === "sso";
-  const [hasToolAuth, setHasToolAuth] = useState(Boolean(config?.auth?.isAuthenticated));
+  const [hasToolAuth, setHasToolAuth] = useState(
+    Boolean(config?.auth?.isAuthenticated),
+  );
   const requiresCaptcha = Boolean(config?.turnstile?.siteKey);
   const canRunToolImmediately = !requiresCaptcha || hasToolAuth;
-  const [activeTab, setActiveTab] = useState("ping");
-  const [enableTabSwitchAnimation, setEnableTabSwitchAnimation] = useState(false);
+
+  const [searchParams, setSearchParams] = useSearchParams();
+  const defaultTab = searchParams.get("tab");
+  const validTabs = ["ping", "trace", ...(isSSO ? ["route"] : [])];
+  const initialTab =
+    defaultTab && validTabs.includes(defaultTab) ? defaultTab : "ping";
+
+  const [activeTab, setActiveTab] = useState(initialTab);
+  const [enableTabSwitchAnimation, setEnableTabSwitchAnimation] =
+    useState(false);
 
   const [routePreset, setRoutePreset] = useState("show protocols");
   const [routeInput, setRouteInput] = useState("");
 
   const [showCaptcha, setShowCaptcha] = useState(false);
   const [showSSOLogin, setShowSSOLogin] = useState(false);
-  const [pendingAction, setPendingAction] = useState<
-    | {
-        kind: "retry";
-        run: () => void;
-      }
-    | null
-  >(null);
+  const [pendingAction, setPendingAction] = useState<{
+    kind: "retry";
+    run: () => void;
+  } | null>(null);
   const [captchaError, setCaptchaError] = useState("");
   const [captchaWidgetKey, setCaptchaWidgetKey] = useState(0);
   const [captchaWidgetLoaded, setCaptchaWidgetLoaded] = useState(false);
@@ -160,9 +181,12 @@ function QueryInterface({ server, config }: { server: ServerConfig; config: Clie
   const birdRequestRef = useRef<AbortController | null>(null);
   const verifyRequestRef = useRef<AbortController | null>(null);
   const loginRedirect =
-    typeof window === "undefined" ? `/detail/${server.id}` : `${window.location.pathname}${window.location.search}`;
+    typeof window === "undefined"
+      ? `/detail/${server.id}`
+      : `${window.location.pathname}${window.location.search}`;
   const shouldRenderCaptchaWidget =
-    Boolean(config?.turnstile?.siteKey) && (!captchaError || isCaptchaRetryable(captchaError));
+    Boolean(config?.turnstile?.siteKey) &&
+    (!captchaError || isCaptchaRetryable(captchaError));
 
   const requestCaptcha = (run: () => void) => {
     setCaptchaError("");
@@ -208,7 +232,13 @@ function QueryInterface({ server, config }: { server: ServerConfig; config: Clie
     }, 10000);
 
     return () => window.clearTimeout(timeoutId);
-  }, [captchaWidgetKey, captchaWidgetLoaded, config?.turnstile?.siteKey, shouldRenderCaptchaWidget, showCaptcha]);
+  }, [
+    captchaWidgetKey,
+    captchaWidgetLoaded,
+    config?.turnstile?.siteKey,
+    shouldRenderCaptchaWidget,
+    showCaptcha,
+  ]);
 
   useEffect(() => {
     return () => {
@@ -302,6 +332,13 @@ function QueryInterface({ server, config }: { server: ServerConfig; config: Clie
         onValueChange={(v) => {
           setEnableTabSwitchAnimation(true);
           setActiveTab(v);
+          setSearchParams(
+            (prev) => {
+              prev.set("tab", v);
+              return prev;
+            },
+            { replace: true },
+          );
         }}
         className="w-full gap-0"
       >
@@ -320,9 +357,9 @@ function QueryInterface({ server, config }: { server: ServerConfig; config: Clie
                     {t.detail.ping}
                   </TabsTrigger>
                 </TabsHighlightItem>
-                <TabsHighlightItem value="traceroute" asChild>
-                  <TabsTrigger value="traceroute" className={tabsTriggerClass}>
-                    {t.detail.traceroute}
+                <TabsHighlightItem value="trace" asChild>
+                  <TabsTrigger value="trace" className={tabsTriggerClass}>
+                    {t.detail.trace}
                   </TabsTrigger>
                 </TabsHighlightItem>
                 {isSSO && (
@@ -340,33 +377,45 @@ function QueryInterface({ server, config }: { server: ServerConfig; config: Clie
               value="ping"
               forceMount
               className="mt-0"
-              initial={enableTabSwitchAnimation ? { opacity: 0, filter: "blur(4px)" } : false}
+              initial={
+                enableTabSwitchAnimation
+                  ? { opacity: 0, filter: "blur(4px)" }
+                  : false
+              }
             >
-                    <PingTab
-                      activeServer={server.id}
-                      isSSO={config?.auth?.authType === "sso"}
-                      canRunWithoutCaptcha={canRunToolImmediately}
-                      onUnauthorized={handleToolUnauthorized}
-                    />
+              <PingTab
+                activeServer={server.id}
+                isSSO={config?.auth?.authType === "sso"}
+                canRunWithoutCaptcha={canRunToolImmediately}
+                onUnauthorized={handleToolUnauthorized}
+              />
             </TabsContent>
             <TabsContent
-              value="traceroute"
+              value="trace"
               forceMount
               className="mt-0"
-              initial={enableTabSwitchAnimation ? { opacity: 0, filter: "blur(4px)" } : false}
+              initial={
+                enableTabSwitchAnimation
+                  ? { opacity: 0, filter: "blur(4px)" }
+                  : false
+              }
             >
-                    <TracerouteTab
-                      activeServer={server.id}
-                      canRunWithoutCaptcha={canRunToolImmediately}
-                      onUnauthorized={handleToolUnauthorized}
-                    />
+              <TraceTab
+                activeServer={server.id}
+                canRunWithoutCaptcha={canRunToolImmediately}
+                onUnauthorized={handleToolUnauthorized}
+              />
             </TabsContent>
             {isSSO && (
               <TabsContent
                 value="route"
                 forceMount
                 className="mt-0"
-                initial={enableTabSwitchAnimation ? { opacity: 0, filter: "blur(4px)" } : false}
+                initial={
+                  enableTabSwitchAnimation
+                    ? { opacity: 0, filter: "blur(4px)" }
+                    : false
+                }
               >
                 <RouteTab
                   runBirdQuery={runBirdQuery}
@@ -402,7 +451,7 @@ function QueryInterface({ server, config }: { server: ServerConfig; config: Clie
           }
         }}
       >
-        <DialogContent 
+        <DialogContent
           className="sm:max-w-md"
           showCloseButton={false}
           onInteractOutside={(e) => e.preventDefault()}
@@ -466,7 +515,10 @@ function QueryInterface({ server, config }: { server: ServerConfig; config: Clie
                       signal: controller.signal,
                       body: JSON.stringify({ token }),
                     });
-                    if (verifyRequestRef.current !== controller || controller.signal.aborted) {
+                    if (
+                      verifyRequestRef.current !== controller ||
+                      controller.signal.aborted
+                    ) {
                       return;
                     }
                     if (res.ok) {
@@ -482,7 +534,10 @@ function QueryInterface({ server, config }: { server: ServerConfig; config: Clie
                       }
                     } else {
                       const errJson = await res.json().catch(() => ({}));
-                      if (verifyRequestRef.current !== controller || controller.signal.aborted) {
+                      if (
+                        verifyRequestRef.current !== controller ||
+                        controller.signal.aborted
+                      ) {
                         return;
                       }
                       resetCaptchaWidget(
@@ -551,11 +606,17 @@ function QueryInterface({ server, config }: { server: ServerConfig; config: Clie
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>{t.detail.sso_sign_in}</DialogTitle>
-            <DialogDescription>{t.detail.sso_sign_in_description}</DialogDescription>
+            <DialogDescription>
+              {t.detail.sso_sign_in_description}
+            </DialogDescription>
           </DialogHeader>
           <div className="flex justify-end">
             <Button asChild>
-              <a href={`/api/auth/login?redirect=${encodeURIComponent(loginRedirect)}`}>{t.home.account_menu.login}</a>
+              <a
+                href={`/api/auth/login?redirect=${encodeURIComponent(loginRedirect)}`}
+              >
+                {t.home.account_menu.login}
+              </a>
             </Button>
           </div>
         </DialogContent>

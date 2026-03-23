@@ -13,11 +13,11 @@ import { RawOutputPanel } from "@/shared/ui/raw-output-panel";
 import { useTranslation } from "@/shared/i18n/provider";
 import { Slot } from "@/shared/ui/animate-ui/primitives/animate/slot";
 
-interface TracerouteResultProps {
+interface TraceResultProps {
   rawOutput: string;
 }
 
-interface TracerouteHop {
+interface TraceHop {
   hop: number;
   host: string;
   ip: string;
@@ -27,11 +27,11 @@ interface TracerouteHop {
   raw: string;
 }
 
-export function TracerouteResult({ rawOutput }: TracerouteResultProps) {
+export function TraceResult({ rawOutput }: TraceResultProps) {
   const { t } = useTranslation();
-  const hops = useMemo<TracerouteHop[]>(() => {
+  const hops = useMemo<TraceHop[]>(() => {
     const lines = rawOutput.split("\n");
-    const parsedHops: TracerouteHop[] = [];
+    const parsedHops: TraceHop[] = [];
 
     const hopRegex = /^\s*(\d+)\s+(.+)$/;
 
@@ -94,9 +94,9 @@ export function TracerouteResult({ rawOutput }: TracerouteResultProps) {
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-[50px] pl-4 sm:pl-6">#</TableHead>
-                  <TableHead>{t.detail.traceroute_result.host}</TableHead>
+                  <TableHead>{t.detail.trace_result.host}</TableHead>
                   <TableHead>IP</TableHead>
-                  <TableHead className="pr-4 sm:pr-6">{t.detail.traceroute_result.rtt}</TableHead>
+                  <TableHead className="pr-4 sm:pr-6">{t.detail.trace_result.rtt}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -140,7 +140,7 @@ export function TracerouteResult({ rawOutput }: TracerouteResultProps) {
                 {hops.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={4} className="text-center text-muted-foreground p-8">
-                      {t.detail.traceroute_result.starting}
+                      {t.detail.trace_result.starting}
                     </TableCell>
                   </TableRow>
                 )}
