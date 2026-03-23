@@ -21,6 +21,8 @@ import { RawOutputPanel } from "@/shared/ui/raw-output-panel";
 import { useTranslation } from "@/shared/i18n/provider";
 import { isIP } from "@/shared/lib/target-validation";
 import { cn } from "@/shared/lib/utils";
+import { parseBgpProtocolDetail } from "../lib/parse-protocol-detail";
+import { ProtocolDetailPanel } from "./protocol-detail-panel";
 
 interface ProtocolInfo {
   name: string;
@@ -75,6 +77,7 @@ export function RouteTab({
   const routeDataRaw = (result as { result?: { data: unknown }[] })?.result?.[0]?.data;
   const routeData = typeof routeDataRaw === "string" ? routeDataRaw : "";
   const isShowAllProtocols = lastCommand === "show protocols";
+  const bgpDetail = !isShowAllProtocols && routeData ? parseBgpProtocolDetail(routeData) : null;
   const protocols = isShowAllProtocols ? parseProtocolSummary(routeData) : [];
   const filteredProtocols = protocols.filter((p) => {
     const proto = typeof p?.proto === "string" ? p.proto : "";
@@ -129,7 +132,10 @@ export function RouteTab({
                   <TableCell className="font-medium text-sm">
                     <button
                       onClick={() => onProtocolSelect(p.name)}
-                      className="hover:underline cursor-pointer text-primary focus:outline-none"
+                      className={cn(
+                        "hover:underline cursor-pointer focus:outline-none",
+                        getStateColor(p.state)
+                      )}
                     >
                       {p.name}
                     </button>
@@ -152,7 +158,10 @@ export function RouteTab({
       )}
 
       {(!isShowAllProtocols || filteredProtocols.length === 0) && routeData && !loading && !error && (
-        <RawOutputPanel output={routeData} collapsible={false} />
+        <div className="space-y-4">
+          {bgpDetail && <ProtocolDetailPanel detail={bgpDetail} />}
+          <RawOutputPanel output={routeData} collapsible={!!bgpDetail} />
+        </div>
       )}
     </div>
   );
