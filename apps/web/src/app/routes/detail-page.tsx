@@ -302,8 +302,6 @@ function QueryInterface({ server, config }: { server: ServerConfig; config: Clie
         onValueChange={(v) => {
           setEnableTabSwitchAnimation(true);
           setActiveTab(v);
-          setResult(null);
-          setError("");
         }}
         className="w-full gap-0"
       >
