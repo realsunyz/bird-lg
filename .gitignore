@@ -53,3 +53,4 @@ public.pem
 tmp/
 temp/
 .cache/
+data/ipinfo.mmdb

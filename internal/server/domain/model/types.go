@@ -35,6 +35,22 @@ type PingStreamRequest struct {
 	Count  int    `json:"count"`
 }
 
+type TraceIPInfoLookupRequest struct {
+	IPs []string `json:"ips"`
+}
+
+type TraceIPMetadata struct {
+	IP          string `json:"ip"`
+	ASN         string `json:"asn,omitempty"`
+	ASName      string `json:"asName,omitempty"`
+	Country     string `json:"country,omitempty"`
+	CountryCode string `json:"countryCode,omitempty"`
+}
+
+type TraceIPInfoResponse struct {
+	Items map[string]TraceIPMetadata `json:"items"`
+}
+
 type BirdCommandRequest struct {
 	Command string `json:"command"`
 }

@@ -18,6 +18,9 @@ func Register(app *fiber.App, cfg *config.Config) {
 	api.Use(limiter.New(limiter.Config{
 		Max:        120,
 		Expiration: time.Minute,
+		Next: func(c fiber.Ctx) bool {
+			return c.Path() == "/api/tool/traceroute/ipinfo"
+		},
 		LimitReached: func(c fiber.Ctx) error {
 			return c.Status(fiber.StatusTooManyRequests).JSON(fiber.Map{"error": errx.FormatPublicError("ERR-RATE-429", "Rate limit exceeded")})
 		},
@@ -35,6 +38,13 @@ func Register(app *fiber.App, cfg *config.Config) {
 
 	toolAuth := httpmiddleware.ToolJWT(cfg)
 	ssoAuth := httpmiddleware.SSOJWT(cfg)
+	traceIPInfoLimiter := limiter.New(limiter.Config{
+		Max:        240,
+		Expiration: time.Minute,
+		LimitReached: func(c fiber.Ctx) error {
+			return c.Status(fiber.StatusTooManyRequests).JSON(fiber.Map{"error": errx.FormatPublicError("ERR-RATE-429", "Rate limit exceeded")})
+		},
+	})
 
 	api.Get("/config", httpmiddleware.WithTimeout(handlers.HandleConfig(cfg), 5*time.Second))
 	api.Get("/auth", httpmiddleware.WithTimeout(handlers.HandleAuth(cfg), 5*time.Second))
@@ -46,6 +56,7 @@ func Register(app *fiber.App, cfg *config.Config) {
 	api.Post("/tool/ping/stream", toolAuth, handlers.HandleToolPingStream(cfg))
 	api.Post("/tool/traceroute", toolAuth, httpmiddleware.WithTimeout(handlers.HandleToolTraceroute(cfg), 70*time.Second))
 	api.Post("/tool/traceroute/stream", toolAuth, handlers.HandleToolTracerouteStream(cfg))
+	api.Post("/tool/traceroute/ipinfo", toolAuth, traceIPInfoLimiter, httpmiddleware.WithTimeout(handlers.HandleTraceIPInfo(cfg), 10*time.Second))
 
 	api.Get("/auth/login", httpmiddleware.WithTimeout(handlers.HandleLogtoLogin(cfg), 10*time.Second))
 	app.Get("/auth/logout", httpmiddleware.WithTimeout(handlers.HandleLogtoLogout(cfg), 5*time.Second))

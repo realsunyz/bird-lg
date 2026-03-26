@@ -136,6 +136,23 @@ func HandleToolTracerouteStream(cfg *platformconfig.Config) fiber.Handler {
 	})
 }
 
+func HandleTraceIPInfo(cfg *platformconfig.Config) fiber.Handler {
+	service := toolsvc.NewService(cfg)
+
+	return func(c fiber.Ctx) error {
+		var req model.TraceIPInfoLookupRequest
+		if err := c.Bind().JSON(&req); err != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": errx.PublicErrorFromKey("invalid_request")})
+		}
+
+		result, status, publicErr := service.LookupTraceIPInfo(req.IPs)
+		if status != 0 {
+			return c.Status(status).JSON(fiber.Map{"error": publicErr})
+		}
+		return c.JSON(result)
+	}
+}
+
 func handleToolRequest(cfg *platformconfig.Config, upstreamPath string) fiber.Handler {
 	service := toolsvc.NewService(cfg)
 

@@ -108,7 +108,10 @@ export const dictionaries = {
         waiting: "Waiting for ping replies...",
       },
       trace_result: {
-        host: "Host",
+        address: "IP / rDNS",
+        info: "Info",
+        country: "Country",
+        asn: "ASN",
         rtt: "RTT",
         starting: "Starting trace...",
       },
@@ -265,7 +268,10 @@ export const dictionaries = {
         waiting: "等待 Ping 回应中...",
       },
       trace_result: {
-        host: "主机",
+        address: "IP / rDNS",
+        info: "Info",
+        country: "Country",
+        asn: "ASN",
         rtt: "RTT",
         starting: "等待 Trace 回应中...",
       },

@@ -16,9 +16,9 @@ func init() {
 		bin   string
 		flags []string
 	}{
-		{"traceroute", []string{"-q1", "-N32", "-w1"}},
-		{"traceroute", []string{"-q1", "-w1"}},
-		{"traceroute", nil},
+		{"traceroute", []string{"-I", "-q1", "-N32", "-w1"}},
+		{"traceroute", []string{"-I", "-q1", "-w1"}},
+		{"traceroute", []string{"-I"}},
 	}
 
 	for _, cfg := range configs {
@@ -37,6 +37,7 @@ func init() {
 	}
 
 	tracerouteBin = "traceroute"
+	tracerouteFlags = []string{"-I"}
 }
 
 func BuildCommand(target string) (string, []string, error) {

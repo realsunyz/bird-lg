@@ -7,6 +7,7 @@ require (
 	github.com/gofiber/contrib/v3/jwt v1.0.0
 	github.com/gofiber/fiber/v3 v3.1.0
 	github.com/golang-jwt/jwt/v5 v5.3.1
+	github.com/oschwald/maxminddb-golang/v2 v2.1.1
 	gopkg.in/yaml.v3 v3.0.1
 )
 

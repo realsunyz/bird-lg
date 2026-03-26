@@ -18,3 +18,9 @@ This project is still in active development and may have breaking changes.
 - Server: `env GOCACHE=/tmp/go-build-server go test ./...`
 - Client: `cd apps/client && env GOCACHE=/tmp/go-build-client go test ./...`
 - Frontend: `pnpm --dir apps/web build`
+
+## IPInfo Lite DB
+
+- Set `IPINFO_TOKEN` to let the server download `ipinfo_lite.mmdb` from ipinfo automatically on first Trace IP info lookup.
+- Example source URL: `https://ipinfo.io/data/ipinfo_lite.mmdb?_src=frontend&token=exampletoken`
+- If the download fails, the server falls back to any existing local `data/ipinfo.mmdb`.

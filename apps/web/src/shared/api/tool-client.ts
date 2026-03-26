@@ -1,6 +1,14 @@
 import { buildPostJSONHeaders } from "@/shared/lib/csrf";
 import { extractErrorCode } from "@/shared/lib/target-validation";
 
+export interface TraceIPMetadata {
+  ip: string;
+  asn?: string;
+  asName?: string;
+  country?: string;
+  countryCode?: string;
+}
+
 type StreamRequestOptions = {
   url: string;
   body: unknown;
@@ -94,6 +102,35 @@ export async function runStreamRequest({
     if (isAbortError(e)) return;
     throw e;
   }
+}
+
+export async function fetchTraceIPInfo(
+  ips: string[],
+  signal?: AbortSignal,
+): Promise<Record<string, TraceIPMetadata>> {
+  if (ips.length === 0) return {};
+
+  const response = await fetch("/api/tool/traceroute/ipinfo", {
+    method: "POST",
+    headers: buildPostJSONHeaders(),
+    body: JSON.stringify({ ips }),
+    signal,
+  });
+
+  if (response.status === 401) {
+    return {};
+  }
+
+  if (!response.ok) {
+    const errJson = await response.json().catch(() => ({}));
+    throw new Error(errJson.error || "Failed to load trace ipinfo");
+  }
+
+  const payload = await response.json().catch(() => ({}));
+  if (!payload.items || typeof payload.items !== "object") {
+    return {};
+  }
+  return payload.items as Record<string, TraceIPMetadata>;
 }
 
 export function getToolErrorMessage(value: unknown): string {

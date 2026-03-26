@@ -34,6 +34,7 @@ COPY go.mod go.sum ./
 RUN go mod download
 
 COPY apps/server ./apps/server
+COPY data ./data
 COPY internal ./internal
 
 RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o server ./apps/server
@@ -46,6 +47,7 @@ RUN apk add --no-cache ca-certificates
 WORKDIR /app
 
 COPY --from=backend /app/server ./
+COPY --from=backend /app/data ./data
 COPY --from=frontend /app/apps/web/dist ./static
 
 EXPOSE 3000
