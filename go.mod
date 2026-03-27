@@ -3,8 +3,8 @@ module bird-lg/server
 go 1.25.5
 
 require (
-	github.com/goccy/go-json v0.10.5
-	github.com/gofiber/contrib/v3/jwt v1.0.0
+	github.com/goccy/go-json v0.10.6
+	github.com/gofiber/contrib/v3/jwt v1.1.0
 	github.com/gofiber/fiber/v3 v3.1.0
 	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/oschwald/maxminddb-golang/v2 v2.1.1
@@ -28,7 +28,7 @@ require (
 	github.com/valyala/fasthttp v1.69.0 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 	golang.org/x/crypto v0.48.0 // indirect
-	golang.org/x/net v0.50.0 // indirect
+	golang.org/x/net v0.51.0 // indirect
 	golang.org/x/sys v0.41.0 // indirect
 	golang.org/x/text v0.34.0 // indirect
 )
