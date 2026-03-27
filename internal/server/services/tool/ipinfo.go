@@ -30,10 +30,18 @@ type traceIPInfoRecord struct {
 	CountryCode string `maxminddb:"country_code"`
 }
 
+type traceIPInfoCacheRecord struct {
+	ASN         string
+	ASName      string
+	Country     string
+	CountryCode string
+}
+
 var (
 	traceIPInfoDBOnce sync.Once
 	traceIPInfoDB     *maxminddb.Reader
 	traceIPInfoDBErr  error
+	traceIPInfoCache  sync.Map
 )
 
 func (s *Service) LookupTraceIPInfo(ips []string) (model.TraceIPInfoResponse, int, string) {
@@ -79,8 +87,26 @@ func (s *Service) LookupTraceIPInfo(ips []string) (model.TraceIPInfoResponse, in
 	}
 
 	for _, entry := range parsedIPs {
+		result := db.Lookup(entry.addr)
+		if err := result.Err(); err != nil {
+			continue
+		}
+
+		offset := result.Offset()
+		if cached, ok := traceIPInfoCache.Load(offset); ok {
+			record := cached.(traceIPInfoCacheRecord)
+			items[entry.raw] = model.TraceIPMetadata{
+				IP:          entry.raw,
+				ASN:         record.ASN,
+				ASName:      record.ASName,
+				Country:     record.Country,
+				CountryCode: record.CountryCode,
+			}
+			continue
+		}
+
 		var record traceIPInfoRecord
-		if err := db.Lookup(entry.addr).Decode(&record); err != nil {
+		if err := result.Decode(&record); err != nil {
 			continue
 		}
 
@@ -88,12 +114,20 @@ func (s *Service) LookupTraceIPInfo(ips []string) (model.TraceIPInfoResponse, in
 			continue
 		}
 
-		items[entry.raw] = model.TraceIPMetadata{
-			IP:          entry.raw,
+		cached := traceIPInfoCacheRecord{
 			ASN:         record.ASN,
 			ASName:      record.ASName,
 			Country:     record.Country,
 			CountryCode: strings.ToUpper(record.CountryCode),
+		}
+		traceIPInfoCache.Store(offset, cached)
+
+		items[entry.raw] = model.TraceIPMetadata{
+			IP:          entry.raw,
+			ASN:         cached.ASN,
+			ASName:      cached.ASName,
+			Country:     cached.Country,
+			CountryCode: cached.CountryCode,
 		}
 	}
 
@@ -118,6 +152,7 @@ func openTraceIPInfoDB() (*maxminddb.Reader, error) {
 
 			traceIPInfoDB, traceIPInfoDBErr = maxminddb.Open(candidate)
 			if traceIPInfoDBErr == nil {
+				traceIPInfoCache = sync.Map{}
 				logx.Infof("Loaded trace ipinfo database from %s", candidate)
 				return
 			}
