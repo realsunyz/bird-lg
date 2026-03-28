@@ -1,8 +1,8 @@
 package handlers
 
 import (
-	"bird-lg-client/internal/buildinfo"
-	"bird-lg-client/internal/model"
+	"bird-lg/client/internal/buildinfo"
+	"bird-lg/client/internal/model"
 	"github.com/gofiber/fiber/v3"
 )
 

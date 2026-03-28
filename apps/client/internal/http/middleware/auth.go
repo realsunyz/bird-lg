@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"bird-lg-client/internal/platform"
+	"bird-lg/client/internal/platform"
 	"github.com/gofiber/fiber/v3"
 )
 

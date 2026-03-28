@@ -8,13 +8,13 @@ import (
 	"strings"
 	"time"
 
-	"bird-lg-client/internal/model"
-	"bird-lg-client/internal/platform"
-	"bird-lg-client/internal/runner"
-	birdsvc "bird-lg-client/internal/services/bird"
-	pingsvc "bird-lg-client/internal/services/ping"
-	tracesvc "bird-lg-client/internal/services/traceroute"
-	"bird-lg-client/internal/stream"
+	"bird-lg/client/internal/model"
+	"bird-lg/client/internal/platform"
+	"bird-lg/client/internal/runner"
+	birdsvc "bird-lg/client/internal/services/bird"
+	pingsvc "bird-lg/client/internal/services/ping"
+	tracesvc "bird-lg/client/internal/services/traceroute"
+	"bird-lg/client/internal/stream"
 	"github.com/gofiber/fiber/v3"
 )
 

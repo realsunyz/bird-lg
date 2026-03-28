@@ -1,6 +1,6 @@
 package model
 
-import "bird-lg-client/internal/buildinfo"
+import "bird-lg/client/internal/buildinfo"
 
 type ApiGenericResultPair struct {
 	Server string `json:"server"`

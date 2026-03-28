@@ -1,9 +1,9 @@
-module bird-lg-client
+module bird-lg/client
 
 go 1.25.5
 
 require (
-	github.com/goccy/go-json v0.10.5
+	github.com/goccy/go-json v0.10.6
 	github.com/gofiber/fiber/v3 v3.1.0
 )
 

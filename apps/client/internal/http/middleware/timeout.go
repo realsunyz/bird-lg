@@ -3,7 +3,7 @@ package middleware
 import (
 	"time"
 
-	"bird-lg-client/internal/platform"
+	"bird-lg/client/internal/platform"
 	"github.com/gofiber/fiber/v3"
 	timeoutmw "github.com/gofiber/fiber/v3/middleware/timeout"
 )
