@@ -282,6 +282,18 @@ export function TraceResult({ rawOutput }: TraceResultProps) {
       </Slot>
 
       <RawOutputPanel output={rawOutput} />
+      <p className="text-xs text-muted-foreground">
+        Credit: IP address information is provided by{" "}
+        <a
+          href="https://ipinfo.io"
+          target="_blank"
+          rel="noreferrer"
+          className="underline underline-offset-2"
+        >
+          IPInfo
+        </a>
+        .
+      </p>
     </div>
   );
 }
