@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, Link, useSearchParams } from "react-router-dom";
+import { toast } from "sonner";
 import { useTheme } from "@/shared/ui/theme-provider";
 import { AlertCircle } from "lucide-react";
 
@@ -45,6 +46,7 @@ import { PingTab } from "@/features/ping/ui/ping-tab";
 import { TraceTab } from "@/features/trace/ui/trace-tab";
 import { getToolErrorMessage, isAbortError } from "@/shared/api/tool-client";
 import { AppHeader } from "@/shared/ui/app-header";
+import { useMediaQuery } from "@/shared/hooks/use-media-query";
 
 const tabsListClass =
   "flex w-full min-w-max items-stretch justify-start gap-4 md:gap-8 bg-transparent p-0 px-4 md:px-6";
@@ -142,6 +144,7 @@ function QueryInterface({
 }) {
   const { t, locale } = useTranslation();
   const { theme } = useTheme();
+  const isMobile = useMediaQuery("(max-width: 639px)");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState<unknown>(null);
@@ -180,6 +183,7 @@ function QueryInterface({
   const [captchaVerifying, setCaptchaVerifying] = useState(false);
   const birdRequestRef = useRef<AbortController | null>(null);
   const verifyRequestRef = useRef<AbortController | null>(null);
+  const mobileNoticeShownRef = useRef(false);
   const loginRedirect =
     typeof window === "undefined"
       ? `/detail/${server.id}`
@@ -187,6 +191,12 @@ function QueryInterface({
   const shouldRenderCaptchaWidget =
     Boolean(config?.turnstile?.siteKey) &&
     (!captchaError || isCaptchaRetryable(captchaError));
+
+  useEffect(() => {
+    if (!isMobile || mobileNoticeShownRef.current) return;
+    mobileNoticeShownRef.current = true;
+    toast.warning(t.detail.mobile_limited_notice);
+  }, [isMobile, t.detail.mobile_limited_notice]);
 
   const requestCaptcha = (run: () => void) => {
     setCaptchaError("");

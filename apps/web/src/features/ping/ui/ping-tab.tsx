@@ -118,7 +118,7 @@ export function PingTab({
     <div className="space-y-4">
       <div className="flex gap-2">
         <Input
-          placeholder={isMobile ? t.detail.ping_placeholder_mobile : t.detail.ping_placeholder}
+          placeholder={isMobile ? t.detail.target_placeholder_mobile : t.detail.target_placeholder}
           value={target}
           onChange={(e) => setTarget(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && target.trim().length > 0 && !loading && handlePing()}

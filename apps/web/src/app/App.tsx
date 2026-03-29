@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, lazy, Suspense } from "react";
 import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
 import { LazyMotion, domAnimation } from "motion/react";
 import { ThemeProvider } from "@/shared/ui/theme-provider";
+import { Toaster } from "@/shared/ui/sonner";
 import { I18nProvider, useTranslation } from "@/shared/i18n/provider";
 import { ConfigProvider } from "@/entities/server/config-context";
 import { Button } from "@/shared/ui/button";
@@ -28,6 +29,7 @@ function App() {
       <I18nProvider>
         <LazyMotion features={domAnimation}>
           <AppBootstrap />
+          <Toaster position="bottom-center" />
         </LazyMotion>
       </I18nProvider>
     </ThemeProvider>
@@ -159,10 +161,10 @@ function AppBootstrap() {
             <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-6 py-5 text-sm text-muted-foreground">
               <div className="text-left">
                 <p className="hidden sm:block">
-                  {t.footer.copyright} {currentYear} Sunyz Network. {t.footer.rights_reserved}
+                  {t.footer.copyright} © {currentYear} Sunyz Network. {t.footer.rights_reserved}
                 </p>
                 <p className="sm:hidden">
-                  {t.footer.copyright} {currentYear} Sunyz Network
+                  {t.footer.copyright} © {currentYear} Sunyz Network
                 </p>
                 <p className="mt-1 text-xs text-muted-foreground/80">
                   {t.footer.version} {appBuildInfo.displayVersion} ({t.footer.build}{" "}
