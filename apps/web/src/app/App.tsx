@@ -10,13 +10,7 @@ import { AppHeader } from "@/shared/ui/app-header";
 import { appBuildInfo } from "@/shared/lib/build-info";
 import { useDebuggerGuard } from "@/shared/hooks/use-debugger-guard";
 import { AUPDialog } from "@/shared/ui/aup-dialog";
-import {
-  Empty,
-  EmptyActions,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyTitle,
-} from "@/shared/ui/empty";
+import { ErrorDisplay } from "@/shared/ui/error-display";
 import { type AuthStatus, type ClientConfig } from "@/entities/server/types";
 import HomePage from "@/features/server-select/ui/home-page";
 
@@ -121,16 +115,14 @@ function AppBootstrap() {
 
   if (hasLoadError || !config) {
     return (
-      <div className="min-h-dvh bg-background flex items-center justify-center px-4">
-        <Empty className="max-w-md">
-          <EmptyHeader>
-            <EmptyTitle>{t.error.title}</EmptyTitle>
-            <EmptyDescription>{t.error.failed_load_config}</EmptyDescription>
-          </EmptyHeader>
-          <EmptyActions>
-            <Button onClick={() => void loadConfig()}>{t.common.retry}</Button>
-          </EmptyActions>
-        </Empty>
+      <div className="min-h-dvh bg-background flex flex-col">
+        <AppHeader />
+        <ErrorDisplay
+          title={t.error.title}
+          description={t.error.failed_load_config}
+        >
+          <Button onClick={() => void loadConfig()}>{t.common.retry}</Button>
+        </ErrorDisplay>
       </div>
     );
   }
@@ -193,26 +185,15 @@ function NotFoundPage() {
   return (
     <div className="flex-1 bg-background flex flex-col font-sans">
       <AppHeader />
-      <div className="flex-1 flex items-center justify-center p-6">
-        <Empty className="max-w-none gap-3 rounded-none border-0 bg-transparent p-0 shadow-none">
-          <EmptyHeader>
-            <EmptyTitle className="text-5xl leading-[1.15] text-muted-foreground/70 md:text-6xl">
-              404
-            </EmptyTitle>
-            <EmptyDescription className="font-title text-base text-foreground">
-              {t.error.page_not_found_title}
-            </EmptyDescription>
-            <EmptyDescription>
-              {t.error.page_not_found_description}
-            </EmptyDescription>
-          </EmptyHeader>
-          <EmptyActions>
-            <Button asChild>
-              <Link to="/">{t.common.back_to_home}</Link>
-            </Button>
-          </EmptyActions>
-        </Empty>
-      </div>
+      <ErrorDisplay
+        title={t.error.page_not_found_title}
+        description={t.error.page_not_found_description}
+        variant="default"
+      >
+        <Button asChild>
+          <Link to="/">{t.common.back_to_home}</Link>
+        </Button>
+      </ErrorDisplay>
     </div>
   );
 }

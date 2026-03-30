@@ -5,12 +5,11 @@ import { useTheme } from "@/shared/ui/theme-provider";
 import { AlertCircle } from "lucide-react";
 
 import { Button } from "@/shared/ui/button";
+import { ErrorDisplay } from "@/shared/ui/error-display";
 import {
   Card,
   CardContent,
   CardHeader,
-  CardTitle,
-  CardDescription,
 } from "@/shared/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/shared/ui/alert";
 import {
@@ -55,35 +54,25 @@ const tabsTriggerClass =
 
 function mapTurnstileClientError(errorCode?: string): string {
   const code = (errorCode ?? "").trim();
-  if (code === "110600" || code === "110620") return "captcha_timeout";
-  if (code === "102020" || code === "120020" || code === "120030")
-    return "captcha_network_issue";
-  if (code === "110200") return "captcha_domain_not_allowed";
+  
   if (
     code === "110100" ||
     code === "110110" ||
-    code === "104010" ||
     code === "400020" ||
-    code === "400030" ||
-    code === "400040"
+    code === "400070"
   ) {
     return "captcha_misconfigured";
   }
-  if (code === "103010") return "captcha_unsupported";
-  if (code === "102010" || code.startsWith("300") || code.startsWith("600"))
+  
+  if (code === "110200") return "captcha_domain_not_allowed";
+  if (code === "110600" || code === "110620") return "captcha_timeout";
+  if (code === "200100") return "captcha_verification_failed";
+  if (code === "200500") return "captcha_load_failed";
+  
+  if (code.startsWith("300") || code.startsWith("600")) {
     return "captcha_challenge_failed";
-  if (
-    code === "100010" ||
-    code === "100020" ||
-    code === "100030" ||
-    code === "103020" ||
-    code === "103030" ||
-    code === "200010" ||
-    code === "200100" ||
-    code === "200500"
-  ) {
-    return "captcha_widget_error";
   }
+  
   return "captcha_widget_error";
 }
 
@@ -92,6 +81,7 @@ function isCaptchaRetryable(errorKey: string): boolean {
     case "captcha_domain_not_allowed":
     case "captcha_misconfigured":
     case "captcha_unsupported":
+    case "captcha_verification_failed":
       return false;
     default:
       return true;
@@ -111,18 +101,17 @@ export default function DetailPage() {
 
   if (!server) {
     return (
-      <div className="flex-1 bg-background flex items-center justify-center font-sans">
-        <Card className="max-w-md w-full border-destructive/50">
-          <CardHeader>
-            <CardTitle className="text-destructive">{t.error.title}</CardTitle>
-            <CardDescription>{t.error.server_not_found}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button variant="outline" asChild>
-              <Link to="/">{t.common.back_to_home}</Link>
-            </Button>
-          </CardContent>
-        </Card>
+      <div className="flex-1 bg-background flex flex-col font-sans">
+        <AppHeader />
+        <ErrorDisplay
+          title={t.error.page_not_found_title}
+          description={t.error.page_not_found_description}
+          variant="default"
+        >
+          <Button asChild>
+            <Link to="/">{t.common.back_to_home}</Link>
+          </Button>
+        </ErrorDisplay>
       </div>
     );
   }
@@ -320,6 +309,29 @@ function QueryInterface({
     setRouteInput(name);
     runBirdQuery(`show protocols all ${name}`);
   };
+
+  if (showSSOLogin) {
+    return (
+      <div className="flex-1 flex flex-col justify-center py-10">
+        <ErrorDisplay
+          title={t.admin.login_required_title}
+          description={t.admin.login_required_description}
+          variant="warning"
+        >
+          <div className="flex gap-3 justify-center">
+            <Button asChild>
+              <a href={`/api/auth/login?redirect=${encodeURIComponent(loginRedirect)}`}>
+                {t.home.account_menu.login}
+              </a>
+            </Button>
+            <Button variant="outline" onClick={() => setShowSSOLogin(false)}>
+              {t.common.cancel}
+            </Button>
+          </div>
+        </ErrorDisplay>
+      </div>
+    );
+  }
 
   return (
     <div className="flex-1 px-4 max-w-7xl mx-auto w-full pt-6 pb-8 md:px-8 md:pb-8">
@@ -612,25 +624,6 @@ function QueryInterface({
         </DialogContent>
       </Dialog>
 
-      <Dialog open={showSSOLogin} onOpenChange={setShowSSOLogin}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>{t.detail.sso_sign_in}</DialogTitle>
-            <DialogDescription>
-              {t.detail.sso_sign_in_description}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex justify-end">
-            <Button asChild>
-              <a
-                href={`/api/auth/login?redirect=${encodeURIComponent(loginRedirect)}`}
-              >
-                {t.home.account_menu.login}
-              </a>
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

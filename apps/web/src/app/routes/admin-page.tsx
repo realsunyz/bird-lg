@@ -6,6 +6,7 @@ import { useConfig } from "@/entities/server/config-context";
 import { getLocalizedText } from "@/entities/server/localized-text";
 import { useTranslation } from "@/shared/i18n/provider";
 import { Button } from "@/shared/ui/button";
+import { ErrorDisplay } from "@/shared/ui/error-display";
 import {
   Card,
   CardContent,
@@ -103,24 +104,22 @@ export default function AdminPage() {
     return (
       <div className="flex-1 bg-background flex flex-col font-sans">
         <AppHeader rightExtra={<AccountActions />} />
-        <div className="flex flex-1 items-center justify-center px-4 py-10">
-          <Card className="w-full max-w-md">
-            <CardHeader>
-              <CardTitle>{t.admin.login_required_title}</CardTitle>
-              <CardDescription>{t.admin.login_required_description}</CardDescription>
-            </CardHeader>
-            <CardContent className="flex gap-3">
-              <Button asChild>
-                <a href={`/api/auth/login?redirect=${encodeURIComponent("/admin")}`}>
-                  {t.home.account_menu.login}
-                </a>
-              </Button>
-              <Button variant="outline" asChild>
-                <Link to="/">{t.common.back_to_home}</Link>
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
+        <ErrorDisplay
+          title={t.admin.login_required_title}
+          description={t.admin.login_required_description}
+          variant="warning"
+        >
+          <div className="flex gap-3 justify-center">
+            <Button asChild>
+              <a href={`/api/auth/login?redirect=${encodeURIComponent("/admin")}`}>
+                {t.home.account_menu.login}
+              </a>
+            </Button>
+            <Button variant="outline" asChild>
+              <Link to="/">{t.common.back_to_home}</Link>
+            </Button>
+          </div>
+        </ErrorDisplay>
       </div>
     );
   }
