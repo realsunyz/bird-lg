@@ -34,7 +34,7 @@ COPY go.mod go.sum ./
 RUN go mod download
 
 COPY apps/server ./apps/server
-COPY data ./data
+RUN mkdir -p ./data
 COPY internal ./internal
 
 RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o server ./apps/server
