@@ -53,13 +53,9 @@ export default defineConfig({
       output: {
         manualChunks(id) {
           if (!id.includes("node_modules")) return;
-          if (id.includes("react-router")) return "router";
-          if (id.includes("@radix-ui") || id.includes("radix-ui") || id.includes("vaul")) return "radix";
-          if (id.includes("lucide-react")) return "icons";
           if (id.includes("react-circle-flags")) return "flags";
-          if (id.includes("react-turnstile")) return "turnstile";
           if (id.includes("shiki") || id.includes("@shikijs")) return "shiki";
-          if (id.includes("motion") || id.includes("framer-motion")) return "motion";
+          if (id.includes("@radix-ui") || id.includes("radix-ui") || id.includes("lucide-react") || id.includes("vaul")) return "ui";
           return "vendor";
         },
       },
