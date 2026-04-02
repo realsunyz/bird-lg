@@ -188,9 +188,9 @@ function NotFoundPage() {
       <ErrorDisplay
         title={t.error.page_not_found_title}
         description={t.error.page_not_found_description}
-        variant="default"
+        variant="destructive"
       >
-        <Button asChild>
+        <Button variant="outline" asChild>
           <Link to="/">{t.common.back_to_home}</Link>
         </Button>
       </ErrorDisplay>

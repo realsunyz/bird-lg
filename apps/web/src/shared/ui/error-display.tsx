@@ -58,7 +58,7 @@ export function ErrorDisplay({
             {description}
           </div>
         </div>
-        {children && <div className="pt-4">{children}</div>}
+        {children && <div>{children}</div>}
       </div>
     </div>
   );

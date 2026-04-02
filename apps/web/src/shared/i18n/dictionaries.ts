@@ -119,7 +119,7 @@ export const dictionaries = {
     },
     error: {
       title: "Error",
-      page_not_found_title: "Page not found",
+      page_not_found_title: "Page Not Found",
       page_not_found_description:
         "The page you are looking for does not exist.",
       verification_failed: "Verification failed",
