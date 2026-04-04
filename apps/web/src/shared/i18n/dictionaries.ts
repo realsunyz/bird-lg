@@ -142,6 +142,8 @@ export const dictionaries = {
       captcha_token_spent: "This CAPTCHA token was already used or expired.",
       captcha_expired: "The CAPTCHA challenge expired.",
       captcha_timeout: "The CAPTCHA challenge timed out.",
+      captcha_clock_or_cache_issue:
+        "The CAPTCHA failed due to a system clock or cached page issue. Please refresh the page and try again.",
       captcha_load_failed: "Failed to load the CAPTCHA widget.",
       captcha_widget_error: "The CAPTCHA widget encountered an error.",
       captcha_domain_not_allowed:
@@ -290,6 +292,8 @@ export const dictionaries = {
       captcha_token_spent: "验证码令牌已被使用或已过期。",
       captcha_expired: "人机验证已过期。",
       captcha_timeout: "人机验证校验超时。",
+      captcha_clock_or_cache_issue:
+        "人机验证因系统时间或缓存页面问题失败，请刷新页面后重试。",
       captcha_load_failed: "人机验证组件加载失败。",
       captcha_widget_error: "人机验证组件发生错误。",
       captcha_domain_not_allowed:
