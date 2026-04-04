@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import {
   Dialog,
   DialogContent,
@@ -31,16 +31,28 @@ export function ResponsiveDialog({
   description,
 }: ResponsiveDialogProps) {
   const isDesktop = useMediaQuery("(min-width: 640px)");
+  const [open, setOpen] = useState(false);
+  const dialogDescriptionProps = description
+    ? undefined
+    : { "aria-describedby": undefined };
+  const handleOpenChange = (nextOpen: boolean) => {
+    if (nextOpen && typeof document !== "undefined") {
+      const activeElement = document.activeElement;
+      if (activeElement instanceof HTMLElement) {
+        activeElement.blur();
+      }
+    }
+
+    setOpen(nextOpen);
+  };
 
   if (isDesktop) {
     return (
-      <Dialog>
+      <Dialog open={open} onOpenChange={handleOpenChange}>
         <DialogTrigger asChild>{children}</DialogTrigger>
         <DialogContent
           className="max-h-[85dvh] overflow-hidden p-0 sm:max-w-2xl"
-          onOpenAutoFocus={(event) => {
-            event.preventDefault();
-          }}
+          {...(dialogDescriptionProps ?? {})}
         >
           <DialogHeader className="px-6 pt-6 pb-2 pr-14 text-left">
             <DialogTitle>{title}</DialogTitle>
@@ -55,9 +67,12 @@ export function ResponsiveDialog({
   }
 
   return (
-    <Drawer>
+    <Drawer open={open} onOpenChange={handleOpenChange}>
       <DrawerTrigger asChild>{children}</DrawerTrigger>
-      <DrawerContent className="max-h-[85dvh] overflow-hidden">
+      <DrawerContent
+        className="max-h-[85dvh] overflow-hidden"
+        {...(dialogDescriptionProps ?? {})}
+      >
         <DrawerHeader className="px-6 pt-4 pb-3 text-left">
           <DrawerTitle>{title}</DrawerTitle>
           {description ? <DrawerDescription>{description}</DrawerDescription> : null}

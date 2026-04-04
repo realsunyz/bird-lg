@@ -174,9 +174,7 @@ export function DetailCaptchaDialog({
                 showCaptchaError("captcha_unsupported");
               }}
               scriptOptions={{
-                onError: () => {
-                  showCaptchaError("captcha_load_failed");
-                },
+                id: "cf-turnstile-script",
               }}
               onSuccess={async (token) => {
                 const previousRequest = verifyRequestRef.current;
