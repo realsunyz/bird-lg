@@ -145,12 +145,22 @@ export function getToolErrorMessage(value: unknown): string {
       return "target_bogon_blocked";
     case "ERR-SERVER-404":
       return "server_not_found";
+    case "ERR-CMD-403":
+      return "command_not_allowed";
     case "ERR-REQ-400":
       return "invalid_request";
     case "ERR-REQ-403-CSRF":
       return "csrf_failed";
     case "ERR-REQ-408":
       return "request_timeout";
+    case "ERR-TOOL-504":
+      return "tool_timeout";
+    case "ERR-TOOL-500-EXEC":
+      return "tool_exec_failed";
+    case "ERR-PING-500":
+      return "ping_unavailable";
+    case "ERR-BIRD-502":
+      return "bird_query_failed";
     case "ERR-AUTH-401":
     case "ERR-AUTH-403-SSO_REQUIRED":
       return "auth_required";
@@ -168,6 +178,7 @@ export function getToolErrorMessage(value: unknown): string {
       return "captcha_unavailable";
     case "ERR-CAPTCHA-403":
       return "captcha_verification_failed";
+    case "ERR-SERVER-500-IPINFO":
     case "ERR-SERVER-502-CONNECT":
     case "ERR-SERVER-502-STATUS":
       return "server_error";

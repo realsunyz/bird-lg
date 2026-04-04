@@ -58,7 +58,7 @@ export function ResponsiveDialog({
     <Drawer>
       <DrawerTrigger asChild>{children}</DrawerTrigger>
       <DrawerContent className="max-h-[85dvh] overflow-hidden">
-        <DrawerHeader className="px-6 pt-6 pb-2 text-left">
+        <DrawerHeader className="px-6 pt-4 pb-3 text-left">
           <DrawerTitle>{title}</DrawerTitle>
           {description ? <DrawerDescription>{description}</DrawerDescription> : null}
         </DrawerHeader>
